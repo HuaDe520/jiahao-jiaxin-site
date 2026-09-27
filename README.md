@@ -6,11 +6,14 @@
 
 | 项目 | 值 |
 | --- | --- |
-| **线上地址** | **https://huade520.github.io/jiahao-jiaxin-site/** |
+| **正式网址** | **https://xbc-zjja.com.cn/** （`www.xbc-zjja.com.cn` 会 301 跳到主域名） |
+| 备用地址 | https://huade520.github.io/jiahao-jiaxin-site/ （已 301 跳转到自定义域名） |
 | 仓库 | https://github.com/HuaDe520/jiahao-jiaxin-site |
-| 发布方式 | GitHub Pages · 分支发布（`main` 分支根目录），HTTPS 已强制启用 |
+| 域名解析 | 阿里云云解析：4×A + 4×AAAA + `www` 的 CNAME，**全部已生效** ✅ |
+| HTTPS | GitHub 自动签发 Let's Encrypt 证书（签发后自动开启强制 HTTPS） |
+| 发布方式 | GitHub Pages · 分支发布（`main` 分支根目录） |
 | 更新内容 | 本地改完后执行 `node tools\publish.mjs`（走 `api.github.com`，不需要 git push） |
-| 下一步 | 绑定自定义域名 → 见 [自定义域名教程.md](自定义域名教程.md) |
+| 相关文档 | [DEPLOY.md](DEPLOY.md) · [自定义域名教程.md](自定义域名教程.md) · [域名解析配置单.md](域名解析配置单.md) |
 
 ## 目录结构
 
