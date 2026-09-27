@@ -2,6 +2,16 @@
 
 纯静态站点，零依赖、可离线打开。直接把整个 `jiahao-jiaxin-site` 文件夹拷到任意静态托管即可上线（部署步骤见 [DEPLOY.md](DEPLOY.md)）。
 
+## 当前状态
+
+| 项目 | 值 |
+| --- | --- |
+| **线上地址** | **https://huade520.github.io/jiahao-jiaxin-site/** |
+| 仓库 | https://github.com/HuaDe520/jiahao-jiaxin-site |
+| 发布方式 | GitHub Pages · 分支发布（`main` 分支根目录），HTTPS 已强制启用 |
+| 更新内容 | 本地改完后执行 `node tools\publish.mjs`（走 `api.github.com`，不需要 git push） |
+| 下一步 | 绑定自定义域名 → 见 [自定义域名教程.md](自定义域名教程.md) |
+
 ## 目录结构
 
 ```

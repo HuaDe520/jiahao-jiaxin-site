@@ -12,6 +12,7 @@ node_modules/
 
 # 本地预览截图等临时产物
 .preview/
+.verify/
 
 # 访问令牌，绝对不要提交
 token.txt

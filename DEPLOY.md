@@ -1,8 +1,45 @@
 # 上线部署指南
 
-站点是纯静态的，`index.html` + `assets/` 原样上传即可，不需要构建、不需要服务器环境。
+> ## ✅ 当前状态：已经上线
+>
+> | 项目 | 值 |
+> | --- | --- |
+> | 线上地址 | **https://huade520.github.io/jiahao-jiaxin-site/** |
+> | 仓库 | https://github.com/HuaDe520/jiahao-jiaxin-site |
+> | 发布方式 | GitHub Pages · 分支发布（`main` 分支根目录，`build_type=legacy`） |
+> | HTTPS | 已强制启用 |
+> | 更新内容 | 在本地改完后执行 `node tools/publish.mjs`（见第五节） |
+>
+> 下文的「方式 A/B/C」是最初的三种备选方案，留作参考；日常更新只需要看下面《更新线上内容》一节。
 
-> 说明：这台电脑目前**没有安装 git 和 gh 命令行**（我检查过了），所以下面的「方式 A」用网页上传最省事；想走命令行就先装 Git。
+## 更新线上内容（日常只需这一步）
+
+本站的首次发布是通过 GitHub REST API 完成的，**不依赖 `git push`**：这台机器直连 `github.com` 不稳定，而 `api.github.com` 稳定可用，所以发布脚本只走 API。
+
+在本地改完文件后执行：
+
+```powershell
+node tools\publish.mjs
+```
+
+脚本会自动完成：上传全部文件 → 创建提交 → 更新 `main` 分支 → 等待 Pages 构建 → 抓取线上页面自检。
+只想预览会上传哪些文件时，先跑 `node tools\publish.mjs --dry-run`。
+
+令牌保存在 `D:\dsh\token.txt`（已加入 `.gitignore`，不会被上传）。令牌过期或失效时，重新生成一个 classic token（勾选 `repo` + `workflow`）覆盖该文件即可。
+
+### 什么时候才需要 git
+
+`git` 已经装好（`%LOCALAPPDATA%\Programs\PortableGit`，已加入用户 PATH），本地仓库已初始化并完成首次提交（身份为你的 GitHub 账号 HuaDe520）。
+当网络能稳定访问 `github.com` 时，也可以改回用 git 推送：
+
+```powershell
+git push -u origin main --force   # 仅首次：本地与远端内容一致，只是历史起点不同
+git push                          # 之后正常推送即可
+```
+
+---
+
+站点是纯静态的，`index.html` + `assets/` 原样上传即可，不需要构建、不需要服务器环境。
 
 ---
 

@@ -35,7 +35,7 @@ const has = (name) => argv.includes(name);
 const REPO = flag('--repo', 'jiahao-jiaxin-site');
 const DOMAIN = flag('--domain', null);
 const DRY = has('--dry-run');
-const SKIP_DIRS = new Set(['.git', '.preview', 'node_modules', '.vercel', '.netlify']);
+const SKIP_DIRS = new Set(['.git', '.preview', '.verify', 'node_modules', '.vercel', '.netlify']);
 const SKIP_FILES = new Set(['token.txt', '.DS_Store', 'Thumbs.db']);
 const MAX_BYTES = 25 * 1024 * 1024;
 
@@ -168,7 +168,8 @@ const parents = [refRes.json.object.sha];
 const tree = [];
 let done = 0;
 const CONCURRENCY = 4;
-async function worker(queue) {
+const queue = [...files];
+async function worker() {
   while (queue.length) {
     const f = queue.shift();
     const blob = await api('POST', `/repos/${owner}/${REPO}/git/blobs`, {
@@ -181,7 +182,7 @@ async function worker(queue) {
     process.stdout.write(`\r  已上传 ${done}/${files.length}  ${f.path.slice(0, 44).padEnd(46)}`);
   }
 }
-await Promise.all(Array.from({ length: CONCURRENCY }, () => worker([...files])));
+await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
 process.stdout.write('\n');
 
 /* 4. 建 tree / commit / 更新分支 */
