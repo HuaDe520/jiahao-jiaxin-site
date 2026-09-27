@@ -8,7 +8,7 @@
 > | 仓库 | https://github.com/HuaDe520/jiahao-jiaxin-site |
 > | 域名解析 | 阿里云云解析：4×A + 4×AAAA + www 的 CNAME，已全部生效 |
 > | 发布方式 | GitHub Pages · 分支发布（`main` 分支根目录，`build_type=legacy`） |
-> | HTTPS | GitHub 自动签发 Let's Encrypt 证书并开启强制 HTTPS |
+> | HTTPS | ✅ 已启用强制 HTTPS，证书同时覆盖裸域与 www |
 > | 更新内容 | 在本地改完后执行 `node tools/publish.mjs`（见下面《更新线上内容》） |
 >
 > 下文的「方式 A/B/C」是最初的三种备选方案，留作参考；日常更新只需要看下面《更新线上内容》一节。
