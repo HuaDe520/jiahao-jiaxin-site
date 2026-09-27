@@ -1,0 +1,41 @@
+name: Deploy static site to GitHub Pages
+
+# 说明：本仓库默认使用「分支发布」——Settings → Pages → Source 选
+#      "Deploy from a branch" → main → / (root)。这种模式下不需要任何工作流。
+#
+# 如果你更喜欢用 GitHub Actions 发布：
+#   1) 把下面的 `workflow_dispatch:` 改成 `push: { branches: [main] }`
+#   2) 到 Settings → Pages → Source 选 "GitHub Actions"
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

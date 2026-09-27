@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>页面走丢了 · 浙江嘉豪嘉欣协会</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { --jade:#12655a; --gold:#c9a24b; --cream:#fbf8f1; --ink:#1d2b2a; --mute:#788a87; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 32px;
+    background: radial-gradient(700px 420px at 70% 10%, rgba(79,185,164,.24), transparent 62%),
+                radial-gradient(600px 380px at 10% 90%, rgba(223,192,119,.22), transparent 60%),
+                linear-gradient(180deg, var(--cream), #f4efe3);
+    color: var(--ink);
+    font-family: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+    text-align: center;
+  }
+  .card {
+    max-width: 520px; width: 100%; background: #fff; border: 1px solid rgba(18,101,90,.14);
+    border-top: 4px solid var(--gold); border-radius: 28px; padding: 44px 34px 38px;
+    box-shadow: 0 30px 60px -30px rgba(11,63,57,.45);
+  }
+  img { width: 96px; height: 96px; border-radius: 50%; border: 1.5px solid var(--gold); margin: 0 auto 20px; }
+  .code { font-size: 44px; font-weight: 800; color: var(--jade); letter-spacing: .06em; line-height: 1; }
+  h1 { font-size: 22px; margin: 14px 0 10px; }
+  p { color: var(--mute); font-size: 15px; line-height: 1.8; margin: 0 0 24px; }
+  .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  a {
+    display: inline-block; padding: 12px 26px; border-radius: 999px; font-size: 15px;
+    font-weight: 600; text-decoration: none; border: 1.5px solid transparent; transition: .25s;
+  }
+  .primary { background: linear-gradient(135deg, #12655a, #17806f); color: #fff; }
+  .primary:hover { transform: translateY(-2px); }
+  .ghost { border-color: #12655a; color: #12655a; background: rgba(255,255,255,.7); }
+  .ghost:hover { border-color: var(--gold); transform: translateY(-2px); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <img id="badge" src="" alt="" onerror="this.style.display='none'">
+    <div class="code">404</div>
+    <h1>这一页走丢了</h1>
+    <p>你要找的页面不存在，或者链接已经变更。<br>回首页看看九个部门吧。</p>
+    <div class="actions">
+      <a class="primary" id="homeLink" href="./">返回首页</a>
+      <a class="ghost" href="javascript:history.back()">回到上一页</a>
+    </div>
+  </div>
+
+<script>
+/* GitHub Pages 会用本页内容响应任意错误路径，此时地址栏仍是错误路径，
+   相对链接会算错，所以要探测站点真正的根目录：
+     用户站点   https://name.github.io/xxx        -> /
+     项目站点   https://name.github.io/repo/xxx   -> /repo/
+     自定义域名 / Vercel                          -> /  */
+(function () {
+  var host = location.hostname;
+  var segs = location.pathname.split('/').filter(Boolean);
+  var probe = 'assets/img/logo-main.png';
+  var candidates = [];
+
+  if (/\.github\.io$/i.test(host) && segs.length) {
+    candidates.push('/' + segs[0] + '/');
+    candidates.push('/');
+  } else {
+    candidates.push('/');
+    if (segs.length > 1) candidates.push('/' + segs[0] + '/');
+  }
+
+  function probeRoot(url) {
+    if (typeof fetch !== 'function') return Promise.resolve(false);
+    return fetch(url, { method: 'HEAD' })
+      .then(function (res) { return res.ok; })
+      .catch(function () { return false; });
+  }
+
+  function apply(root) {
+    document.getElementById('homeLink').setAttribute('href', root);
+
+    var badge = document.getElementById('badge');
+    badge.addEventListener('error', function () { badge.style.display = 'none'; });
+    badge.setAttribute('src', root + probe);
+  }
+
+  (function tryNext(i) {
+    if (i >= candidates.length) { apply('/'); return; }
+    probeRoot(candidates[i] + probe).then(function (ok) {
+      if (ok) { apply(candidates[i]); } else { tryNext(i + 1); }
+    });
+  })(0);
+})();
+</script>
+</body>
+</html>
