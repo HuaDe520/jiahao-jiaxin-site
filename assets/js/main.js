@@ -11,6 +11,7 @@
       no: '壹 · 中枢',
       name: '嘉枢统筹部',
       motto: '居中调度，让协会顺畅运转。',
+      leader: '暂无',
       logo: 'assets/img/dept-01-shutong.png',
       desc: '嘉枢统筹部是协会的中枢部门，负责社群日常运营、活动排期与跨部门协同。任何一次活动从想法到落地，都从这里开始被拆解成清单。',
       duties: [
@@ -25,6 +26,7 @@
       no: '贰 · 巡礼',
       name: '嘉番巡礼部',
       motto: '新番导视，也补一部经典。',
+      leader: '暂无',
       logo: 'assets/img/dept-02-fanxun.png',
       desc: '为二次元同好而设。每周更新番剧导视，组织线上观影会，也在假期策划线下圣地巡礼与漫展同行。',
       duties: [
@@ -39,6 +41,7 @@
       no: '叁 · 论衡',
       name: '嘉游论衡部',
       motto: '玩过，才有资格评。',
+      leader: '碳氘氕',
       logo: 'assets/img/dept-03-youlun.png',
       desc: '围绕 3A 大作与各类游戏展开讨论：新作试玩、通关复盘、剧情解析与联机开黑，也欢迎硬核评测与投稿。',
       duties: [
@@ -53,6 +56,7 @@
       no: '肆 · 绘梦',
       name: '嘉墨绘梦部',
       motto: '把脑内的画面画出来。',
+      leader: '吃芋头',
       logo: 'assets/img/dept-04-mohui.png',
       desc: '绘画与创作的聚集地。无论板绘、手绘还是 AI 辅助创作，这里都有同好互相看稿、给建议、一起进步。',
       duties: [
@@ -67,6 +71,7 @@
       no: '伍 · 砺行',
       name: '嘉体砺行部',
       motto: '身体先动起来，其他再说。',
+      leader: '暂无',
       logo: 'assets/img/dept-05-lixing.png',
       desc: '运动健康部门。晨跑、夜跑、健身、球类约战，按城市与校区就近组队，主打坚持而非成绩。',
       duties: [
@@ -81,6 +86,7 @@
       no: '陆 · 同游',
       name: '嘉盟同游部',
       motto: '一个人出发，一群人抵达。',
+      leader: '暂无',
       logo: 'assets/img/dept-06-tongyou.png',
       desc: '专治「想去但没人陪」。组队开黑、线下同游、跨校联谊、短途旅行，都在这里凑人成行。',
       duties: [
@@ -95,6 +101,7 @@
       no: '柒 · 浮生',
       name: '嘉闲浮生部',
       motto: '偷得浮生半日闲。',
+      leader: 'ln.',
       logo: 'assets/img/dept-07-xianfu.png',
       desc: '慢节奏生活部门。喝茶、探店、city walk、看展、养植物，把日子过得有一点讲究。',
       duties: [
@@ -109,6 +116,7 @@
       no: '捌 · 清谈',
       name: '嘉学清谈部',
       motto: '学问与困惑，都可以摆上桌。',
+      leader: '睡一会',
       logo: 'assets/img/dept-08-qingtan.png',
       desc: '学习交流部门。课程互助、读书会、考研保研与实习信息互通，也聊纯粹的清谈话题。',
       duties: [
@@ -123,6 +131,7 @@
       no: '玖 · 解忧',
       name: '嘉窗解忧部',
       motto: '一窗灯火，有人听你说。',
+      leader: '暂无',
       logo: 'assets/img/dept-09-jieyou.png',
       desc: '朋辈倾听与情绪陪伴。树洞、解忧信箱与匿名倾诉通道，让不开心有地方安放。本部门提供的是同伴支持，不替代专业心理咨询。',
       duties: [
@@ -213,6 +222,7 @@
     document.getElementById('modalKicker').textContent = 'DEPARTMENT ' + d.no;
     document.getElementById('modalTitle').textContent = d.name;
     document.getElementById('modalMotto').textContent = d.motto;
+    document.getElementById('modalLeader').textContent = '部长：' + (d.leader || '暂无');
     document.getElementById('modalDesc').textContent = d.desc;
 
     var duties = document.getElementById('modalDuties');
@@ -267,6 +277,33 @@
   }
   openFromHash();
   window.addEventListener('hashchange', openFromHash);
+
+  /* ---------- 6c. 复制首座微信号 ---------- */
+  var copyBtn = document.getElementById('copyWechat');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function () {
+      var idEl = document.getElementById('wechatId');
+      var wechat = idEl ? idEl.textContent.trim() : '';
+      var restore = function () { window.setTimeout(function () { copyBtn.textContent = '复制微信号'; }, 2000); };
+      var done = function () { copyBtn.textContent = '已复制 ✓'; restore(); };
+      var fallback = function () {
+        var ta = document.createElement('textarea');
+        ta.value = wechat;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) { copyBtn.textContent = '请长按手动复制'; restore(); }
+        document.body.removeChild(ta);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(wechat).then(done).catch(fallback);
+      } else {
+        fallback();
+      }
+    });
+  }
 
   /* ---------- 7. 返回顶部 ---------- */
   if (toTop) {

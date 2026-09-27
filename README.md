@@ -1,5 +1,3 @@
-号主声明:这么嘉豪的社团不是HuaDe520创建的,只是挂在我的github下,项目内容(几乎)纯ai无人工
-糖醋鲤鱼xbc神了
 # 浙江嘉豪嘉欣协会 · 官方网站
 
 纯静态站点，零依赖、可离线打开。直接把整个 `jiahao-jiaxin-site` 文件夹拷到任意静态托管即可上线（部署步骤见 [DEPLOY.md](DEPLOY.md)）。
@@ -16,6 +14,7 @@
 | 发布方式 | GitHub Pages · 分支发布（`main` 分支根目录） |
 | 更新内容 | 本地改完后执行 `node tools\publish.mjs`（走 `api.github.com`，不需要 git push） |
 | 相关文档 | [DEPLOY.md](DEPLOY.md) · [自定义域名教程.md](自定义域名教程.md) · [域名解析配置单.md](域名解析配置单.md) |
+| ⏳ **唯一待办** | GitHub 自动签发 HTTPS 证书（服务器侧进行，与本机无关）。签发后跑一条命令收尾：<br>`node tools\enable-https.mjs jiahao-jiaxin-site xbc-zjja.com.cn` —— 它会自动打开「强制 HTTPS」并验证两个地址。 |
 
 ## 目录结构
 
