@@ -7,9 +7,13 @@
  *
  * 策略：网络优先（network-first），失败才用缓存 —— 这样线上更新永远立即可见，
  *      不会出现「改了网站但手机还看到旧版」的问题。
+ *
+ *      关键细节：fetch 时带 cache:'no-cache'，强制向服务器核对（命中 304 就复用），
+ *      否则浏览器自己的 HTTP 缓存（GitHub Pages 是 10 分钟）会把旧文件递回来，
+ *      于是「刚改完刷新还是老样子」。
  */
 
-const CACHE = 'jhjx-site-v1';
+const CACHE = 'jhjx-site-v2';
 
 // 安装时预缓存站点外壳（首屏必需文件）
 const SHELL = [
@@ -51,7 +55,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   event.respondWith(
-    fetch(req)
+    fetch(req, { cache: 'no-cache' })
       .then((res) => {
         // 成功就把最新版本写回缓存（只缓存正常响应）
         if (res && res.status === 200 && res.type === 'basic') {
@@ -61,10 +65,11 @@ self.addEventListener('fetch', (event) => {
         return res;
       })
       .catch(() =>
-        caches.match(req).then((cached) => {
+        /* ignoreSearch：页面引用带 ?v= 版本号时，仍能命中预缓存的原始文件 */
+        caches.match(req, { ignoreSearch: true }).then((cached) => {
           if (cached) return cached;
           // 页面导航失败时兜底到首页（离线也能打开）
-          if (req.mode === 'navigate') return caches.match('./index.html');
+          if (req.mode === 'navigate') return caches.match('./index.html', { ignoreSearch: true });
           return Response.error();
         })
       )

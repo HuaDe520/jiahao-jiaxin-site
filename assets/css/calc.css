@@ -44,6 +44,21 @@
 }
 .calc-mode.is-rad { border-color: var(--gold-400); color: var(--gold-400); }
 
+/* 顶栏上的「首页」：任何一页都能一键回官网首页 */
+.calc-home {
+  display: inline-flex; align-items: center; gap: 4px; flex: none;
+  font-size: 13.5px; color: rgba(234, 250, 245, .84); white-space: nowrap;
+  text-decoration: none; padding: 6px 11px; border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+}
+.calc-home:hover { background: rgba(255, 255, 255, .18); color: #fff; }
+.calc-home svg { flex: none; }
+
+/* 极窄屏时让出标题位置，保证顶栏四个控件不换行 */
+@media (max-width: 360px) {
+  .calc-top h1 { display: none; }
+}
+
 /* ---------- 模式标签 ---------- */
 .calc-tabs {
   display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;

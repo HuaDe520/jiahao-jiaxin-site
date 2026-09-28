@@ -315,7 +315,11 @@
   /* ---------- 8. PWA：注册 Service Worker ---------- */
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').catch(function () { /* 注册失败不影响使用 */ });
+      /* updateViaCache: 'none' —— 每次打开都去服务器核对 sw.js，
+         否则浏览器可能拿出缓存里的旧版本，站内更新会迟一步生效 */
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+        .then(function (reg) { if (reg && reg.update) reg.update(); })
+        .catch(function () { /* 注册失败不影响使用 */ });
     });
   }
 

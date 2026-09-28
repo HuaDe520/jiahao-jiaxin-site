@@ -20,6 +20,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, sep, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { stampAssets } from './stamp-assets.mjs';
 
 const API = 'https://api.github.com';
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -103,6 +104,14 @@ const found = readToken();
 if (!found && !DRY) {
   console.error('找不到访问令牌。请把 token 写进 token.txt（或设置 GITHUB_TOKEN 环境变量）。');
   process.exit(1);
+}
+
+/* 上传前：给样式/脚本刷上内容指纹，保证访客立刻拿到新版本（绕开 10 分钟缓存） */
+try {
+  const stamped = stampAssets(SITE_ROOT).reduce((s, r) => s + r.stamped, 0);
+  if (stamped) console.log(`已刷新 ${stamped} 处样式/脚本版本号`);
+} catch (err) {
+  console.warn('版本号刷新失败（不影响发布）：', err.message);
 }
 
 const files = collectFiles(SITE_ROOT).sort((a, b) => a.path.localeCompare(b.path));

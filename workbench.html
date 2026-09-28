@@ -9,8 +9,8 @@
 <link rel="icon" href="assets/img/logo-main.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="assets/css/style.css">
-<link rel="stylesheet" href="assets/css/workbench.css">
+<link rel="stylesheet" href="assets/css/style.css?v=4951e9b2">
+<link rel="stylesheet" href="assets/css/workbench.css?v=b98aa8bd">
 </head>
 <body class="wb-page">
 
@@ -217,5 +217,15 @@
   if (y) { y.textContent = String(new Date().getFullYear()); }
 })();
 </script>
+
+<!-- 常驻入口：一键回到网站首页 -->
+<a class="quick-home" href="index.html" aria-label="回到网站首页">
+  <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 10.6 12 3.2l9 7.4"></path>
+    <path d="M5.6 9.6V20h12.8V9.6"></path>
+    <path d="M9.7 20v-5.3h4.6V20"></path>
+  </svg>
+  <span>网站首页</span>
+</a>
 </body>
 </html>

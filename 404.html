@@ -35,6 +35,21 @@
   .primary:hover { transform: translateY(-2px); }
   .ghost { border-color: #12655a; color: #12655a; background: rgba(255,255,255,.7); }
   .ghost:hover { border-color: var(--gold); transform: translateY(-2px); }
+
+  /* 常驻入口：一键回到网站首页 */
+  .home-pin {
+    position: fixed; left: 22px; bottom: 22px;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 19px; border-radius: 999px;
+    background: rgba(255,255,255,.97); color: var(--jade);
+    font-size: 14px; font-weight: 700; border: 1px solid rgba(18,101,90,.22);
+    box-shadow: 0 16px 30px -16px rgba(11,63,57,.5);
+  }
+  .home-pin:hover { transform: translateY(-2px); border-color: var(--gold); }
+  .home-pin svg { flex: none; }
+  @media (max-width: 520px) {
+    .home-pin { left: 14px; bottom: 14px; padding: 10px 15px; font-size: 13px; }
+  }
 </style>
 </head>
 <body>
@@ -48,6 +63,15 @@
       <a class="ghost" href="javascript:history.back()">回到上一页</a>
     </div>
   </div>
+
+  <a class="home-pin" id="homePin" href="./" aria-label="回到网站首页">
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 10.6 12 3.2l9 7.4"></path>
+      <path d="M5.6 9.6V20h12.8V9.6"></path>
+      <path d="M9.7 20v-5.3h4.6V20"></path>
+    </svg>
+    <span>网站首页</span>
+  </a>
 
 <script>
 /* GitHub Pages 会用本页内容响应任意错误路径，此时地址栏仍是错误路径，
@@ -78,6 +102,8 @@
 
   function apply(root) {
     document.getElementById('homeLink').setAttribute('href', root);
+    var pin = document.getElementById('homePin');
+    if (pin) pin.setAttribute('href', root);
 
     var badge = document.getElementById('badge');
     badge.addEventListener('error', function () { badge.style.display = 'none'; });
