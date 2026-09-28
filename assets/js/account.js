@@ -176,11 +176,13 @@
     var file = this.files && this.files[0];
     this.value = '';
     if (!file) return;
-    if (!/^image\//.test(file.type)) { showMsg(avatarMsg, '请选一张图片', 'error'); return; }
-    if (file.size > 8 * 1024 * 1024) { showMsg(avatarMsg, '图片太大了，换一张小一点的', 'error'); return; }
+    /* 有些手机的相机返回的类型是空的，交给下面的解码去判断 */
+    if (file.type && !/^image\//.test(file.type)) { showMsg(avatarMsg, '请选一张图片', 'error'); return; }
+    if (file.size > 12 * 1024 * 1024) { showMsg(avatarMsg, '图片太大了，换一张小一点的', 'error'); return; }
 
     showMsg(avatarMsg, '正在处理…', 'ok');
     var reader = new FileReader();
+    reader.onerror = function () { showMsg(avatarMsg, '这张图读不出来，换一张', 'error'); };
     reader.onload = function () {
       var img = new Image();
       img.onload = function () {
@@ -191,8 +193,11 @@
         canvas.height = size;
         var ctx = canvas.getContext('2d');
         var s = Math.min(img.width, img.height);
+        if (!s) { showMsg(avatarMsg, '这张图打不开，换一张', 'error'); return; }
         ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
         var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        /* 万一还是偏大（有些图噪点多），降一档质量再来一次 */
+        if (dataUrl.length > 300 * 1024) dataUrl = canvas.toDataURL('image/jpeg', 0.6);
 
         API.uploadAvatar(dataUrl).then(function (res) {
           if (res.status === 200 && res.data.ok) {
@@ -204,7 +209,7 @@
           }
         });
       };
-      img.onerror = function () { showMsg(avatarMsg, '这张图打不开，换一张', 'error'); };
+      img.onerror = function () { showMsg(avatarMsg, '这张图打不开（iPhone 的 HEIC 原图可能不行），换一张或先截个图', 'error'); };
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
