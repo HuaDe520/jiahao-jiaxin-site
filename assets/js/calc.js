@@ -59,6 +59,7 @@
   var state = {
     expr: '',
     ans: 0,
+    justComputed: false,
     memory: 0,
     shift: false,
     history: []
@@ -124,6 +125,7 @@
   }
 
   function press(k) {
+    if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) { /* 忽略 */ } }
     if (k.act === 'shift') {
       state.shift = !state.shift;
       renderKeys();
@@ -141,14 +143,24 @@
   /* ---------- 输入框操作 ---------- */
   function insert(text) {
     var el = exprInput;
+
+    /* 刚按过 = 时：输入数字就重新开始，输入运算符则接着上一次结果算（与实体计算器一致） */
+    if (state.justComputed) {
+      var first = text.charAt(0);
+      if (/[0-9.]/.test(first) || /[a-z(]/i.test(first)) { el.value = ''; }
+      else if (/[+\-*/^%]/.test(first)) { el.value = String(state.ans); }
+      state.justComputed = false;
+    }
+
     var s = el.selectionStart;
     var e = el.selectionEnd;
-    if (s === null || s === undefined || s === e) {
+    if (s === null || s === undefined) {
       el.value = el.value + text;
     } else {
       el.value = el.value.slice(0, s) + text + el.value.slice(e);
+      var pos = s + text.length;
+      try { el.setSelectionRange(pos, pos); } catch (err) { /* 忽略 */ }
     }
-    try { el.setSelectionRange(el.value.length, el.value.length); } catch (err) { /* 忽略 */ }
     state.expr = el.value;
     preview();
   }
@@ -157,6 +169,7 @@
     var el = exprInput;
     el.value = el.value.slice(0, -1);
     state.expr = el.value;
+    state.justComputed = false;
     preview();
   }
 
@@ -166,6 +179,8 @@
     resultEl.textContent = '0';
     resultEl.classList.remove('is-error');
     state.shift = false;
+    state.justComputed = false;
+    fitResultText();
     renderKeys();
   }
 
@@ -177,9 +192,18 @@
       var n = E.evaluate(v, {}, E.degrees);
       resultEl.textContent = E.formatNumber(n);
       resultEl.classList.remove('is-error');
+      fitResultText();
     } catch (err) {
       /* 输入过程中不报错，等按 = */
     }
+  }
+
+  /* 结果过长时自动缩小字号（大数用 E 计数法，可达 18 个字符） */
+  function fitResultText() {
+    if (!resultEl) return;
+    var len = (resultEl.textContent || '').length;
+    resultEl.classList.toggle('is-long', len > 11);
+    resultEl.classList.toggle('is-xlong', len > 17);
   }
 
   /* ---------- 计算 = ---------- */
@@ -191,7 +215,9 @@
       var out = E.formatNumber(n);
       resultEl.textContent = out;
       resultEl.classList.remove('is-error');
+      fitResultText();
       state.ans = n;
+      state.justComputed = true;
       addHistory(v, out);
     } catch (err) {
       resultEl.textContent = err.message;
@@ -291,6 +317,9 @@
   if (exprInput) {
     exprInput.addEventListener('input', function () { state.expr = exprInput.value; preview(); });
   }
+  /* 长按键盘不弹出系统菜单，手感更像原生 App */
+  keysWrap.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
   var clearHist = $('calcClearHistory');
   if (clearHist) {
     clearHist.addEventListener('click', function () {

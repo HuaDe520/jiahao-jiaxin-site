@@ -105,10 +105,17 @@
   padding: 13px 0; font: 600 18px/1.1 "PingFang SC", Consolas, monospace;
   background: #f7f5ef; color: #16302b;
   box-shadow: 0 2px 0 rgba(0, 0, 0, .22), 0 6px 12px -8px rgba(0, 0, 0, .8);
-  transition: transform .08s, background .15s;
+  transition: transform .07s var(--ease), filter .12s;
   touch-action: manipulation;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
-.calc-keys button:active { transform: translateY(2px); box-shadow: 0 0 0 rgba(0, 0, 0, .2); }
+/* 按下立刻有反馈，不做过渡动画，手感才跟手 */
+.calc-keys button:active {
+  transform: translateY(2px) scale(.97);
+  filter: brightness(.93);
+  box-shadow: 0 0 0 rgba(0, 0, 0, .2);
+  transition: none;
+}
 .calc-keys button.k-fn { background: #dfe9e3; font-size: 16px; }
 .calc-keys button.k-op { background: #17806f; color: #fff; font-size: 20px; }
 .calc-keys button.k-eq { background: linear-gradient(180deg, #dfc077, #c9a24b); color: #2b2109; font-size: 20px; }
@@ -212,3 +219,9 @@
   .calc-keys button.k-fn { font-size: 17px; }
   .calc-display__result { font-size: 30px; }
 }
+
+
+/* 结果很长时自动缩小字号，避免溢出 */
+.calc-display__result.is-long { font-size: 21px; }
+.calc-display__result.is-xlong { font-size: 16.5px; letter-spacing: -.01em; }
+.calc-display__expr { caret-color: #12655a; }

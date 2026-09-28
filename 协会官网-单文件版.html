@@ -226,6 +226,14 @@ button { font: inherit; color: inherit; }
 .btn--ghost { background: rgba(255, 255, 255, .7); border-color: var(--jade-600); color: var(--jade-800); }
 .btn--ghost:hover { background: #fff; transform: translateY(-3px); border-color: var(--gold-500); }
 
+/* 金色主按钮（用于工作台入口） */
+.btn--gold {
+  background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
+  color: #2b2109;
+  box-shadow: 0 16px 30px -16px rgba(201, 162, 75, .95);
+}
+.btn--gold:hover { transform: translateY(-3px); box-shadow: 0 22px 38px -18px rgba(201, 162, 75, 1); }
+
 .hero__stats {
   display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px; margin-top: 42px; background: var(--line);
@@ -502,10 +510,11 @@ button { font: inherit; color: inherit; }
 @media (max-width: 820px) {
   .nav-toggle { display: flex; }
   .site-nav {
-    position: absolute; top: calc(100% + 10px); left: 16px; right: 16px;
-    flex-direction: column; align-items: stretch; gap: 4px;
-    background: var(--white); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 14px; box-shadow: var(--shadow-l);
+    position: absolute; top: 100%; left: 0; right: 0;
+    flex-direction: column; align-items: stretch; gap: 2px;
+    background: var(--white); border: 1px solid var(--line); border-top: 0;
+    border-radius: 0 0 var(--radius) var(--radius);
+    padding: 8px 14px 12px; box-shadow: var(--shadow-l);
     opacity: 0; visibility: hidden; transform: translateY(-10px);
     transition: opacity .28s var(--ease), transform .28s var(--ease), visibility .28s;
   }
@@ -638,6 +647,30 @@ button { font: inherit; color: inherit; }
   .dl-card { padding: 24px 22px; }
 }
 
+
+/* ---------------- 常驻入口：嘉庭工作台 ---------------- */
+.quick-workbench {
+  position: fixed; right: 22px; bottom: 86px; z-index: 66;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 20px 12px 17px; border-radius: 999px;
+  background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
+  color: #2b2109; font-size: 14.5px; font-weight: 700; letter-spacing: .02em;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, .55);
+  box-shadow: 0 18px 32px -14px rgba(0, 0, 0, .55), 0 2px 8px rgba(0, 0, 0, .16);
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+  animation: qw-in .5s var(--ease) both;
+}
+@keyframes qw-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.quick-workbench:hover { transform: translateY(-3px); box-shadow: 0 24px 38px -16px rgba(0, 0, 0, .6); }
+.quick-workbench svg { flex: none; }
+
+@media (max-width: 820px) {
+  .quick-workbench {
+    right: 14px; bottom: 78px;
+    padding: 11px 16px 11px 14px; font-size: 13.5px;
+  }
+}
 </style>
 </head>
 <body>
@@ -713,6 +746,7 @@ button { font: inherit; color: inherit; }
 
         <div class="hero__actions">
           <a class="btn btn--primary" href="#join">加入协会</a>
+          <a class="btn btn--gold" href="https://xbc-zjja.com.cn/workbench.html">嘉庭工作台</a>
           <a class="btn btn--ghost" href="#departments">浏览九个部门</a>
         </div>
 
@@ -1102,6 +1136,17 @@ button { font: inherit; color: inherit; }
 </footer>
 
 <button class="to-top" id="toTop" type="button" aria-label="返回顶部">↑</button>
+
+<!-- ============ 常驻入口：嘉庭工作台 ============ -->
+<a class="quick-workbench" href="https://xbc-zjja.com.cn/workbench.html" aria-label="进入嘉庭工作台">
+  <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="currentColor">
+    <rect x="3" y="3" width="8" height="8" rx="2"></rect>
+    <rect x="13" y="3" width="8" height="8" rx="2"></rect>
+    <rect x="3" y="13" width="8" height="8" rx="2"></rect>
+    <rect x="13" y="13" width="8" height="8" rx="2"></rect>
+  </svg>
+  <span>嘉庭工作台</span>
+</a>
 
 <!-- ============ 部门详情弹窗 ============ -->
 <div class="modal" id="deptModal" hidden>

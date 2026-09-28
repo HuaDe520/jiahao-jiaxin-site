@@ -273,18 +273,30 @@
   }
 
   /* ============ 4. 数字格式化 ============ */
+  /* 把 e 计数法写成卡西欧风格的 E 计数法：1.234567890123E+15 */
+  function toEStyle(s) {
+    var parts = String(s).split(/[eE]/);
+    var mant = parts[0].replace(/0+$/, '').replace(/\.$/, '');
+    var exp = parseInt(parts[1], 10);
+    if (isNaN(exp)) return mant;
+    return mant + 'E' + (exp >= 0 ? '+' : '') + exp;
+  }
+
   function formatNumber(n) {
     if (typeof n !== 'number') return String(n);
     if (Number.isNaN(n)) return '无定义（NaN）';
     if (!isFinite(n)) return n > 0 ? '∞' : '-∞';
     if (n === 0) return '0';
+
     var abs = Math.abs(n);
-    if (abs >= 1e12 || abs < 1e-9) {
-      return n.toExponential(9).replace(/\.?0+e/, 'e').replace('e+', '×10^').replace('e-', '×10^-');
-    }
-    var s = parseFloat(n.toPrecision(12)).toString();
-    if (s.indexOf('e') >= 0) return s;
-    return s;
+
+    /* 特别大或特别小的数：带 E 的科学计数法（13 位有效数字） */
+    if (abs >= 1e10 || abs < 1e-9) return toEStyle(n.toExponential(12));
+
+    /* 普通数字：最多 15 位有效数字，自动去掉浮点噪声与末尾多余的 0 */
+    var out = parseFloat(n.toPrecision(15)).toString();
+    if (out.indexOf('e') >= 0) return toEStyle(out);
+    return out;
   }
 
   /* ============ 5. 数值积分（自适应辛普森） ============ */
