@@ -107,13 +107,6 @@
 }
 .cm-ghost:hover { border-color: var(--gold-500); transform: translateY(-2px); }
 
-.cm-progress {
-  position: relative; z-index: 1;
-  margin-top: 16px; text-align: center;
-  font-size: 12.5px; color: var(--ink-mute); letter-spacing: .02em;
-}
-.cm-progress strong { color: var(--jade-700); font-weight: 700; }
-
 /* ---------- 刚才抽到的 ---------- */
 .cm-recent { margin-top: 26px; }
 .cm-recent__head {
@@ -121,7 +114,6 @@
   margin-bottom: 10px;
 }
 .cm-recent__head h3 { margin: 0; font-size: 15px; color: var(--jade-900); }
-.cm-recent__head span { font-size: 12.5px; color: var(--ink-mute); }
 .cm-recent__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .cm-recent__list li {
   background: rgba(255, 255, 255, .78);

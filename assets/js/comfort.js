@@ -20,7 +20,6 @@
   var textEl = document.getElementById('cmText');
   var drawBtn = document.getElementById('cmDraw');
   var copyBtn = document.getElementById('cmCopy');
-  var progressEl = document.getElementById('cmProgress');
   var recentEl = document.getElementById('cmRecent');
 
   if (!QUOTES.length || !drawBtn || !textEl) return;
@@ -73,10 +72,6 @@
   var busy = false;
   var pendingDraw = false;
 
-  function deckStats() {
-    return { drawn: state.pos, left: state.order.length - state.pos, total: state.order.length };
-  }
-
   function nextSentence() {
     if (state.pos >= state.order.length) {
       state = newDeck(state.total, state.last);
@@ -106,11 +101,6 @@
       li.textContent = s;
       recentEl.appendChild(li);
     });
-  }
-
-  function renderProgress() {
-    var st = deckStats();
-    progressEl.innerHTML = '盒子里还剩 <strong>' + st.left + '</strong> 句';
   }
 
   function showSentence(sentence, animate) {
@@ -144,7 +134,6 @@
       showSentence(current, true);
       remember(current);
       saveState();
-      renderProgress();
     }, SWAP_MS);
 
     window.setTimeout(function () {
@@ -196,7 +185,6 @@
 
   /* ---------- 初始状态 ---------- */
   renderRecent();
-  renderProgress();
   if (recent.length) {
     current = recent[0];
     showSentence(current, false);
