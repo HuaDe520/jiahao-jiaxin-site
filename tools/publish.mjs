@@ -17,7 +17,8 @@
  * 需要的权限：classic token 勾选 repo + workflow
  */
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join, relative, sep, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { stampAssets } from './stamp-assets.mjs';
@@ -110,6 +111,22 @@ const found = readToken();
 if (!found && !DRY) {
   console.error('找不到访问令牌。请把 token 写进 token.txt（或设置 GITHUB_TOKEN 环境变量）。');
   process.exit(1);
+}
+
+/* 上传前：护栏预检 —— AGENT-GUARD.md 里写明的人工内容不能被覆盖 */
+{
+  const checker = join(SITE_ROOT, 'tools', 'check-guard.mjs');
+  if (existsSync(checker)) {
+    try {
+      const out = execFileSync(process.execPath, [checker], { encoding: 'utf8' });
+      process.stdout.write(out.split('\n').filter(Boolean).map((l) => '  ' + l).join('\n') + '\n');
+    } catch (err) {
+      console.error('⚠️  护栏校验未通过，发布已中止（详见 AGENT-GUARD.md）：');
+      console.error(String((err.stdout || '') + (err.stderr || '')).trim());
+      console.error('   若确认是误报，可加 --skip-guard 绕过。');
+      process.exit(1);
+    }
+  }
 }
 
 /* 上传前：给样式/脚本刷上内容指纹，保证访客立刻拿到新版本（绕开 10 分钟缓存） */
