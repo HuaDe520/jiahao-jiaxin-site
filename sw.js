@@ -13,7 +13,7 @@
  *      于是「刚改完刷新还是老样子」。
  */
 
-const CACHE = 'jhjx-site-v3';
+const CACHE = 'jhjx-site-v4';
 
 // 安装时预缓存站点外壳（首屏必需文件）
 const SHELL = [
@@ -31,11 +31,7 @@ const SHELL = [
   './comfort.html',
   './assets/css/comfort.css',
   './assets/js/comfort.js',
-  './assets/js/comfort-quotes.js',
-  // 嘉窗·树洞纸条
-  './treehole.html',
-  './assets/css/treehole.css',
-  './assets/js/treehole.js'
+  './assets/js/comfort-quotes.js'
 ];
 
 self.addEventListener('install', (event) => {
