@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>安慰盲盒 · 浙江嘉豪嘉欣协会</title>
+<meta name="description" content="浙江嘉豪嘉欣协会嘉庭工作台·嘉窗：点一下抽一句安慰与鼓励，一千句通用的话，怎么抽都不重样。">
+<meta name="theme-color" content="#0f5f56">
+<link rel="icon" href="assets/img/logo-main.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="assets/css/style.css?v=4951e9b2">
+<link rel="stylesheet" href="assets/css/comfort.css?v=b602f143">
+</head>
+<body class="cm-page">
+
+<header class="site-header">
+  <div class="wrap site-header__inner">
+    <a class="brand" href="index.html" aria-label="返回首页">
+      <img class="brand__logo" src="assets/img/logo-main.png" alt="浙江嘉豪嘉欣协会会徽">
+      <span class="brand__text">
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <small>ZHEJIANG JIAHAO JIAXIN ASSOCIATION</small>
+      </span>
+    </a>
+    <nav class="site-nav site-nav--plain" aria-label="主导航">
+      <a href="index.html">首页</a>
+      <a href="index.html#departments">部门矩阵</a>
+      <a href="app.html">下载 App</a>
+      <a href="workbench.html">嘉庭工作台</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="section" style="padding-top:56px">
+    <div class="wrap">
+      <header class="section__head">
+        <p class="eyebrow"><span class="eyebrow__line"></span>嘉窗 · 安慰盲盒</p>
+        <h2>抽一句，给自己</h2>
+        <p class="section__lead">累了、心烦了、睡不着的时候，都可以来抽一张。盒子里备了一千句，一句一句慢慢往下发，一轮发完才重新洗牌，所以怎么抽都不重样。</p>
+      </header>
+
+      <div class="cm-stage">
+        <div class="cm-box" id="cmBox">
+          <div class="cm-box__top">
+            <span class="cm-box__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 12.5V20H4v-7.5"></path>
+                <path d="M2.6 8.2h18.8v4.3H2.6z"></path>
+                <path d="M12 8.2V20"></path>
+                <path d="M12 8.2S10.6 3.4 8.2 3.4a2.4 2.4 0 0 0 0 4.8"></path>
+                <path d="M12 8.2s1.4-4.8 3.8-4.8a2.4 2.4 0 0 1 0 4.8"></path>
+              </svg>
+            </span>
+            <span>
+              <span class="cm-box__label">安慰盲盒</span>
+              <span class="cm-box__sub" id="cmSub">点一下，抽一句</span>
+            </span>
+          </div>
+
+          <div class="cm-quote" id="cmQuote">
+            <p class="cm-quote__text" id="cmText">准备好了就点下面的按钮，抽一句送给自己。</p>
+          </div>
+
+          <div class="cm-actions">
+            <button class="cm-draw" id="cmDraw" type="button">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+                <path d="M12 2.6l1.7 5.1 5.1 1.7-5.1 1.7L12 16.2l-1.7-5.1L5.2 9.4l5.1-1.7z"></path>
+                <path d="M18.8 14.4l.8 2.4 2.4.8-2.4.8-.8 2.4-.8-2.4-2.4-.8 2.4-.8z" opacity=".6"></path>
+              </svg>
+              <span>抽一句</span>
+            </button>
+            <button class="cm-ghost" id="cmCopy" type="button">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+                <path d="M5 15V6a2 2 0 0 1 2-2h8"></path>
+              </svg>
+              <span>复制这句</span>
+            </button>
+          </div>
+
+          <p class="cm-progress" id="cmProgress">盒子里还剩 <strong>1000</strong> 句没发</p>
+        </div>
+
+        <section class="cm-recent" aria-label="刚才抽到的">
+          <div class="cm-recent__head">
+            <h3>刚才抽到的</h3>
+            <span>最多留 5 条，刷新后仍在</span>
+          </div>
+          <ul class="cm-recent__list" id="cmRecent">
+            <li class="cm-empty">还没有抽过，随手抽一张吧。</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap site-footer__inner">
+    <div class="site-footer__brand">
+      <img src="assets/img/logo-main.png" alt="" aria-hidden="true">
+      <div>
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <p>浙江高校生兴趣社交社群 · 非营利自组织</p>
+      </div>
+    </div>
+    <nav class="site-footer__nav" aria-label="页面导航">
+      <a href="index.html">首页</a>
+      <a href="workbench.html">嘉庭工作台</a>
+      <a href="calc.html">学习计算器</a>
+      <a href="index.html#departments">部门矩阵</a>
+      <a href="app.html">下载 App</a>
+    </nav>
+    <div class="site-footer__meta">
+      <p>本页面仅用于协会对外展示，内容以群内公告为准。</p>
+      <p>&copy; <span id="year">2026</span> 浙江嘉豪嘉欣协会 · 保留所有权利</p>
+    </div>
+  </div>
+</footer>
+
+<!-- 常驻入口：返回首页 -->
+<a class="quick-home" href="index.html" aria-label="返回首页">
+  <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 10.6 12 3.2l9 7.4"></path>
+    <path d="M5.6 9.6V20h12.8V9.6"></path>
+    <path d="M9.7 20v-5.3h4.6V20"></path>
+  </svg>
+  <span>返回首页</span>
+</a>
+
+<script src="assets/js/comfort-quotes.js?v=2ccb0479"></script>
+<script src="assets/js/comfort.js?v=5370dcd2"></script>
+<script>
+  var y = document.getElementById('year');
+  if (y) { y.textContent = String(new Date().getFullYear()); }
+</script>
+</body>
+</html>

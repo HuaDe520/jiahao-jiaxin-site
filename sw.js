@@ -13,7 +13,7 @@
  *      于是「刚改完刷新还是老样子」。
  */
 
-const CACHE = 'jhjx-site-v2';
+const CACHE = 'jhjx-site-v3';
 
 // 安装时预缓存站点外壳（首屏必需文件）
 const SHELL = [
@@ -26,7 +26,12 @@ const SHELL = [
   './assets/img/logo-main.png',
   './assets/img/icon-192.png',
   './assets/img/icon-512.png',
-  './assets/img/apple-touch-icon.png'
+  './assets/img/apple-touch-icon.png',
+  // 嘉窗·安慰盲盒：断网时也能抽
+  './comfort.html',
+  './assets/css/comfort.css',
+  './assets/js/comfort.js',
+  './assets/js/comfort-quotes.js'
 ];
 
 self.addEventListener('install', (event) => {
