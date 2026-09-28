@@ -1,0 +1,139 @@
+/* =========================================================
+   账号页（昵称 + 邀请码）
+   管理台样式复用，所以放在同一个文件里
+   ========================================================= */
+
+.ac-page { background: linear-gradient(180deg, var(--cream) 0%, #f4efe3 100%); }
+.ac-stage { max-width: 640px; margin: 0 auto; }
+
+.ac-card {
+  background: linear-gradient(180deg, #ffffff, #fdfaf2);
+  border: 1px solid rgba(18, 101, 90, .14);
+  border-top: 3px solid var(--gold-500);
+  border-radius: 22px;
+  padding: 26px 26px 22px;
+  box-shadow: 0 26px 50px -34px rgba(11, 63, 57, .5);
+}
+.ac-card + .ac-card { margin-top: 20px; }
+
+.ac-card__head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.ac-card__icon {
+  width: 40px; height: 40px; flex: none; display: grid; place-items: center;
+  border-radius: 13px; background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
+  color: #3a2c08;
+}
+.ac-card h2 { margin: 0; font-size: 19px; color: var(--jade-900); letter-spacing: .02em; }
+.ac-card__sub { margin: 4px 0 0; font-size: 13px; color: var(--ink-mute); }
+
+.ac-field { margin-bottom: 14px; }
+.ac-field label { display: block; font-size: 13px; color: var(--ink-soft); margin-bottom: 7px; }
+.ac-input, .ac-select, .ac-textarea {
+  width: 100%; font-family: inherit; font-size: 16px; color: var(--jade-900);
+  background: #fff; border: 1.5px solid rgba(18, 101, 90, .2); border-radius: 13px;
+  padding: 13px 15px; outline: none;
+  transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.ac-input:focus, .ac-select:focus, .ac-textarea:focus {
+  border-color: var(--jade-500); box-shadow: 0 0 0 3px rgba(79, 185, 164, .16);
+}
+.ac-textarea { min-height: 88px; resize: vertical; line-height: 1.75; }
+.ac-input--code { letter-spacing: .12em; font-weight: 700; text-transform: uppercase; }
+
+.ac-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 18px; }
+
+.ac-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px 24px; border: 0; border-radius: 999px; cursor: pointer;
+  background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
+  color: #2b2109; font-family: inherit; font-size: 15.5px; font-weight: 800; letter-spacing: .03em;
+  box-shadow: 0 16px 26px -16px rgba(160, 122, 32, .9);
+  transition: transform .2s var(--ease), opacity .2s;
+}
+.ac-btn:hover { transform: translateY(-2px); }
+.ac-btn[disabled] { opacity: .55; cursor: default; transform: none; }
+
+.ac-btn--ghost {
+  background: rgba(255, 255, 255, .85);
+  border: 1.5px solid rgba(18, 101, 90, .22); color: var(--jade-800);
+  box-shadow: none; font-weight: 700; font-size: 14.5px; padding: 12px 20px;
+}
+.ac-btn--ghost:hover { border-color: var(--gold-500); }
+
+.ac-btn--danger { background: rgba(163, 55, 47, .1); color: #a3372f; border: 1.5px solid rgba(163, 55, 47, .28); box-shadow: none; font-weight: 700; }
+.ac-btn--danger:hover { background: rgba(163, 55, 47, .16); }
+
+.ac-msg { margin-top: 14px; font-size: 14px; line-height: 1.7; border-radius: 12px; padding: 11px 14px; display: none; }
+.ac-msg.is-show { display: block; }
+.ac-msg.is-error { background: rgba(163, 55, 47, .08); color: #8c2f27; }
+.ac-msg.is-ok { background: rgba(18, 101, 90, .08); color: var(--jade-800); }
+.ac-msg.is-info { background: rgba(201, 162, 75, .12); color: #7a5c14; }
+
+.ac-hint { margin: 12px 0 0; font-size: 12.5px; color: var(--ink-mute); line-height: 1.8; }
+
+/* ---------- 我的账号 ---------- */
+.ac-me { display: flex; align-items: center; gap: 14px; }
+.ac-me__avatar {
+  width: 58px; height: 58px; flex: none; border-radius: 50%;
+  display: grid; place-items: center;
+  background: linear-gradient(140deg, var(--jade-700), var(--jade-500));
+  color: #fff; font-size: 22px; font-weight: 800;
+}
+.ac-me__name { font-size: 22px; font-weight: 800; color: var(--jade-900); letter-spacing: .02em; }
+.ac-me__meta { font-size: 13px; color: var(--ink-mute); margin-top: 5px; }
+
+.ac-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.ac-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 13px; border-radius: 999px;
+  background: rgba(18, 101, 90, .07); border: 1px solid rgba(18, 101, 90, .14);
+  font-size: 13px; color: var(--jade-800);
+}
+.ac-chip strong { font-weight: 800; }
+.ac-chip--gold { background: rgba(201, 162, 75, .14); border-color: rgba(201, 162, 75, .4); color: #7a5c14; }
+.ac-chip--warn { background: rgba(163, 55, 47, .1); border-color: rgba(163, 55, 47, .3); color: #a3372f; }
+.ac-chip--mute { background: rgba(120, 138, 135, .1); border-color: rgba(120, 138, 135, .25); color: var(--ink-mute); }
+
+/* ---------- 管理台 ---------- */
+.ac-tabs { display: flex; gap: 8px; margin: 4px 0 18px; }
+.ac-tab {
+  border: 1.5px solid rgba(18, 101, 90, .18); background: rgba(255, 255, 255, .8);
+  color: var(--jade-800); font-family: inherit; font-size: 14px; font-weight: 700;
+  padding: 9px 18px; border-radius: 999px; cursor: pointer;
+}
+.ac-tab.is-active { background: linear-gradient(135deg, var(--jade-700), var(--jade-500)); border-color: transparent; color: #fff; }
+
+.ac-list { display: grid; gap: 14px; }
+.ac-item {
+  background: #fff; border: 1px solid rgba(18, 101, 90, .14); border-radius: 16px;
+  padding: 16px 18px;
+}
+.ac-item.is-done { background: rgba(255, 255, 255, .6); border-style: dashed; }
+.ac-item__top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 9px; }
+.ac-item__who { font-size: 15.5px; font-weight: 800; color: var(--jade-900); }
+.ac-item__time { font-size: 12.5px; color: var(--ink-mute); margin-left: auto; }
+.ac-item__detail { font-size: 14.5px; color: var(--ink); line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+.ac-item__note { font-size: 13px; color: var(--ink-mute); margin-top: 8px; }
+.ac-item__row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.ac-item__row .ac-input { padding: 9px 13px; font-size: 14px; flex: 1 1 160px; }
+
+.ac-empty { padding: 34px 10px; text-align: center; color: var(--ink-mute); font-size: 14.5px; }
+
+.ac-foot { margin-top: 18px; font-size: 12.5px; color: var(--ink-mute); text-align: center; }
+
+@media (max-width: 560px) {
+  .ac-card { padding: 22px 18px 18px; border-radius: 18px; }
+  .ac-btn { width: 100%; }
+  .ac-actions .ac-btn--ghost { width: 100%; }
+  .ac-item__time { margin-left: 0; width: 100%; }
+}
+
+/* 这一页卡片多，常驻入口收成角落圆形小按钮，尽量不压住内容 */
+.ac-page .quick-home {
+  width: 44px; height: 44px; padding: 0;
+  justify-content: center; border-radius: 50%;
+}
+.ac-page .quick-home span { display: none; }
+@media (max-width: 820px) {
+  .ac-page .quick-home { bottom: 14px; left: 12px; width: 42px; height: 42px; }
+  .ac-page .site-footer { padding-bottom: 92px; }
+}

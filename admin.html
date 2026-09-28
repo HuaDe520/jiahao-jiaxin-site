@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>举报处理台 · 浙江嘉豪嘉欣协会</title>
+<meta name="description" content="浙江嘉豪嘉欣协会管理员后台：处理成员举报、管理昵称账号。">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0f5f56">
+<link rel="icon" href="assets/img/logo-main.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="assets/css/style.css?v=4951e9b2">
+<link rel="stylesheet" href="assets/css/account.css?v=1714ebf2">
+</head>
+<body class="ac-page">
+
+<header class="site-header">
+  <div class="wrap site-header__inner">
+    <a class="brand" href="index.html" aria-label="返回首页">
+      <img class="brand__logo" src="assets/img/logo-main.png" alt="浙江嘉豪嘉欣协会会徽">
+      <span class="brand__text">
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <small>ZHEJIANG JIAHAO JIAXIN ASSOCIATION</small>
+      </span>
+    </a>
+    <nav class="site-nav site-nav--plain" aria-label="主导航">
+      <a href="index.html">首页</a>
+      <a href="workbench.html">嘉庭工作台</a>
+      <a href="account.html">我的账号</a>
+      <a href="admin.html" class="is-active">举报处理台</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="section" style="padding-top:56px">
+    <div class="wrap">
+      <header class="section__head">
+        <p class="eyebrow"><span class="eyebrow__line"></span>管理员</p>
+        <h2>举报处理台</h2>
+      </header>
+
+      <div class="ac-stage">
+
+        <!-- 不是管理员 -->
+        <div class="ac-card" id="adGuard" hidden>
+          <div class="ac-card__head">
+            <span class="ac-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="10" width="16" height="10" rx="2"></rect>
+                <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+              </svg>
+            </span>
+            <span>
+              <h2 style="font-size:17px">这里只有管理员能进</h2>
+              <p class="ac-card__sub">用管理员邀请码进来的账号才能看到举报。</p>
+            </span>
+          </div>
+          <div class="ac-actions">
+            <button class="ac-btn ac-btn--ghost" id="adToAccount" type="button">去我的账号</button>
+          </div>
+        </div>
+
+        <!-- 管理台主体 -->
+        <div id="adMain" hidden>
+          <div class="ac-card">
+            <div class="ac-card__head" style="margin-bottom:12px">
+              <span>
+                <h2 style="font-size:17px" id="adWho">管理员</h2>
+                <p class="ac-card__sub" id="adUpdated">—</p>
+              </span>
+            </div>
+            <div class="ac-chips" id="adSummary"></div>
+            <div class="ac-actions">
+              <button class="ac-btn ac-btn--ghost" id="adRefresh" type="button">刷新</button>
+              <button class="ac-btn ac-btn--ghost" id="adLogout" type="button">退出登录</button>
+            </div>
+            <div class="ac-msg" id="adMsg"></div>
+          </div>
+
+          <div class="ac-tabs" style="margin-top:20px">
+            <button class="ac-tab is-active" id="adTabReports" type="button">举报</button>
+            <button class="ac-tab" id="adTabUsers" type="button">成员</button>
+          </div>
+
+          <div class="ac-card" id="adReportsCard">
+            <div class="ac-list" id="adReports"></div>
+          </div>
+
+          <div class="ac-card" id="adUsersCard" hidden>
+            <div class="ac-list" id="adUsers"></div>
+          </div>
+        </div>
+
+        <p class="ac-foot" id="adFoot" hidden>举报只有管理员能看到；处理记录会一直留着。</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap site-footer__inner">
+    <div class="site-footer__brand">
+      <img src="assets/img/logo-main.png" alt="" aria-hidden="true">
+      <div>
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <p>浙江高校生兴趣社交社群 · 非营利自组织</p>
+      </div>
+    </div>
+    <nav class="site-footer__nav" aria-label="页面导航">
+      <a href="index.html">首页</a>
+      <a href="workbench.html">嘉庭工作台</a>
+      <a href="account.html">我的账号</a>
+      <a href="app.html">下载 App</a>
+    </nav>
+    <div class="site-footer__meta">
+      <p>本页面仅用于协会对外展示，内容以群内公告为准。</p>
+      <p>&copy; <span id="year">2026</span> 浙江嘉豪嘉欣协会 · 保留所有权利</p>
+    </div>
+  </div>
+</footer>
+
+<!-- 常驻入口：返回首页 -->
+<a class="quick-home" href="index.html" aria-label="返回首页">
+  <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 10.6 12 3.2l9 7.4"></path>
+    <path d="M5.6 9.6V20h12.8V9.6"></path>
+    <path d="M9.7 20v-5.3h4.6V20"></path>
+  </svg>
+  <span>返回首页</span>
+</a>
+
+<script src="assets/js/api.js?v=abcc343a"></script>
+<script src="assets/js/admin.js?v=52ed1e07"></script>
+<script>
+  var y = document.getElementById('year');
+  if (y) { y.textContent = String(new Date().getFullYear()); }
+</script>
+</body>
+</html>

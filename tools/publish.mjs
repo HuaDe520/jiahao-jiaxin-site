@@ -36,8 +36,12 @@ const has = (name) => argv.includes(name);
 const REPO = flag('--repo', 'jiahao-jiaxin-site');
 const DOMAIN = flag('--domain', null);
 const DRY = has('--dry-run');
-const SKIP_DIRS = new Set(['.git', '.preview', '.verify', 'node_modules', '.vercel', '.netlify']);
-const SKIP_FILES = new Set(['token.txt', '.DS_Store', 'Thumbs.db']);
+const SKIP_DIRS = new Set(['.git', '.preview', '.verify', 'node_modules', '.vercel', '.netlify', '.wrangler']);
+const SKIP_FILES = new Set(['token.txt', '.DS_Store', 'Thumbs.db', '.dev.vars', '.dev.sqlite', '.dev.sqlite-journal']);
+
+/* 暂缓上线：账号系统的页面要等后端（Cloudflare Worker）部署好才有意义，
+   后端上线后把这一段删掉即可。 */
+const HOLD = new Set([]);
 const MAX_BYTES = 25 * 1024 * 1024;
 
 /* ---------- 工具 ---------- */
@@ -88,6 +92,8 @@ function collectFiles(dir, base = dir, out = []) {
     } else if (entry.isFile()) {
       if (SKIP_FILES.has(entry.name)) continue;
       if (/^(probe-|calc-probe)/.test(entry.name)) continue;   /* 临时探针文件不上传 */
+      const relPath = relative(base, full).split(sep).join('/');
+      if (HOLD.has(relPath)) continue;                        /* 暂缓上线（见文件顶部 HOLD） */
       const size = statSync(full).size;
       if (size > MAX_BYTES) { console.warn(`  ! 跳过超过 25MB 的文件: ${entry.name}`); continue; }
       out.push({ path: relative(base, full).split(sep).join('/'), file: full, size });

@@ -21,3 +21,8 @@ token.txt
 # 临时探针页面（不要提交）
 probe-*.html
 calc-probe*.html
+
+# 后端的本地联调数据与邀请码
+backend/.dev.vars
+backend/.dev.sqlite
+backend/.dev.sqlite-journal

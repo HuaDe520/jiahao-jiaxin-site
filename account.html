@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我的账号 · 浙江嘉豪嘉欣协会</title>
+<meta name="description" content="浙江嘉豪嘉欣协会账号：填一次昵称和邀请码就能进来。">
+<meta name="theme-color" content="#0f5f56">
+<link rel="icon" href="assets/img/logo-main.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="assets/css/style.css?v=4951e9b2">
+<link rel="stylesheet" href="assets/css/account.css?v=1714ebf2">
+</head>
+<body class="ac-page">
+
+<header class="site-header">
+  <div class="wrap site-header__inner">
+    <a class="brand" href="index.html" aria-label="返回首页">
+      <img class="brand__logo" src="assets/img/logo-main.png" alt="浙江嘉豪嘉欣协会会徽">
+      <span class="brand__text">
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <small>ZHEJIANG JIAHAO JIAXIN ASSOCIATION</small>
+      </span>
+    </a>
+    <nav class="site-nav site-nav--plain" aria-label="主导航">
+      <a href="index.html">首页</a>
+      <a href="workbench.html">嘉庭工作台</a>
+      <a href="app.html">下载 App</a>
+      <a href="account.html" class="is-active">我的账号</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="section" style="padding-top:56px">
+    <div class="wrap">
+      <header class="section__head">
+        <p class="eyebrow"><span class="eyebrow__line"></span>协会账号</p>
+        <h2 id="acTitle">进来坐坐</h2>
+      </header>
+
+      <div class="ac-stage">
+
+        <!-- 未登录：昵称 + 邀请码 -->
+        <div class="ac-card" id="acLogin">
+          <div class="ac-card__head">
+            <span class="ac-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </span>
+            <span>
+              <h2 style="font-size:17px">填昵称和邀请码</h2>
+              <p class="ac-card__sub">昵称会公开显示，邀请码问群里的管理员要。</p>
+            </span>
+          </div>
+
+          <form id="acForm" autocomplete="off">
+            <div class="ac-field">
+              <label for="acName">昵称</label>
+              <input class="ac-input" id="acName" type="text" maxlength="12" placeholder="2–12 个字，不能和别人重名">
+            </div>
+            <div class="ac-field">
+              <label for="acCode">邀请码</label>
+              <input class="ac-input ac-input--code" id="acCode" type="text" maxlength="24" placeholder="群里发的那串">
+            </div>
+            <div class="ac-actions">
+              <button class="ac-btn" id="acSubmit" type="submit">进入</button>
+            </div>
+          </form>
+          <div class="ac-msg" id="acMsg"></div>
+          <p class="ac-hint">昵称一旦有人用了，后来的人就不能再用同一个；换手机想接着用原来的昵称，找管理员点一下「重置登录」就行。</p>
+        </div>
+
+        <!-- 已登录：我的账号 -->
+        <div class="ac-card" id="acMine" hidden>
+          <div class="ac-me">
+            <span class="ac-me__avatar" id="acAvatar">协</span>
+            <span>
+              <span class="ac-me__name" id="acName2">—</span>
+              <span class="ac-me__meta" id="acMeta">—</span>
+            </span>
+          </div>
+          <div class="ac-chips" id="acChips"></div>
+          <div class="ac-actions">
+            <button class="ac-btn ac-btn--ghost" id="acToAdmin" type="button" hidden>举报处理台</button>
+            <button class="ac-btn ac-btn--ghost" id="acLogout" type="button">退出登录</button>
+          </div>
+          <p class="ac-hint">退出后这台设备就登出了；再进来还是填同一个昵称和邀请码。</p>
+        </div>
+
+        <!-- 举报 -->
+        <div class="ac-card" id="acReport" hidden>
+          <div class="ac-card__head">
+            <span class="ac-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 9v4"></path>
+                <path d="M12 17h.01"></path>
+                <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path>
+              </svg>
+            </span>
+            <span>
+              <h2 style="font-size:17px">告诉管理员</h2>
+              <p class="ac-card__sub">遇到不好的事，写在这里，只有管理员能看到。</p>
+            </span>
+          </div>
+
+          <form id="acReportForm" autocomplete="off">
+            <div class="ac-field">
+              <label for="acTarget">要举报的昵称</label>
+              <input class="ac-input" id="acTarget" type="text" maxlength="12" placeholder="把对方的昵称写在这里">
+            </div>
+            <div class="ac-field">
+              <label for="acReason">原因</label>
+              <select class="ac-select" id="acReason"></select>
+            </div>
+            <div class="ac-field">
+              <label for="acDetail">说明（可不填）</label>
+              <textarea class="ac-textarea" id="acDetail" maxlength="200" placeholder="简单说说发生了什么"></textarea>
+            </div>
+            <div class="ac-actions">
+              <button class="ac-btn" id="acReportSubmit" type="submit">提交给管理员</button>
+            </div>
+          </form>
+          <div class="ac-msg" id="acReportMsg"></div>
+        </div>
+
+        <p class="ac-foot">这是协会内部的昵称账号，用来认人、收反馈，不是实名认证。</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap site-footer__inner">
+    <div class="site-footer__brand">
+      <img src="assets/img/logo-main.png" alt="" aria-hidden="true">
+      <div>
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <p>浙江高校生兴趣社交社群 · 非营利自组织</p>
+      </div>
+    </div>
+    <nav class="site-footer__nav" aria-label="页面导航">
+      <a href="index.html">首页</a>
+      <a href="workbench.html">嘉庭工作台</a>
+      <a href="comfort.html">安慰盲盒</a>
+      <a href="calc.html">学习计算器</a>
+      <a href="app.html">下载 App</a>
+    </nav>
+    <div class="site-footer__meta">
+      <p>本页面仅用于协会对外展示，内容以群内公告为准。</p>
+      <p>&copy; <span id="year">2026</span> 浙江嘉豪嘉欣协会 · 保留所有权利</p>
+    </div>
+  </div>
+</footer>
+
+<!-- 常驻入口：返回首页 -->
+<a class="quick-home" href="index.html" aria-label="返回首页">
+  <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 10.6 12 3.2l9 7.4"></path>
+    <path d="M5.6 9.6V20h12.8V9.6"></path>
+    <path d="M9.7 20v-5.3h4.6V20"></path>
+  </svg>
+  <span>返回首页</span>
+</a>
+
+<script src="assets/js/api.js?v=abcc343a"></script>
+<script src="assets/js/account.js?v=d589eeb5"></script>
+<script>
+  var y = document.getElementById('year');
+  if (y) { y.textContent = String(new Date().getFullYear()); }
+</script>
+</body>
+</html>
