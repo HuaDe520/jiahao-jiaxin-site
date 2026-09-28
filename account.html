@@ -9,15 +9,15 @@
 <link rel="icon" href="assets/img/logo-main.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="assets/css/style.css?v=282c6581">
-<link rel="stylesheet" href="assets/css/account.css?v=f27edc8f">
+<link rel="stylesheet" href="assets/css/style.css?v=237088c5">
+<link rel="stylesheet" href="assets/css/account.css?v=10f7d165">
 </head>
 <body class="ac-page">
 
 <header class="site-header">
   <div class="wrap site-header__inner">
     <a class="brand" href="index.html" aria-label="返回首页">
-      <img class="brand__logo" src="assets/img/logo-main.png" alt="浙江嘉豪嘉欣协会会徽">
+      <img class="brand__logo" src="assets/img/logo-main.png" alt="浙江嘉豪嘉欣协会会徽" width="46" height="46" decoding="async">
       <span class="brand__text">
         <strong>浙江嘉豪嘉欣协会</strong>
         <small>ZHEJIANG JIAHAO JIAXIN ASSOCIATION</small>
@@ -53,7 +53,7 @@
               </svg>
             </span>
             <span>
-              <h2 style="font-size:17px">填昵称和邀请码</h2>
+              <h2 style="font-size:17px">填昵称、密码和邀请码</h2>
               <p class="ac-card__sub">昵称会公开显示，邀请码问群里的管理员要。</p>
             </span>
           </div>
@@ -64,6 +64,10 @@
               <input class="ac-input" id="acName" type="text" maxlength="12" placeholder="2–12 个字，不能和别人重名">
             </div>
             <div class="ac-field">
+              <label for="acPass">密码</label>
+              <input class="ac-input" id="acPass" type="password" maxlength="64" autocomplete="current-password" placeholder="至少 6 位">
+            </div>
+            <div class="ac-field">
               <label for="acCode">邀请码</label>
               <input class="ac-input ac-input--code" id="acCode" type="text" maxlength="24" placeholder="群里发的那串">
             </div>
@@ -72,7 +76,7 @@
             </div>
           </form>
           <div class="ac-msg" id="acMsg"></div>
-          <p class="ac-hint">昵称一旦有人用了，后来的人就不能再用同一个；换手机想接着用原来的昵称，找管理员点一下「重置登录」就行。</p>
+          <p class="ac-hint">第一次用某个昵称进来，这一步就把密码定下了；以后换手机、换浏览器，只要昵称+密码+邀请码对得上就能进，不用再找管理员。同一账号在别的地方登录，这边会自动下线。</p>
         </div>
 
         <!-- 已登录：我的账号 -->
@@ -95,7 +99,23 @@
             <button class="ac-btn ac-btn--ghost" id="acLogout" type="button">退出登录</button>
           </div>
           <div class="ac-msg" id="acAvatarMsg"></div>
-          <p class="ac-hint">点左边的头像就能换一张（自动裁成方形）。退出后这台设备就登出了；再进来还是填同一个昵称和邀请码。</p>
+          <p class="ac-hint">点左边的头像就能换一张（自动裁成方形）。</p>
+
+          <details class="ac-pass">
+            <summary>修改密码</summary>
+            <div class="ac-field">
+              <label for="acOldPass">原密码</label>
+              <input class="ac-input" id="acOldPass" type="password" maxlength="64" autocomplete="current-password" placeholder="现在用的密码">
+            </div>
+            <div class="ac-field">
+              <label for="acNewPass">新密码</label>
+              <input class="ac-input" id="acNewPass" type="password" maxlength="64" autocomplete="new-password" placeholder="至少 6 位">
+            </div>
+            <div class="ac-actions">
+              <button class="ac-btn" id="acPassSubmit" type="button">保存新密码</button>
+            </div>
+            <div class="ac-msg" id="acPassMsg"></div>
+          </details>
         </div>
 
         <!-- 举报 -->
@@ -143,7 +163,7 @@
 <footer class="site-footer">
   <div class="wrap site-footer__inner">
     <div class="site-footer__brand">
-      <img src="assets/img/logo-main.png" alt="" aria-hidden="true">
+      <img src="assets/img/logo-main.png" alt="" aria-hidden="true" width="56" height="56" loading="lazy" decoding="async">
       <div>
         <strong>浙江嘉豪嘉欣协会</strong>
         <p>浙江高校生兴趣社交社群 · 非营利自组织</p>
@@ -173,8 +193,8 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/api.js?v=b96909ee"></script>
-<script src="assets/js/account.js?v=74e51a2b"></script>
+<script src="assets/js/api.js?v=a7262a08"></script>
+<script src="assets/js/account.js?v=7184d6e9"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }

@@ -90,9 +90,17 @@
   }
 
   window.JHJX_API = {
-    enter: function (name, code) {
-      /* 带上设备凭证：同一台设备换昵称/退出后再进来都认得出 */
-      return call('POST', '/api/enter', { name: name, code: code, token: deviceToken() || token() });
+    enter: function (name, code, password) {
+      /* 带上设备凭证：同一台设备再进来时凭证不变，别的设备登录会把这里挤下线 */
+      return call('POST', '/api/enter', {
+        name: name,
+        code: code,
+        password: password,
+        token: deviceToken() || token()
+      });
+    },
+    changePassword: function (oldPassword, newPassword) {
+      return call('POST', '/api/password', { oldPassword: oldPassword, newPassword: newPassword });
     },
     me: function () { return call('GET', '/api/me'); },
     report: function (targetName, reason, detail) {

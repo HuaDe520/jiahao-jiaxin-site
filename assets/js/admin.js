@@ -193,7 +193,7 @@
         else row.appendChild(act('ban', '停用', '确定停用「' + u.name + '」吗？他会立刻掉线。', true));
       }
 
-      row.appendChild(act('reset', '重置登录', '重置后「' + u.name + '」这台设备的登录会失效，本人用昵称 + 邀请码可以重新进来。确定吗？'));
+      row.appendChild(act('reset', '重置登录', '重置后「' + u.name + '」的旧登录会失效，密码也被清空；本人用昵称 + 邀请码 + 新密码就能重新进来（等于重新设密码）。确定吗？'));
 
       if (u.role === 'admin') {
         if (!isMe) row.appendChild(act('revoke_admin', '取消管理员', '确定取消「' + u.name + '」的管理员吗？', true));

@@ -230,6 +230,8 @@ button { font: inherit; color: inherit; }
 /* 会徽 */
 .hero__emblem { display: flex; flex-direction: column; align-items: center; gap: 22px; }
 .emblem { position: relative; width: min(360px, 78vw); aspect-ratio: 1; display: grid; place-items: center; }
+/* 会徽外面包了一层 <picture>（优先给浏览器 WebP），让这层不参与布局，尺寸规则照旧生效 */
+.emblem picture { display: contents; }
 .emblem img {
   position: relative; z-index: 2; width: 82%; height: 82%; border-radius: 50%;
   box-shadow: var(--shadow-l);

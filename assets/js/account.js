@@ -83,13 +83,16 @@
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     var name = $('acName').value.trim();
+    var pw = $('acPass').value;
     var code = $('acCode').value.trim();
     if (!name) { showMsg(msg, '先填个昵称吧', 'error'); return; }
+    if (!pw) { showMsg(msg, '密码还没填，第一次进来就是在这里定密码', 'error'); return; }
+    if (pw.length < 6) { showMsg(msg, '密码至少 6 位', 'error'); return; }
     if (!code) { showMsg(msg, '邀请码还没填', 'error'); return; }
 
     submit.disabled = true;
     hideMsg(msg);
-    API.enter(name, code).then(function (r) {
+    API.enter(name, code, pw).then(function (r) {
       submit.disabled = false;
       if (r.status === 200 && r.data && r.data.ok) {
         API.saveSession(r.data.token, r.data.user);
@@ -99,10 +102,29 @@
         } catch (e) { /* 忽略 */ }
         location.href = 'index.html';
         return;
-      } else if (r.data && r.data.needReset) {
-        showMsg(msg, r.data.error, 'info');
       } else {
         showMsg(msg, (r.data && r.data.error) || '没能进来，再试一次', 'error');
+      }
+    });
+  });
+
+  /* ---------- 改密码 ---------- */
+  $('acPassSubmit').addEventListener('click', function () {
+    var pmsg = $('acPassMsg');
+    var oldPw = $('acOldPass').value;
+    var newPw = $('acNewPass').value;
+    if (newPw.length < 6) { showMsg(pmsg, '新密码至少 6 位', 'error'); return; }
+    var btn = this;
+    btn.disabled = true;
+    hideMsg(pmsg);
+    API.changePassword(oldPw, newPw).then(function (r) {
+      btn.disabled = false;
+      if (r.status === 200 && r.data && r.data.ok) {
+        $('acOldPass').value = '';
+        $('acNewPass').value = '';
+        showMsg(pmsg, '密码已经换好了', 'ok');
+      } else {
+        showMsg(pmsg, (r.data && r.data.error) || '没改成功，再试一次', 'error');
       }
     });
   });

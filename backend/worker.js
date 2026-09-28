@@ -94,6 +94,62 @@ function roleOfCode(code, env) {
   return null;
 }
 
+/* ---------------- 口令（昵称 + 密码 + 邀请码）----------------
+   没有第三方依赖，用运行环境自带的 WebCrypto 做 PBKDF2-SHA256。
+   函数计算实例只有 0.2 核，迭代次数取 30000：约 100ms 一次，
+   对「几十个人的社团」足够，且不会把接口拖慢太多。 */
+const PASS_MIN = 6;
+const PASS_MAX = 64;
+const PBKDF2_ROUNDS = 30000;
+
+function passwordProblem(password) {
+  const p = String(password == null ? '' : password);
+  if (!p) return '请设置一个密码';
+  const len = Array.from(p).length;
+  if (len < PASS_MIN) return `密码至少 ${PASS_MIN} 位`;
+  if (len > PASS_MAX) return `密码最多 ${PASS_MAX} 位`;
+  return null;
+}
+
+function bytesToHex(bytes) {
+  let out = '';
+  for (const b of bytes) out += b.toString(16).padStart(2, '0');
+  return out;
+}
+
+function hexToBytes(hex) {
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+  return out;
+}
+
+async function derive(password, saltHex) {
+  const salt = saltHex ? hexToBytes(saltHex) : crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', hash: 'SHA-256', salt, iterations: PBKDF2_ROUNDS }, key, 256
+  );
+  return { salt: bytesToHex(salt), hash: bytesToHex(new Uint8Array(bits)) };
+}
+
+/* 固定的比较时间，免得从响应快慢上猜密码 */
+function sameHash(a, b) {
+  const x = String(a || '');
+  const y = String(b || '');
+  if (x.length !== y.length) return false;
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x.charCodeAt(i) ^ y.charCodeAt(i);
+  return diff === 0;
+}
+
+async function checkPassword(password, row) {
+  if (!row || !row.pass_hash || !row.pass_salt) return false;
+  const { hash } = await derive(password, row.pass_salt);
+  return sameHash(hash, row.pass_hash);
+}
+
 function publicUser(row) {
   if (!row) return null;
   return {
@@ -103,6 +159,7 @@ function publicUser(row) {
     status: row.status,
     createdAt: row.created_at,
     avatar: row.avatar ? `/api/avatar/${row.id}?v=${row.avatar_ver || 0}` : null,
+    hasPassword: !!row.pass_hash,
   };
 }
 
@@ -164,23 +221,31 @@ export async function handle(request, env) {
   }
 
   try {
-    /* ---- 进入（注册 + 登录，同一个动作） ---- */
+    /* ---- 进入（注册 + 登录，同一个动作）----
+       昵称 + 密码 + 邀请码 就能进；换设备/换浏览器只要这三样对得上就进得来，
+       不需要管理员帮忙。同一账号在新设备登录，旧设备自动被挤下线。 */
     if (path === '/api/enter' && method === 'POST') {
       const body = await request.json().catch(() => ({}));
       const name = String(body.name == null ? '' : body.name).trim();
+      const password = String(body.password == null ? '' : body.password);
       const role = roleOfCode(body.code, env);
       if (!role) return fail('邀请码不对，问一下群里的管理员', 403, origin);
 
       const problem = nameProblem(name);
       if (problem) return fail(problem, 400, origin);
+      const passProblem = passwordProblem(password);
+      if (passProblem) return fail(passProblem, 400, origin);
 
       const key = nameKey(name);
       const now = Date.now();
       const exist = await store.getUserByKey(key);
 
       if (!exist) {
+        const { salt, hash } = await derive(password);
         const token = crypto.randomUUID();
-        const row = await store.createUser({ name, nameKey: key, role, token, now });
+        const row = await store.createUser({
+          name, nameKey: key, role, token, now, passHash: hash, passSalt: salt,
+        });
         return json({ ok: true, token, user: publicUser(row), created: true }, 200, origin);
       }
 
@@ -188,29 +253,61 @@ export async function handle(request, env) {
         return fail('这个昵称已被停用，找管理员处理一下', 403, origin);
       }
 
-      /* 同一个昵称换设备进来：不允许直接冒用；
-         管理员「重置登录」会把凭证清空，这时昵称回到可认领状态 */
-      const claimable = !exist.token;
-      const sameDevice = claimable || (body.token && String(body.token) === exist.token);
-      if (!sameDevice) {
-        return fail('这个昵称已经有人用了。如果就是你，让管理员点一下「重置登录」，就能重新进来', 409, origin, { needReset: true });
+      const nextRole = role === 'admin' ? 'admin' : exist.role;
+
+      /* 还没有密码的老账号：第一次用这个昵称进来时把密码设上 */
+      if (!exist.pass_hash) {
+        const { salt, hash } = await derive(password);
+        const token = crypto.randomUUID();
+        const row = await store.updateUser(exist.id, {
+          last_seen_at: now,
+          role: nextRole,
+          name,
+          token,
+          pass_hash: hash,
+          pass_salt: salt,
+        });
+        return json({ ok: true, token, user: publicUser(row), created: false, setPassword: true }, 200, origin);
       }
 
-      const nextRole = role === 'admin' ? 'admin' : exist.role;
-      const nextToken = claimable ? crypto.randomUUID() : exist.token;
+      if (!(await checkPassword(password, exist))) {
+        return fail('密码不对。真忘了就让管理员点一下「重置登录」，重新设一个', 403, origin);
+      }
+
+      /* 密码对：同一台设备沿用旧凭证，其它设备发新凭证（旧的立刻失效＝被挤下线） */
+      const sameToken = body.token && String(body.token) === exist.token;
+      const token = sameToken ? exist.token : crypto.randomUUID();
       const row = await store.updateUser(exist.id, {
         last_seen_at: now,
         role: nextRole,
         name,
-        token: nextToken,
+        token,
       });
-      return json({ ok: true, token: nextToken, user: publicUser(row), created: false, reclaimed: claimable }, 200, origin);
+      return json({ ok: true, token, user: publicUser(row), created: false, kickedOthers: !sameToken }, 200, origin);
+    }
+
+    /* ---- 改密码 ---- */
+    if (path === '/api/password' && method === 'POST') {
+      const me = await authUser(store, request);
+      if (!me) return fail('请先登录', 401, origin);
+      if (me.status === 'banned') return fail('这个昵称已被停用', 403, origin);
+      const body = await request.json().catch(() => ({}));
+      const oldPassword = String(body.oldPassword == null ? '' : body.oldPassword);
+      const newPassword = String(body.newPassword == null ? '' : body.newPassword);
+      const prob = passwordProblem(newPassword);
+      if (prob) return fail(prob, 400, origin);
+      if (me.pass_hash && !(await checkPassword(oldPassword, me))) {
+        return fail('原密码不对', 403, origin);
+      }
+      const { salt, hash } = await derive(newPassword);
+      await store.updateUser(me.id, { pass_hash: hash, pass_salt: salt });
+      return json({ ok: true }, 200, origin);
     }
 
     /* ---- 我是谁 ---- */
     if (path === '/api/me' && method === 'GET') {
       const me = await authUser(store, request);
-      if (!me) return fail('还没进来，先填昵称和邀请码', 401, origin);
+      if (!me) return fail('还没登录，填昵称和密码进来', 401, origin);
       if (me.status === 'banned') return fail('这个昵称已被停用', 403, origin);
       await store.updateUser(me.id, { last_seen_at: Date.now() });
       const out = { ok: true, user: publicUser(me) };
@@ -221,7 +318,7 @@ export async function handle(request, env) {
     /* ---- 举报某个昵称 ---- */
     if (path === '/api/report' && method === 'POST') {
       const me = await authUser(store, request);
-      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      if (!me) return fail('请先登录', 401, origin);
       if (me.status === 'banned') return fail('这个昵称已被停用', 403, origin);
 
       const body = await request.json().catch(() => ({}));
@@ -258,7 +355,7 @@ export async function handle(request, env) {
     /* ---- 管理端 ---- */
     if (path.startsWith('/api/admin/')) {
       const me = await authUser(store, request);
-      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      if (!me) return fail('请先登录', 401, origin);
       if (me.status === 'banned') return fail('这个昵称已被停用', 403, origin);
       if (me.role !== 'admin') return fail('这里只有管理员能看', 403, origin);
 
@@ -307,6 +404,7 @@ export async function handle(request, env) {
             createdAt: u.created_at,
             lastSeenAt: u.last_seen_at,
             reports: u.reports,
+            hasPassword: !!u.pass_hash,
           })),
         }, 200, origin);
       }
@@ -325,8 +423,8 @@ export async function handle(request, env) {
         } else if (action === 'unban') {
           await store.updateUser(id, { status: 'active' });
         } else if (action === 'reset') {
-          /* 重置登录：清掉旧凭证，昵称回到「可认领」状态 */
-          await store.updateUser(id, { token: '' });
+          /* 重置登录：清掉旧凭证和旧密码，昵称回到「重新设密码」状态 */
+          await store.updateUser(id, { token: '', pass_hash: null, pass_salt: null });
         } else if (action === 'grant_admin') {
           await store.updateUser(id, { role: 'admin' });
         } else if (action === 'revoke_admin') {
@@ -344,7 +442,7 @@ export async function handle(request, env) {
     /* ---- 头像：上传 ---- */
     if (path === '/api/avatar' && method === 'POST') {
       const me = await authUser(store, request);
-      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      if (!me) return fail('请先登录', 401, origin);
       if (me.status === 'banned') return fail('这个昵称已被停用', 403, origin);
 
       const body = await request.json().catch(() => ({}));
@@ -393,7 +491,7 @@ export async function handle(request, env) {
     /* ---- 找人（按昵称搜索）---- */
     if (path === '/api/search' && method === 'GET') {
       const me = await authUser(store, request);
-      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      if (!me) return fail('请先登录', 401, origin);
       const q = url.searchParams.get('q') || '';
       const rows = await store.searchUsers(q, me.id, 20);
       return json({ ok: true, users: rows.map(briefUser) }, 200, origin);
@@ -402,7 +500,7 @@ export async function handle(request, env) {
     /* ---- 好友列表 / 请求 ---- */
     if (path === '/api/friends' && method === 'GET') {
       const me = await authUser(store, request);
-      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      if (!me) return fail('请先登录', 401, origin);
       const rel = await store.listFriendshipsFor(me.id);
       const friends = [], incoming = [], outgoing = [];
       for (const f of rel) {
@@ -424,7 +522,7 @@ export async function handle(request, env) {
 
     if (path === '/api/friends/request' && method === 'POST') {
       const me = await authUser(store, request);
-      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      if (!me) return fail('请先登录', 401, origin);
       const body = await request.json().catch(() => ({}));
       const targetId = Number(body.targetId);
       if (!targetId || targetId === me.id) return fail('不能加自己', 400, origin);
@@ -446,7 +544,7 @@ export async function handle(request, env) {
 
     if (path === '/api/friends/respond' && method === 'POST') {
       const me = await authUser(store, request);
-      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      if (!me) return fail('请先登录', 401, origin);
       const body = await request.json().catch(() => ({}));
       const id = Number(body.id);
       const action = String(body.action || '');
@@ -467,7 +565,7 @@ export async function handle(request, env) {
 
     if (path === '/api/friends/remove' && method === 'POST') {
       const me = await authUser(store, request);
-      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      if (!me) return fail('请先登录', 401, origin);
       const body = await request.json().catch(() => ({}));
       const friendId = Number(body.friendId);
       const rel = await store.getFriendship(me.id, friendId);
@@ -479,7 +577,7 @@ export async function handle(request, env) {
     /* ---- 会话列表 ---- */
     if (path === '/api/threads' && method === 'GET') {
       const me = await authUser(store, request);
-      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      if (!me) return fail('请先登录', 401, origin);
       const rows = await store.listMessagesForThreads(me.id, 500);
       const map = new Map();
       for (const m of rows) {
@@ -505,7 +603,7 @@ export async function handle(request, env) {
       const msgRoute = /^\/api\/messages\/(\d+)$/.exec(path);
       if (msgRoute && method === 'GET') {
         const me = await authUser(store, request);
-        if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+        if (!me) return fail('请先登录', 401, origin);
         const otherId = Number(msgRoute[1]);
         const rel = await store.getFriendship(me.id, otherId);
         if (!rel || rel.status !== 'accepted') return fail('你们还不是好友', 403, origin);
@@ -520,7 +618,7 @@ export async function handle(request, env) {
 
     if (path === '/api/messages' && method === 'POST') {
       const me = await authUser(store, request);
-      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      if (!me) return fail('请先登录', 401, origin);
       if (me.status === 'banned') return fail('这个昵称已被停用', 403, origin);
       const body = await request.json().catch(() => ({}));
       const to = Number(body.to);

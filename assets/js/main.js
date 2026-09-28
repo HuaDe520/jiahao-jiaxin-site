@@ -313,7 +313,10 @@
   }
 
   /* ---------- 8. PWA：注册 Service Worker ---------- */
-  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  /* https 才注册；本机 127.0.0.1 / localhost 也算安全来源，方便本地调试离线缓存 */
+  var swHost = location.hostname;
+  var swSecure = location.protocol === 'https:' || swHost === '127.0.0.1' || swHost === 'localhost';
+  if ('serviceWorker' in navigator && swSecure) {
     window.addEventListener('load', function () {
       /* updateViaCache: 'none' —— 每次打开都去服务器核对 sw.js，
          否则浏览器可能拿出缓存里的旧版本，站内更新会迟一步生效 */

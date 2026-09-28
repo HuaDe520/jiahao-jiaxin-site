@@ -43,16 +43,16 @@ iOS 不允许安装第三方安装包，只能用 **Safari** 添加到主屏幕�
 
 | 项目 | 值 |
 | --- | --- |
-| 文件名 | `download/zhangshang-jiaxie-1.1.apk` |
-| 版本 | 1.1（versionCode 2） |
-| 大小 | 333 KB |
+| 文件名 | `download/zhangshang-jiaxie-1.2.apk` |
+| 版本 | 1.2（versionCode 3） |
+| 大小 | 125 KB |
 | 包名 | `com.jiahaojiaxin.assoc` |
 | 支持系统 | Android 5.0（API 21）及以上 |
 | 目标版本 | Android 14（API 34） |
 | 权限 | 仅 `INTERNET`、`ACCESS_NETWORK_STATE` |
 | 签名证书 | CN=Zhejiang Jiahao Jiaxin Association |
 | 证书 SHA-256 | `302b107e38b8da634d0d7c24691e97d88248643f6aa7f108729fa1c068ec5bec` |
-| APK SHA-256 | `b66ba62b1eefc27ef7e14e834af2644155410a0dd72b90a0d4e08a263876e716` |
+| APK SHA-256 | `b94818ce8aa35389ec0f12acebdbb2a8f76c64230992ae31b3bfc15891df0be8` |
 
 App 本质是一个 WebView 外壳，**打开的就是官网**——所以官网内容一更新，App 里立刻就是新的，不需要重新发版。
 

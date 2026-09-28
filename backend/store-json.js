@@ -86,7 +86,7 @@ export function createJsonStore(io) {
         .filter((u) => u.id !== excludeId && u.status === 'active' && u.name.toLowerCase().includes(needle))
         .slice(0, limit || 20);
     },
-    async createUser({ name, nameKey, role, token, now }) {
+    async createUser({ name, nameKey, role, token, now, passHash, passSalt }) {
       return withLock(async () => {
         const d = await load();
         const row = {
@@ -96,6 +96,8 @@ export function createJsonStore(io) {
           role,
           status: 'active',
           token,
+          pass_hash: passHash || null,
+          pass_salt: passSalt || null,
           avatar: null,
           avatar_ver: 0,
           created_at: now,
