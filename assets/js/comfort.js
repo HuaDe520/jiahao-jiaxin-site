@@ -22,7 +22,6 @@
   var copyBtn = document.getElementById('cmCopy');
   var progressEl = document.getElementById('cmProgress');
   var recentEl = document.getElementById('cmRecent');
-  var subEl = document.getElementById('cmSub');
 
   if (!QUOTES.length || !drawBtn || !textEl) return;
 
@@ -111,9 +110,7 @@
 
   function renderProgress() {
     var st = deckStats();
-    progressEl.innerHTML = '这一轮已经抽了 <strong>' + st.drawn + '</strong> 句 · 还剩 <strong>' + st.left +
-      '</strong> 句没发';
-    if (subEl) subEl.textContent = st.drawn ? '第 ' + st.drawn + ' 次抽取' : '点一下，抽一句';
+    progressEl.innerHTML = '盒子里还剩 <strong>' + st.left + '</strong> 句';
   }
 
   function showSentence(sentence, animate) {
