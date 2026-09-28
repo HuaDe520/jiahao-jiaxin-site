@@ -119,6 +119,23 @@ if (!me.ok) { console.error('令牌无效：', me.status, me.json?.message); pro
 const owner = me.json.login;
 console.log(`已认证为 ${owner}`);
 
+/* 0. 安全预检：远端 README 是否被网页端改过（避免覆盖别人的修改） */
+if (!has('--force')) {
+  const remoteReadme = await api('GET', `/repos/${owner}/${REPO}/contents/README.md`, { token });
+  if (remoteReadme.ok && remoteReadme.json && remoteReadme.json.content) {
+    const remoteText = Buffer.from(remoteReadme.json.content, 'base64').toString('utf8');
+    const localText = readFileSync(join(SITE_ROOT, 'README.md'), 'utf8');
+    if (remoteText !== localText) {
+      console.warn('');
+      console.warn('⚠️  远端 README 与本地不一致 —— 可能有人在 GitHub 网页上直接改过它。');
+      console.warn('   为避免覆盖对方的修改，本次发布已中止。');
+      console.warn('   处理办法：先把远端内容取回本地合并，再发布；确实要覆盖请加 --force 参数。');
+      console.warn('');
+      process.exit(2);
+    }
+  }
+}
+
 /* 1. 建仓库（已存在则复用） */
 const repoRes = await api('POST', '/user/repos', {
   token,
