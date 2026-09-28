@@ -136,7 +136,7 @@
       ok.textContent = '同意';
       ok.addEventListener('click', function () {
         ok.disabled = true;
-        API.friendRespond(r.id, 'accept').then(function (res) {
+        API.friendRespond(r.relId, 'accept').then(function (res) {
           if (res.status === 200) { refresh(); } else { ok.disabled = false; alert((res.data && res.data.error) || '失败了'); }
         });
       });
@@ -146,7 +146,7 @@
       no.textContent = '拒绝';
       no.addEventListener('click', function () {
         no.disabled = true;
-        API.friendRespond(r.id, 'decline').then(function () { refresh(); });
+        API.friendRespond(r.relId, 'decline').then(function () { refresh(); });
       });
       side.appendChild(ok);
       side.appendChild(no);
@@ -311,6 +311,20 @@
     });
   }
 
+  /* 解除好友：先问一句，确认了再解，解完回到好友列表 */
+  function removeFriend() {
+    var f = state.current;
+    if (!f) return;
+    if (!confirm('解除和「' + f.name + '」的好友关系？解除后就不能再聊天了。')) return;
+    var btn = $('frChatRemove');
+    btn.disabled = true;
+    API.friendRemove(f.id).then(function (res) {
+      btn.disabled = false;
+      if (res.status === 200) { closeChat(); }
+      else { alert((res.data && res.data.error) || '解除失败'); }
+    });
+  }
+
   /* ---------------- 数据刷新 ---------------- */
   function refresh() {
     return Promise.all([API.friends(), API.threads()]).then(function (res) {
@@ -364,6 +378,7 @@
   $('frTabRequests').addEventListener('click', function () { showPane('requests'); });
   $('frTabSearch').addEventListener('click', function () { showPane('search'); });
   $('frChatBack').addEventListener('click', closeChat);
+  $('frChatRemove').addEventListener('click', removeFriend);
   $('frChatRefresh').addEventListener('click', function () { loadChat(state.lastAt); });
   $('frChatSend').addEventListener('click', send);
   $('frChatInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } });

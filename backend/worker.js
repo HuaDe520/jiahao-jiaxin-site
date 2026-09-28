@@ -412,9 +412,10 @@ export async function handle(request, env) {
         if (f.status === 'accepted') {
           friends.push({ ...briefUser(other), since: f.updated_at || f.created_at, unread: await store.countUnreadFrom(me.id, otherId) });
         } else if (f.requester === me.id) {
-          outgoing.push({ ...briefUser(other), id: f.id, at: f.created_at });
+          /* id 始终是对方的用户 id；关系 id 另外给（同意/拒绝/取消要用） */
+          outgoing.push({ ...briefUser(other), relId: f.id, at: f.created_at });
         } else {
-          incoming.push({ ...briefUser(other), id: f.id, at: f.created_at });
+          incoming.push({ ...briefUser(other), relId: f.id, at: f.created_at });
         }
       }
       friends.sort((a, b) => (b.unread - a.unread) || (b.since - a.since));
