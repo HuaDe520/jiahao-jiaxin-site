@@ -15,7 +15,7 @@
    之后换设备想用同一个昵称，需要管理员「重置登录」。
    ========================================================= */
 
-import { createD1Store } from './store-d1.js';
+import { createJsonStore } from './store-json.js';
 
 const RESERVED = ['管理员', '管理', 'admin', 'administrator', '社长', '会长', '部长',
                   '官方', '客服', '协会', '群主', '老师', '管理组'];
@@ -102,7 +102,22 @@ function publicUser(row) {
     role: row.role,
     status: row.status,
     createdAt: row.created_at,
+    avatar: row.avatar ? `/api/avatar/${row.id}?v=${row.avatar_ver || 0}` : null,
   };
+}
+
+/* 只对外露出的字段（好友列表、消息里用） */
+function briefUser(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    avatar: row.avatar ? `/api/avatar/${row.id}?v=${row.avatar_ver || 0}` : null,
+  };
+}
+
+function publicMessage(m) {
+  return { id: m.id, from: m.from, to: m.to, body: m.body, createdAt: m.created_at, readAt: m.read_at || null };
 }
 
 function publicReport(r) {
@@ -136,7 +151,7 @@ export async function handle(request, env) {
   const url = new URL(request.url);
   const path = url.pathname.replace(/\/+$/, '') || '/';
   const method = request.method.toUpperCase();
-  const store = env.STORE || (env.DB ? createD1Store(env.DB) : null);
+  const store = env.STORE || (env.DB ? createJsonStore(env.DB) : null);
 
   if (method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(origin) });
   if (!store) return fail('服务端没有配置存储', 500, origin);
@@ -324,6 +339,202 @@ export async function handle(request, env) {
       }
 
       return fail('没有这个管理接口', 404, origin);
+    }
+
+    /* ---- 头像：上传 ---- */
+    if (path === '/api/avatar' && method === 'POST') {
+      const me = await authUser(store, request);
+      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      if (me.status === 'banned') return fail('这个昵称已被停用', 403, origin);
+
+      const body = await request.json().catch(() => ({}));
+      const dataUrl = String(body.dataUrl || '');
+      const m = /^data:image\/(png|jpeg|jpg|webp);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
+      if (!m) return fail('头像格式不对，请用 PNG / JPG / WebP', 400, origin);
+      const ext = m[1] === 'jpeg' ? 'jpg' : m[1];
+      const bytes = Buffer.from(m[2], 'base64');
+      if (bytes.length < 200) return fail('图片太小了', 400, origin);
+      if (bytes.length > 400 * 1024) return fail('头像请压到 400KB 以内', 400, origin);
+
+      const ver = (me.avatar_ver || 0) + 1;
+      const key = `avatars/${me.id}-${ver}.${ext}`;
+      try {
+        await store.putObject(key, bytes, `image/${ext === 'jpg' ? 'jpeg' : ext}`);
+      } catch (e) {
+        return fail('头像存不进去：' + e.message, 500, origin);
+      }
+      const old = me.avatar;
+      const row = await store.updateUser(me.id, { avatar: key, avatar_ver: ver });
+      /* 老图删掉，别占空间 */
+      if (old && old !== key) { try { await store.deleteObject(old); } catch { /* 忽略 */ } }
+      return json({ ok: true, user: publicUser(row) }, 200, origin);
+    }
+
+    /* ---- 头像：读取（公开，img 标签直接用）---- */
+    {
+      const av = /^\/api\/avatar\/(\d+)$/.exec(path);
+      if (av && (method === 'GET' || method === 'HEAD')) {
+        const target = await store.getUserById(Number(av[1]));
+        if (!target || !target.avatar) return fail('没有头像', 404, origin);
+        let obj = null;
+        try { obj = await store.getObject(target.avatar); } catch { obj = null; }
+        if (!obj) return fail('头像丢了', 404, origin);
+        return new Response(obj.bytes, {
+          status: 200,
+          headers: {
+            'Content-Type': obj.contentType || 'image/png',
+            'Cache-Control': 'public, max-age=604800',
+            ...corsHeaders(origin),
+          },
+        });
+      }
+    }
+
+    /* ---- 找人（按昵称搜索）---- */
+    if (path === '/api/search' && method === 'GET') {
+      const me = await authUser(store, request);
+      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      const q = url.searchParams.get('q') || '';
+      const rows = await store.searchUsers(q, me.id, 20);
+      return json({ ok: true, users: rows.map(briefUser) }, 200, origin);
+    }
+
+    /* ---- 好友列表 / 请求 ---- */
+    if (path === '/api/friends' && method === 'GET') {
+      const me = await authUser(store, request);
+      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      const rel = await store.listFriendshipsFor(me.id);
+      const friends = [], incoming = [], outgoing = [];
+      for (const f of rel) {
+        const otherId = f.a === me.id ? f.b : f.a;
+        const other = await store.getUserById(otherId);
+        if (!other) continue;
+        if (f.status === 'accepted') {
+          friends.push({ ...briefUser(other), since: f.updated_at || f.created_at, unread: await store.countUnreadFrom(me.id, otherId) });
+        } else if (f.requester === me.id) {
+          outgoing.push({ ...briefUser(other), id: f.id, at: f.created_at });
+        } else {
+          incoming.push({ ...briefUser(other), id: f.id, at: f.created_at });
+        }
+      }
+      friends.sort((a, b) => (b.unread - a.unread) || (b.since - a.since));
+      return json({ ok: true, friends, incoming, outgoing, unread: await store.countUnreadTotal(me.id) }, 200, origin);
+    }
+
+    if (path === '/api/friends/request' && method === 'POST') {
+      const me = await authUser(store, request);
+      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      const body = await request.json().catch(() => ({}));
+      const targetId = Number(body.targetId);
+      if (!targetId || targetId === me.id) return fail('不能加自己', 400, origin);
+      const target = await store.getUserById(targetId);
+      if (!target) return fail('没有这个人', 404, origin);
+      if (target.status === 'banned') return fail('这个昵称已被停用', 400, origin);
+
+      const exist = await store.getFriendship(me.id, targetId);
+      if (exist) {
+        if (exist.status === 'accepted') return fail('你们已经是好友了', 400, origin);
+        if (exist.requester === me.id) return fail('已经发过请求了，等对方同意', 400, origin);
+        /* 对方先发的请求：直接互相成为好友 */
+        await store.updateFriendship(exist.id, { status: 'accepted', updated_at: Date.now() });
+        return json({ ok: true, accepted: true }, 200, origin);
+      }
+      await store.createFriendship({ a: me.id, b: targetId, requester: me.id, updated_at: Date.now() });
+      return json({ ok: true }, 200, origin);
+    }
+
+    if (path === '/api/friends/respond' && method === 'POST') {
+      const me = await authUser(store, request);
+      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      const body = await request.json().catch(() => ({}));
+      const id = Number(body.id);
+      const action = String(body.action || '');
+      const mine = (await store.listFriendshipsFor(me.id)).find((f) => f.id === id);
+      if (!mine) return fail('没有这条好友请求', 404, origin);
+      if (mine.requester === me.id) return fail('这是你自己发的请求', 400, origin);
+      if (mine.status !== 'pending') return fail('这条请求已经处理过了', 400, origin);
+      if (action === 'accept') {
+        await store.updateFriendship(id, { status: 'accepted', updated_at: Date.now() });
+        return json({ ok: true }, 200, origin);
+      }
+      if (action === 'decline') {
+        await store.deleteFriendship(id);
+        return json({ ok: true }, 200, origin);
+      }
+      return fail('动作不对', 400, origin);
+    }
+
+    if (path === '/api/friends/remove' && method === 'POST') {
+      const me = await authUser(store, request);
+      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      const body = await request.json().catch(() => ({}));
+      const friendId = Number(body.friendId);
+      const rel = await store.getFriendship(me.id, friendId);
+      if (!rel) return fail('你们不是好友', 400, origin);
+      await store.deleteFriendship(rel.id);
+      return json({ ok: true }, 200, origin);
+    }
+
+    /* ---- 会话列表 ---- */
+    if (path === '/api/threads' && method === 'GET') {
+      const me = await authUser(store, request);
+      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      const rows = await store.listMessagesForThreads(me.id, 500);
+      const map = new Map();
+      for (const m of rows) {
+        const otherId = m.from === me.id ? m.to : m.from;
+        const cur = map.get(otherId) || { id: otherId, last: '', lastAt: 0, unread: 0 };
+        cur.last = m.body;
+        cur.lastAt = m.created_at;
+        if (m.to === me.id && !m.read_at) cur.unread += 1;
+        map.set(otherId, cur);
+      }
+      const threads = [];
+      for (const t of map.values()) {
+        const other = await store.getUserById(t.id);
+        if (!other) continue;
+        threads.push({ ...briefUser(other), last: t.last, lastAt: t.lastAt, unread: t.unread });
+      }
+      threads.sort((a, b) => b.lastAt - a.lastAt);
+      return json({ ok: true, threads, unread: await store.countUnreadTotal(me.id) }, 200, origin);
+    }
+
+    /* ---- 和某个好友的消息 ---- */
+    {
+      const msgRoute = /^\/api\/messages\/(\d+)$/.exec(path);
+      if (msgRoute && method === 'GET') {
+        const me = await authUser(store, request);
+        if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+        const otherId = Number(msgRoute[1]);
+        const rel = await store.getFriendship(me.id, otherId);
+        if (!rel || rel.status !== 'accepted') return fail('你们还不是好友', 403, origin);
+        const other = await store.getUserById(otherId);
+        if (!other) return fail('没有这个人', 404, origin);
+        const since = Number(url.searchParams.get('since') || 0);
+        const rows = await store.listMessagesBetween(me.id, otherId, since, 200);
+        await store.markMessagesRead(me.id, otherId, Date.now());
+        return json({ ok: true, friend: briefUser(other), messages: rows.map(publicMessage) }, 200, origin);
+      }
+    }
+
+    if (path === '/api/messages' && method === 'POST') {
+      const me = await authUser(store, request);
+      if (!me) return fail('请先填昵称和邀请码进来', 401, origin);
+      if (me.status === 'banned') return fail('这个昵称已被停用', 403, origin);
+      const body = await request.json().catch(() => ({}));
+      const to = Number(body.to);
+      const text = String(body.body == null ? '' : body.body).trim();
+      if (!text) return fail('消息不能是空的', 400, origin);
+      if (Array.from(text).length > 500) return fail('一条消息最多 500 字', 400, origin);
+      const rel = await store.getFriendship(me.id, to);
+      if (!rel || rel.status !== 'accepted') return fail('你们还不是好友，先加好友', 403, origin);
+
+      /* 简单限频：一分钟内最多 30 条 */
+      const recent = await store.listMessagesBetween(me.id, to, Date.now() - 60000, 200);
+      if (recent.filter((m) => m.from === me.id).length >= 30) return fail('发得太快了，慢一点', 429, origin);
+
+      const row = await store.createMessage({ from: me.id, to, body: text, created_at: Date.now() });
+      return json({ ok: true, message: publicMessage(row) }, 200, origin);
     }
 
     if (path === '/api/health') return json({ ok: true, service: 'jhjx-account' }, 200, origin);

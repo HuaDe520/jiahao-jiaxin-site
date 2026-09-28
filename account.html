@@ -9,8 +9,8 @@
 <link rel="icon" href="assets/img/logo-main.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="assets/css/style.css?v=4951e9b2">
-<link rel="stylesheet" href="assets/css/account.css?v=1714ebf2">
+<link rel="stylesheet" href="assets/css/style.css?v=282c6581">
+<link rel="stylesheet" href="assets/css/account.css?v=f27edc8f">
 </head>
 <body class="ac-page">
 
@@ -28,6 +28,7 @@
       <a href="workbench.html">嘉庭工作台</a>
       <a href="app.html">下载 App</a>
       <a href="account.html" class="is-active">我的账号</a>
+      <a href="friends.html">好友</a>
     </nav>
   </div>
 </header>
@@ -77,18 +78,24 @@
         <!-- 已登录：我的账号 -->
         <div class="ac-card" id="acMine" hidden>
           <div class="ac-me">
-            <span class="ac-me__avatar" id="acAvatar">协</span>
+            <button class="ac-me__avatar-btn" id="acAvatarBtn" type="button" title="点击换头像">
+              <img class="ac-me__avatar-img" id="acAvatarImg" alt="">
+              <span class="ac-me__avatar-tip">换</span>
+            </button>
             <span>
               <span class="ac-me__name" id="acName2">—</span>
               <span class="ac-me__meta" id="acMeta">—</span>
             </span>
           </div>
+          <input type="file" id="acAvatarFile" accept="image/*" hidden>
           <div class="ac-chips" id="acChips"></div>
           <div class="ac-actions">
+            <button class="ac-btn ac-btn--ghost" id="acToFriends" type="button">好友与聊天</button>
             <button class="ac-btn ac-btn--ghost" id="acToAdmin" type="button" hidden>举报处理台</button>
             <button class="ac-btn ac-btn--ghost" id="acLogout" type="button">退出登录</button>
           </div>
-          <p class="ac-hint">退出后这台设备就登出了；再进来还是填同一个昵称和邀请码。</p>
+          <div class="ac-msg" id="acAvatarMsg"></div>
+          <p class="ac-hint">点左边的头像就能换一张（自动裁成方形）。退出后这台设备就登出了；再进来还是填同一个昵称和邀请码。</p>
         </div>
 
         <!-- 举报 -->
@@ -166,8 +173,8 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/api.js?v=abcc343a"></script>
-<script src="assets/js/account.js?v=d589eeb5"></script>
+<script src="assets/js/api.js?v=b96909ee"></script>
+<script src="assets/js/account.js?v=74e51a2b"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }

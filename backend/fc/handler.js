@@ -125,16 +125,24 @@ function toRequest(event) {
 }
 
 function toFcResponse(res) {
-  return res.text().then((text) => {
-    const headers = {};
-    res.headers.forEach((v, k) => { headers[k] = v; });
-    return {
+  const headers = {};
+  res.headers.forEach((v, k) => { headers[k] = v; });
+  const type = (res.headers.get('content-type') || '').toLowerCase();
+  /* 图片是二进制，必须用 base64 回传，否则会被当文本搞坏 */
+  if (type.startsWith('image/')) {
+    return res.arrayBuffer().then((buf) => ({
       statusCode: res.status,
       headers,
-      body: text,
-      isBase64Encoded: false,
-    };
-  });
+      body: Buffer.from(buf).toString('base64'),
+      isBase64Encoded: true,
+    }));
+  }
+  return res.text().then((text) => ({
+    statusCode: res.status,
+    headers,
+    body: text,
+    isBase64Encoded: false,
+  }));
 }
 
 /* Origin 是 fetch 的「禁止设置」头，拼不到 Request 上，单独取出来传给路由 */

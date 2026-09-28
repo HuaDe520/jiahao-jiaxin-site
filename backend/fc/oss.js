@@ -36,7 +36,7 @@ function sign({ method, bucket, key, contentType, md5, date, ossHeaders, ak, sk 
 export function createOssIo({ bucket, region, ak, sk, stsToken, key }) {
   const host = `${bucket}.${region}.aliyuncs.com`;
 
-  function authHeaders(method, contentType, body) {
+  function authHeaders(method, contentType, body, objKey) {
     const date = gmtDate(new Date());
     const md5 = body ? createHash('md5').update(body).digest('base64') : '';
     const ossHeaders = {};
@@ -44,7 +44,7 @@ export function createOssIo({ bucket, region, ak, sk, stsToken, key }) {
     const headers = {
       Date: date,
       Authorization: sign({
-        method, bucket, key, contentType, md5, date, ossHeaders, ak, sk,
+        method, bucket, key: objKey || key, contentType, md5, date, ossHeaders, ak, sk,
       }),
     };
     if (md5) headers['Content-MD5'] = md5;
@@ -69,5 +69,29 @@ export function createOssIo({ bucket, region, ak, sk, stsToken, key }) {
     return true;
   }
 
-  return { read, write, host, key };
+  /* ---- 二进制对象（头像）---- */
+  async function putObject(objKey, bytes, contentType) {
+    const body = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
+    const headers = authHeaders('PUT', contentType || 'application/octet-stream', body, objKey);
+    const res = await fetch(`https://${host}/${objKey}`, { method: 'PUT', headers, body });
+    if (!res.ok) throw new Error(`OSS 上传失败 ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    return true;
+  }
+
+  async function getObject(objKey) {
+    const headers = authHeaders('GET', '', null, objKey);
+    const res = await fetch(`https://${host}/${objKey}`, { method: 'GET', headers });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`OSS 读取失败 ${res.status}`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    return { bytes: buf, contentType: res.headers.get('content-type') || 'image/png' };
+  }
+
+  async function deleteObject(objKey) {
+    const headers = authHeaders('DELETE', '', null, objKey);
+    const res = await fetch(`https://${host}/${objKey}`, { method: 'DELETE', headers });
+    return res.ok || res.status === 404;
+  }
+
+  return { read, write, putObject, getObject, deleteObject, host, key };
 }

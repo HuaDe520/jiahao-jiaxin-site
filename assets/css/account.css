@@ -78,6 +78,25 @@
   background: linear-gradient(140deg, var(--jade-700), var(--jade-500));
   color: #fff; font-size: 22px; font-weight: 800;
 }
+
+/* 可点击换头像 */
+.ac-me__avatar-btn {
+  position: relative; width: 62px; height: 62px; flex: none; padding: 0;
+  border: 0; background: none; cursor: pointer; border-radius: 50%;
+}
+.ac-me__avatar-img {
+  width: 62px; height: 62px; border-radius: 50%; object-fit: cover;
+  background: linear-gradient(140deg, var(--jade-700), var(--jade-500));
+  border: 2px solid var(--gold-400);
+  display: block;
+}
+.ac-me__avatar-tip {
+  position: absolute; right: -2px; bottom: -2px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--gold-500); color: #2b2109;
+  font-size: 12px; font-weight: 800; line-height: 24px; text-align: center;
+  border: 2px solid #fff;
+}
 .ac-me__name { font-size: 22px; font-weight: 800; color: var(--jade-900); letter-spacing: .02em; }
 .ac-me__meta { font-size: 13px; color: var(--ink-mute); margin-top: 5px; }
 

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>好友与聊天 · 浙江嘉豪嘉欣协会</title>
+<meta name="description" content="浙江嘉豪嘉欣协会：加好友、和好友聊天。">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0f5f56">
+<link rel="icon" href="assets/img/logo-main.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="assets/css/style.css?v=282c6581">
+<link rel="stylesheet" href="assets/css/friends.css?v=4f064c90">
+</head>
+<body class="fr-page">
+
+<header class="site-header">
+  <div class="wrap site-header__inner">
+    <a class="brand" href="index.html" aria-label="返回首页">
+      <img class="brand__logo" src="assets/img/logo-main.png" alt="浙江嘉豪嘉欣协会会徽">
+      <span class="brand__text">
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <small>ZHEJIANG JIAHAO JIAXIN ASSOCIATION</small>
+      </span>
+    </a>
+    <nav class="site-nav site-nav--plain" aria-label="主导航">
+      <a href="index.html">首页</a>
+      <a href="workbench.html">嘉庭工作台</a>
+      <a href="account.html">我的账号</a>
+      <a href="friends.html" class="is-active">好友</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="section" style="padding-top:48px">
+    <div class="wrap">
+      <header class="section__head" style="margin-bottom:28px">
+        <p class="eyebrow"><span class="eyebrow__line"></span>协会账号</p>
+        <h2>好友与聊天</h2>
+      </header>
+
+      <div class="fr-stage">
+
+        <!-- 没登录 -->
+        <div class="fr-card" id="frGuest" hidden>
+          <div class="fr-empty">先到「我的账号」填昵称和邀请码进来，这里就能加好友、聊天了。</div>
+          <div style="text-align:center"><button class="fr-btn" id="frToAccount" type="button">去我的账号</button></div>
+        </div>
+
+        <!-- 已登录 -->
+        <div id="frMain" hidden>
+          <div class="fr-me">
+            <img class="fr-me__avatar" id="frAvatar" alt="">
+            <div>
+              <div class="fr-me__name" id="frName">—</div>
+              <div class="fr-me__meta" id="frMeta">—</div>
+            </div>
+            <span class="fr-me__unread" id="frUnread"></span>
+          </div>
+
+          <div class="fr-tabs">
+            <button class="fr-tab is-active" id="frTabFriends" type="button">好友</button>
+            <button class="fr-tab" id="frTabRequests" type="button">好友请求 <em id="frReqBadge" hidden>0</em></button>
+            <button class="fr-tab" id="frTabSearch" type="button">找人</button>
+          </div>
+
+          <!-- 好友 / 会话 -->
+          <div class="fr-card" id="frPaneFriends">
+            <div id="frFriends"></div>
+          </div>
+
+          <!-- 聊天 -->
+          <div class="fr-card" id="frPaneChat" hidden>
+            <div class="fr-chat">
+              <div class="fr-chat__head">
+                <img id="frChatAvatar" alt="">
+                <span class="fr-chat__name" id="frChatName">—</span>
+                <span style="margin-left:auto;display:flex;gap:8px">
+                  <button class="fr-btn fr-btn--ghost" id="frChatRefresh" type="button">刷新</button>
+                  <button class="fr-btn fr-btn--ghost" id="frChatBack" type="button">返回</button>
+                </span>
+              </div>
+              <div class="fr-chat__list" id="frChatList"></div>
+              <div class="fr-chat__foot">
+                <input class="fr-input" id="frChatInput" type="text" maxlength="500" placeholder="说点什么…" autocomplete="off">
+                <button class="fr-btn" id="frChatSend" type="button">发送</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 好友请求 -->
+          <div class="fr-card" id="frPaneRequests" hidden>
+            <div id="frRequests"></div>
+          </div>
+
+          <!-- 找人 -->
+          <div class="fr-card" id="frPaneSearch" hidden>
+            <div class="fr-search">
+              <input class="fr-input" id="frQuery" type="text" maxlength="12" placeholder="输入对方的昵称" autocomplete="off">
+              <button class="fr-btn" id="frSearchBtn" type="button">搜索</button>
+            </div>
+            <div class="fr-msg" id="frSearchMsg"></div>
+            <div id="frResults"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap site-footer__inner">
+    <div class="site-footer__brand">
+      <img src="assets/img/logo-main.png" alt="" aria-hidden="true">
+      <div>
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <p>浙江高校生兴趣社交社群 · 非营利自组织</p>
+      </div>
+    </div>
+    <nav class="site-footer__nav" aria-label="页面导航">
+      <a href="index.html">首页</a>
+      <a href="workbench.html">嘉庭工作台</a>
+      <a href="account.html">我的账号</a>
+      <a href="comfort.html">安慰盲盒</a>
+      <a href="app.html">下载 App</a>
+    </nav>
+    <div class="site-footer__meta">
+      <p>本页面仅用于协会对外展示，内容以群内公告为准。</p>
+      <p>&copy; <span id="year">2026</span> 浙江嘉豪嘉欣协会 · 保留所有权利</p>
+    </div>
+  </div>
+</footer>
+
+<!-- 常驻入口：返回首页 -->
+<a class="quick-home" href="index.html" aria-label="返回首页">
+  <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 10.6 12 3.2l9 7.4"></path>
+    <path d="M5.6 9.6V20h12.8V9.6"></path>
+    <path d="M9.7 20v-5.3h4.6V20"></path>
+  </svg>
+  <span>返回首页</span>
+</a>
+
+<script src="assets/js/api.js?v=b96909ee"></script>
+<script src="assets/js/friends.js?v=a4c23576"></script>
+<script>
+  var y = document.getElementById('year');
+  if (y) { y.textContent = String(new Date().getFullYear()); }
+</script>
+</body>
+</html>

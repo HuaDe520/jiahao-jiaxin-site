@@ -3,7 +3,8 @@
    ---------------------------------------------------------
    作用：不开云、不花钱，就能把整套用户系统跑起来验收。
    · 直接用 worker.js 里的同一份路由逻辑（不复制代码）
-   · 数据库用 Node 自带的 node:sqlite，SQL 与线上 D1 完全一致
+   · 存储用 store-json.js（和阿里云上跑的是同一份实现），
+     数据库落在本地文件，头像等二进制落在 .dev-objects/
    · 同时托管站点静态文件，所以不存在跨域问题
 
    用法：node backend/dev-server.mjs          （默认 http://127.0.0.1:8787）
@@ -11,22 +12,16 @@
    ========================================================= */
 
 import { createServer } from 'node:http';
-import { readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
-import { DatabaseSync } from 'node:sqlite';
-import { join, extname, normalize } from 'node:path';
+import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, rmSync } from 'node:fs';
+import { join, extname, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
 import { handle } from './worker.js';
 import { createJsonStore } from './store-json.js';
-import { createD1Store } from './store-d1.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SITE_ROOT = join(__dirname, '..');
 const PORT = Number(process.env.PORT || 8787);
-const DB_FILE = process.env.DB_FILE || join(__dirname, '.dev.sqlite');
 const JSON_FILE = process.env.JSON_FILE || join(__dirname, '.dev-db.json');
-/* 默认用 JSON 版存储 —— 它和阿里云上跑的是同一份实现 */
-const STORE_KIND = (process.env.STORE || 'json').toLowerCase();
 
 /* ---------- 邀请码：只从 .dev.vars 或环境变量来，不写死在代码里 ---------- */
 function loadVars() {
@@ -49,33 +44,34 @@ if (!vars.USER_CODE || !vars.ADMIN_CODE) {
   process.exit(1);
 }
 
-/* ---------- 存储：JSON 版（与阿里云一致）或 SQLite/D1 版 ---------- */
-let STORE;
-if (STORE_KIND === 'sqlite') {
-  const sqlite = new DatabaseSync(DB_FILE);
-  sqlite.exec(readFileSync(join(__dirname, 'schema.sql'), 'utf8'));
-  const DB = {
-    prepare(sql) {
-      let params = [];
-      const stmt = {
-        bind(...args) { params = args; return stmt; },
-        async first() {
-          const row = sqlite.prepare(sql).get(...params);
-          return row === undefined ? null : row;
-        },
-        async all() { return { results: sqlite.prepare(sql).all(...params) }; },
-        async run() { return { meta: sqlite.prepare(sql).run(...params) }; },
-      };
-      return stmt;
-    },
-  };
-  STORE = createD1Store(DB);
-} else {
-  STORE = createJsonStore({
-    async read() { return existsSync(JSON_FILE) ? readFileSync(JSON_FILE, 'utf8') : null; },
-    async write(text) { writeFileSync(JSON_FILE, text, 'utf8'); return true; },
-  });
-}
+/* ---------- 存储：JSON 版（与阿里云一致） ---------- */
+const OBJECT_DIR = join(__dirname, '.dev-objects');
+const STORE = createJsonStore({
+  async read() { return existsSync(JSON_FILE) ? readFileSync(JSON_FILE, 'utf8') : null; },
+  async write(text) { writeFileSync(JSON_FILE, text, 'utf8'); return true; },
+  /* 本地把「二进制对象」落到磁盘，模拟 OSS 上的头像文件 */
+  async putObject(key, bytes, contentType) {
+    const full = join(OBJECT_DIR, key);
+    mkdirSync(dirname(full), { recursive: true });
+    writeFileSync(full, bytes);
+    writeFileSync(full + '.type', contentType || 'application/octet-stream', 'utf8');
+    return true;
+  },
+  async getObject(key) {
+    const full = join(OBJECT_DIR, key);
+    if (!existsSync(full)) return null;
+    const typeFile = full + '.type';
+    return {
+      bytes: readFileSync(full),
+      contentType: existsSync(typeFile) ? readFileSync(typeFile, 'utf8') : 'image/png',
+    };
+  },
+  async deleteObject(key) {
+    const full = join(OBJECT_DIR, key);
+    for (const f of [full, full + '.type']) { try { rmSync(f, { force: true }); } catch { /* 忽略 */ } }
+    return true;
+  },
+});
 
 const env = {
   STORE,
@@ -134,16 +130,17 @@ const server = createServer(async (req, res) => {
   });
 
   const response = await handle(request, env);
-  const text = await response.text();
+  /* 用 Buffer 转发，头像这种二进制不能被当文本转（会变乱码） */
+  const buf = Buffer.from(await response.arrayBuffer());
   const headers = {};
   response.headers.forEach((v, k) => { headers[k] = v; });
   res.writeHead(response.status, headers);
-  res.end(text);
+  res.end(buf);
 });
 
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`本地联调服务器已启动：http://127.0.0.1:${PORT}`);
   console.log(`  账号页  http://127.0.0.1:${PORT}/account.html`);
   console.log(`  管理页  http://127.0.0.1:${PORT}/admin.html`);
-  console.log(`  数据库  ${DB_FILE}`);
+  console.log(`  数据库  ${JSON_FILE}（头像在 ${OBJECT_DIR}）`);
 });

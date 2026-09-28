@@ -326,4 +326,34 @@
   /* ---------- 9. 页脚年份 ---------- */
   var yearEl = document.getElementById('year');
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());
+
+  /* ---------- 10. 登录成功提示（从账号页跳回来时弹一秒） ---------- */
+  try {
+    var who = sessionStorage.getItem('jhjx-login-toast');
+    if (who) {
+      sessionStorage.removeItem('jhjx-login-toast');
+      var toast = document.createElement('div');
+      toast.className = 'login-toast';
+      toast.textContent = '登录成功，' + who;
+      document.body.appendChild(toast);
+      requestAnimationFrame(function () { toast.classList.add('is-show'); });
+      setTimeout(function () {
+        toast.classList.remove('is-show');
+        setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 320);
+      }, 1000);
+    }
+  } catch (e) { /* 忽略 */ }
+
+  /* ---------- 11. 登录后导航显示昵称 ---------- */
+  (function () {
+    var link = document.querySelector('.site-nav a[href="account.html"]');
+    if (!link) return;
+    try {
+      var raw = localStorage.getItem('jhjx-account-user');
+      if (raw) {
+        var u = JSON.parse(raw);
+        if (u && u.name) link.textContent = u.name;
+      }
+    } catch (e) { /* 忽略 */ }
+  })();
 })();

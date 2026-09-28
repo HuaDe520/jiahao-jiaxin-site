@@ -683,3 +683,19 @@ button { font: inherit; color: inherit; }
   /* 给页脚留出悬浮入口的高度，最后一行文字不会被按钮压住 */
   .site-footer { padding-bottom: 104px; }
 }
+
+/* ---------------- 登录成功提示（只弹一秒） ---------------- */
+.login-toast {
+  position: fixed; left: 50%; top: 84px; transform: translate(-50%, -12px);
+  z-index: 90;
+  padding: 12px 22px; border-radius: 999px;
+  background: linear-gradient(135deg, var(--jade-700), var(--jade-500));
+  color: #fff; font-size: 15px; font-weight: 700; letter-spacing: .02em;
+  box-shadow: 0 18px 34px -18px rgba(11, 63, 57, .8);
+  opacity: 0; transition: opacity .28s var(--ease), transform .28s var(--ease);
+  pointer-events: none;
+}
+.login-toast.is-show { opacity: 1; transform: translate(-50%, 0); }
+@media (max-width: 560px) {
+  .login-toast { top: 72px; font-size: 14px; padding: 10px 18px; }
+}

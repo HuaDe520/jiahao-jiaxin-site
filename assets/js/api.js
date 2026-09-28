@@ -13,6 +13,9 @@
 
   var TOKEN_KEY = 'jhjx-account-token';
   var USER_KEY = 'jhjx-account-user';
+  /* 设备凭证：独立保存，退出登录不清掉。
+     这样同一台设备可以随时用同一个昵称回来；换设备仍然需要管理员重置。 */
+  var DEVICE_KEY = 'jhjx-account-device';
 
   function isLocal() {
     var h = location.hostname;
@@ -36,13 +39,30 @@
 
   function saveSession(tok, u) {
     try {
-      if (tok) localStorage.setItem(TOKEN_KEY, tok);
+      if (tok) {
+        localStorage.setItem(TOKEN_KEY, tok);
+        localStorage.setItem(DEVICE_KEY, tok);   /* 设备凭证一起记住 */
+      }
       if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
     } catch (e) { /* 忽略 */ }
   }
 
+  function deviceToken() {
+    try { return localStorage.getItem(DEVICE_KEY) || ''; } catch (e) { return ''; }
+  }
+
+  /* 退出登录：只清登录状态，保留设备凭证（否则同一台设备就回不来了） */
   function clearSession() {
     try {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+    } catch (e) { /* 忽略 */ }
+  }
+
+  /* 彻底忘掉这台设备（换人用这台设备时用） */
+  function forgetDevice() {
+    try {
+      localStorage.removeItem(DEVICE_KEY);
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
     } catch (e) { /* 忽略 */ }
@@ -71,7 +91,8 @@
 
   window.JHJX_API = {
     enter: function (name, code) {
-      return call('POST', '/api/enter', { name: name, code: code, token: token() });
+      /* 带上设备凭证：同一台设备换昵称/退出后再进来都认得出 */
+      return call('POST', '/api/enter', { name: name, code: code, token: deviceToken() || token() });
     },
     me: function () { return call('GET', '/api/me'); },
     report: function (targetName, reason, detail) {
@@ -86,10 +107,35 @@
     adminUserAction: function (id, action) {
       return call('POST', '/api/admin/users/' + id, { action: action });
     },
+
+    /* ---- 好友与聊天 ---- */
+    searchUsers: function (q) { return call('GET', '/api/search?q=' + encodeURIComponent(q)); },
+    friends: function () { return call('GET', '/api/friends'); },
+    friendRequest: function (targetId) { return call('POST', '/api/friends/request', { targetId: targetId }); },
+    friendRespond: function (id, action) { return call('POST', '/api/friends/respond', { id: id, action: action }); },
+    friendRemove: function (friendId) { return call('POST', '/api/friends/remove', { friendId: friendId }); },
+    threads: function () { return call('GET', '/api/threads'); },
+    thread: function (friendId, since) {
+      return call('GET', '/api/messages/' + friendId + (since ? '?since=' + since : ''));
+    },
+    sendMessage: function (to, body) { return call('POST', '/api/messages', { to: to, body: body }); },
+
+    /* ---- 头像 ---- */
+    uploadAvatar: function (dataUrl) { return call('POST', '/api/avatar', { dataUrl: dataUrl }); },
+
+    /* 把接口返回的相对路径（头像）拼成完整地址 */
+    asset: function (path) {
+      if (!path) return '';
+      if (/^https?:\/\//.test(path)) return path;
+      return base() + path;
+    },
+
     token: token,
+    deviceToken: deviceToken,
     user: user,
     saveSession: saveSession,
     clearSession: clearSession,
+    forgetDevice: forgetDevice,
     serviceReady: serviceReady,
     reasons: ['骚扰或辱骂', '冒充他人', '发广告或刷屏', '泄露他人隐私', '其他'],
   };
