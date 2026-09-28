@@ -37,8 +37,8 @@ const has = (name) => argv.includes(name);
 const REPO = flag('--repo', 'jiahao-jiaxin-site');
 const DOMAIN = flag('--domain', null);
 const DRY = has('--dry-run');
-const SKIP_DIRS = new Set(['.git', '.preview', '.verify', 'node_modules', '.vercel', '.netlify', '.wrangler']);
-const SKIP_FILES = new Set(['token.txt', '.DS_Store', 'Thumbs.db', '.dev.vars', '.dev.sqlite', '.dev.sqlite-journal']);
+const SKIP_DIRS = new Set(['.git', '.preview', '.verify', 'node_modules', '.vercel', '.netlify', '.wrangler', '.dev-objects']);
+const SKIP_FILES = new Set(['token.txt', '.DS_Store', 'Thumbs.db', '.dev.vars', '.dev.sqlite', '.dev.sqlite-journal', '.dev-db.json']);
 
 /* 暂缓上线：账号系统的页面要等后端（Cloudflare Worker）部署好才有意义，
    后端上线后把这一段删掉即可。 */
@@ -87,6 +87,7 @@ async function api(method, path, { token, body } = {}) {
 function collectFiles(dir, base = dir, out = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (SKIP_DIRS.has(entry.name)) continue;
+    if (entry.name.startsWith('.dev')) continue;   /* 本地联调留下的数据/头像，绝不外发 */
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
       collectFiles(full, base, out);
