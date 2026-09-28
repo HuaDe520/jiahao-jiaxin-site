@@ -1,70 +1,81 @@
-# 把官网装到手机桌面（像 App 一样）
+# 手机 App 安装说明
 
-> 网址：**https://xbc-zjja.com.cn/**
-> 装好后：桌面出现**协会会徽图标**，点开是全屏打开、**没有浏览器地址栏**，和 App 一样。
-
-站点已经做了完整的 PWA 支持（`manifest.webmanifest` + 图标 + Service Worker），绝大多数手机浏览器都支持。
+> 下载页：**https://xbc-zjja.com.cn/app.html**（首页导航栏也有「下载 App」入口）
 
 ---
 
-## 安卓手机（Chrome / Edge / 三星浏览器 / 小米·华为自带浏览器）
+## 安卓手机
 
-1. 用手机浏览器（Chrome / Edge / 三星浏览器 / 小米·华为自带浏览器）打开 https://xbc-zjja.com.cn/
-2. 点右上角 **⋮**（菜单）
-3. 选「**安装应用**」或「**添加到主屏幕**」
-4. 确认 → 桌面出现会徽图标
+**方式一：下载安装包（推荐）**
 
-个别浏览器菜单里叫「添加到桌面」「创建快捷方式」，意思一样。
+1. 手机浏览器打开 https://xbc-zjja.com.cn/app.html
+2. 点「**下载 APK**」
+3. 下载完成后点击安装，如提示「**未知来源应用**」→ 选择允许
+4. 桌面出现协会会徽图标
+
+**方式二：添加到主屏幕（不用装包）**
+
+用浏览器打开官网 → 右上角 `⋮` → 「安装应用」或「添加到主屏幕」。
+
+两者出来的效果一样（会徽图标 + 全屏无地址栏），区别只是方式一有独立的安装包。
 
 ---
 
-## iPhone / iPad（必须用 Safari）
+## iPhone / iPad
 
-iOS 只能通过 Safari 添加，**微信内置浏览器、Chrome iOS 都不行**：
+iOS 不允许安装第三方安装包，只能用 **Safari** 添加到主屏幕：
 
 1. 用 **Safari** 打开 https://xbc-zjja.com.cn/
-2. 点屏幕**底部中间的「分享」按钮**（方框带向上箭头 ⬆️）
-3. 在弹出列表里往下滑，选「**添加到主屏幕**」
-4. 右上角点「添加」→ 桌面出现会徽图标
+2. 点屏幕**底部中间的「分享」按钮**
+3. 选「**添加到主屏幕**」→ 右上角「添加」
 
-> iOS 16 及以上：也可以先点地址栏左边的「大小」→「添加到主屏幕」。
-
----
-
-## 微信里打开怎么办
-
-微信内置浏览器不支持安装，页面上会提示：**点右上角「…」→「在浏览器打开」**，然后用上面安卓/iOS 的方法添加。
+> 微信内置浏览器、iOS 版 Chrome 都不支持，必须先换 Safari。
 
 ---
 
-## 装好之后是什么样
+## 微信里打开链接怎么办
 
-| 对比项 | 普通浏览器打开 | 装到桌面后 |
-| --- | --- | --- |
-| 图标 | 浏览器默认图标 | **协会会徽** |
-| 打开方式 | 有地址栏、标签栏 | **全屏，无地址栏** |
-| 状态栏配色 | 默认 | 与站点主色一致（墨绿） |
-| 断网时 | 打不开 | 看过的页面还能打开 |
-| 更新 | 立刻生效 | 立刻生效（采用网络优先策略，不会看到旧版） |
+微信内置浏览器不支持安装，点右上角「**…**」→「**在浏览器打开**」，再用上面安卓 / iOS 的方法。
 
 ---
 
-## 想换图标 / 改名字？
+## 安卓安装包信息（留档）
 
-| 想改的东西 | 改哪里 |
+| 项目 | 值 |
 | --- | --- |
-| 桌面显示的名称 | `manifest.webmanifest` 里的 `name` / `short_name`；iOS 还看 `index.html` 里的 `apple-mobile-web-app-title` |
-| 图标 | 替换 `assets/img/icon-192.png`、`icon-512.png`、`icon-maskable-512.png`、`apple-touch-icon.png`（后四个都由会徽生成） |
-| 状态栏 / 主题色 | `manifest.webmanifest` 的 `theme_color` 与 `index.html` 的 `<meta name="theme-color">` |
+| 文件名 | `download/jiahao-jiaxin-1.0.apk` |
+| 版本 | 1.0（versionCode 1） |
+| 大小 | 333 KB |
+| 包名 | `com.jiahaojiaxin.assoc` |
+| 支持系统 | Android 5.0（API 21）及以上 |
+| 目标版本 | Android 14（API 34） |
+| 权限 | 仅 `INTERNET`、`ACCESS_NETWORK_STATE` |
+| 签名证书 | CN=Zhejiang Jiahao Jiaxin Association |
+| 证书 SHA-256 | `302b107e38b8da634d0d7c24691e97d88248643f6aa7f108729fa1c068ec5bec` |
+| APK SHA-256 | `9c1a84002c529878d7bb028289f2ba87aa767016ff0a01f03795364df60f229e` |
 
-改完执行 `node tools\publish.mjs` 即可上线。**已经装在桌面上的图标会沿用旧图标**，需要删掉重新添加一次才会更新（安卓有时会自动更新）。
+App 本质是一个 WebView 外壳，**打开的就是官网**——所以官网内容一更新，App 里立刻就是新的，不需要重新发版。
 
 ---
 
-## 生成图标的方式（留档）
+## 重新打包（以后要改 App 时）
 
-图标是从会徽 `assets/img/logo-main.png` 用 canvas 生成的：
+工程在 **`D:\dsh\android-app\`**（放在网站仓库之外，避免签名密钥被上传）：
 
-- `icon-192.png` / `icon-512.png`：会徽占 90%，四周留白（`purpose: any`）
-- `icon-maskable-512.png`：会徽占 62%，留足安全区（`purpose: maskable`，安卓圆形/异形图标不会被裁切）
-- `apple-touch-icon.png`：180×180，会徽占 96%（iOS 主屏图标规格）
+```
+android-app/
+├─ app/                     安卓工程源码（Manifest / Java / 资源 / 图标）
+├─ build.ps1                一键构建脚本（aapt2 → javac → d8 → zipalign → apksigner）
+├─ jiahaojiaxin.keystore    签名密钥（务必保管好）
+└─ README.md                构建说明
+```
+
+改完源码执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File D:\dsh\android-app\build.ps1
+```
+
+生成的 APK 在 `D:\dsh\android-app\build\` 下，复制到网站目录 `download/` 再执行 `node tools\publish.mjs` 即可上线。
+
+> ⚠️ **密钥库千万别丢**：安卓要求升级包的签名与旧版一致，换密钥会导致老用户无法覆盖安装（必须卸载重装）。
