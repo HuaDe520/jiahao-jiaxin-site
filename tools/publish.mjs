@@ -37,7 +37,7 @@ const has = (name) => argv.includes(name);
 const REPO = flag('--repo', 'jiahao-jiaxin-site');
 const DOMAIN = flag('--domain', null);
 const DRY = has('--dry-run');
-const SKIP_DIRS = new Set(['.git', '.preview', '.verify', 'node_modules', '.vercel', '.netlify', '.wrangler', '.dev-objects']);
+const SKIP_DIRS = new Set(['.git', '.preview', '.verify', '.screens', 'node_modules', '.vercel', '.netlify', '.wrangler', '.dev-objects']);
 const SKIP_FILES = new Set(['token.txt', '.DS_Store', 'Thumbs.db', '.dev.vars', '.dev.sqlite', '.dev.sqlite-journal', '.dev-db.json']);
 /* 这些目录只是原始素材，留在仓库里，但不发布到线上（省 1.7MB 流量） */
 const SKIP_PATHS = new Set(['assets/img/original']);

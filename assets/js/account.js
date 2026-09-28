@@ -108,23 +108,51 @@
     });
   });
 
-  /* ---------- 改密码 ---------- */
+  /* ---------- 改密码（登录状态下）：要填「修改权限码」 ---------- */
   $('acPassSubmit').addEventListener('click', function () {
     var pmsg = $('acPassMsg');
-    var oldPw = $('acOldPass').value;
+    var perm = $('acPermCode').value.trim();
     var newPw = $('acNewPass').value;
+    if (!perm) { showMsg(pmsg, '要先填修改权限码', 'error'); return; }
     if (newPw.length < 6) { showMsg(pmsg, '新密码至少 6 位', 'error'); return; }
     var btn = this;
     btn.disabled = true;
     hideMsg(pmsg);
-    API.changePassword(oldPw, newPw).then(function (r) {
+    API.changePassword(perm, newPw).then(function (r) {
       btn.disabled = false;
       if (r.status === 200 && r.data && r.data.ok) {
-        $('acOldPass').value = '';
+        $('acPermCode').value = '';
         $('acNewPass').value = '';
         showMsg(pmsg, '密码已经换好了', 'ok');
       } else {
         showMsg(pmsg, (r.data && r.data.error) || '没改成功，再试一次', 'error');
+      }
+    });
+  });
+
+  /* ---------- 忘了密码：昵称 + 邀请码 + 修改权限码 → 重设并登录 ---------- */
+  $('acForgotBtn').addEventListener('click', function () {
+    var fmsg = $('acForgotMsg');
+    var name = $('acForgotName').value.trim();
+    var code = $('acForgotCode').value.trim();
+    var perm = $('acForgotPerm').value.trim();
+    var pw = $('acForgotPass').value;
+    if (!name) { showMsg(fmsg, '先填昵称', 'error'); return; }
+    if (!code) { showMsg(fmsg, '邀请码还没填', 'error'); return; }
+    if (!perm) { showMsg(fmsg, '修改权限码还没填', 'error'); return; }
+    if (pw.length < 6) { showMsg(fmsg, '新密码至少 6 位', 'error'); return; }
+    var btn = this;
+    btn.disabled = true;
+    hideMsg(fmsg);
+    API.resetPassword(name, code, perm, pw).then(function (r) {
+      btn.disabled = false;
+      if (r.status === 200 && r.data && r.data.ok) {
+        API.saveSession(r.data.token, r.data.user);
+        try { sessionStorage.setItem('jhjx-login-toast', r.data.user.name); } catch (e) { /* 忽略 */ }
+        showMsg(fmsg, '密码重设好了，正在回首页…', 'ok');
+        setTimeout(function () { location.href = 'index.html'; }, 600);
+      } else {
+        showMsg(fmsg, (r.data && r.data.error) || '没能重设，检查一下昵称和邀请码', 'error');
       }
     });
   });

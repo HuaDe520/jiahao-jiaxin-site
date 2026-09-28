@@ -102,6 +102,14 @@ const PASS_MIN = 6;
 const PASS_MAX = 64;
 const PBKDF2_ROUNDS = 30000;
 
+/* 改密码要用的「修改权限码」：固定 XBCNB（没有手机验证，用它当本人凭证） */
+const PERM_CODE = 'XBCNB';
+
+function permCodeOk(input, env) {
+  const want = String((env && env.PERM_CODE) || PERM_CODE).trim();
+  return String(input == null ? '' : input).trim() === want;
+}
+
 function passwordProblem(password) {
   const p = String(password == null ? '' : password);
   if (!p) return '请设置一个密码';
@@ -286,7 +294,7 @@ export async function handle(request, env) {
       return json({ ok: true, token, user: publicUser(row), created: false, kickedOthers: !sameToken }, 200, origin);
     }
 
-    /* ---- 改密码 ---- */
+    /* ---- 改密码（已登录：改密码要带「修改权限码」）---- */
     if (path === '/api/password' && method === 'POST') {
       const me = await authUser(store, request);
       if (!me) return fail('请先登录', 401, origin);
@@ -296,12 +304,41 @@ export async function handle(request, env) {
       const newPassword = String(body.newPassword == null ? '' : body.newPassword);
       const prob = passwordProblem(newPassword);
       if (prob) return fail(prob, 400, origin);
-      if (me.pass_hash && !(await checkPassword(oldPassword, me))) {
+      if (!permCodeOk(body.permCode, env)) return fail('修改权限码不对（问群里的管理员要）', 403, origin);
+      if (oldPassword && me.pass_hash && !(await checkPassword(oldPassword, me))) {
         return fail('原密码不对', 403, origin);
       }
       const { salt, hash } = await derive(newPassword);
       await store.updateUser(me.id, { pass_hash: hash, pass_salt: salt });
       return json({ ok: true }, 200, origin);
+    }
+
+    /* ---- 忘了密码：昵称 + 邀请码 + 修改权限码 → 直接设新密码并登录 ----
+       没有手机号可验证，所以用这个固定的权限码当「本人凭证」；
+       设完密码会换一张新凭证，别处登录的会被挤下线。 */
+    if (path === '/api/password/reset' && method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const name = String(body.name == null ? '' : body.name).trim();
+      const role = roleOfCode(body.code, env);
+      if (!role) return fail('邀请码不对，问一下群里的管理员', 403, origin);
+      if (!permCodeOk(body.permCode, env)) return fail('修改权限码不对（问群里的管理员要）', 403, origin);
+      const newPassword = String(body.newPassword == null ? '' : body.newPassword);
+      const prob = passwordProblem(newPassword);
+      if (prob) return fail(prob, 400, origin);
+
+      const exist = await store.getUserByKey(nameKey(name));
+      if (!exist) return fail('没有找到这个昵称，检查一下有没有写错', 404, origin);
+      if (exist.status === 'banned') return fail('这个昵称已被停用，找管理员处理一下', 403, origin);
+
+      const { salt, hash } = await derive(newPassword);
+      const token = crypto.randomUUID();
+      const row = await store.updateUser(exist.id, {
+        last_seen_at: Date.now(),
+        pass_hash: hash,
+        pass_salt: salt,
+        token,
+      });
+      return json({ ok: true, token, user: publicUser(row), reset: true }, 200, origin);
     }
 
     /* ---- 我是谁 ---- */

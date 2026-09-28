@@ -77,6 +77,31 @@
           </form>
           <div class="ac-msg" id="acMsg"></div>
           <p class="ac-hint">第一次用某个昵称进来，这一步就把密码定下了；以后换手机、换浏览器，只要昵称+密码+邀请码对得上就能进，不用再找管理员。同一账号在别的地方登录，这边会自动下线。</p>
+
+          <details class="ac-pass" id="acForgot">
+            <summary>忘了密码？用修改权限码重设</summary>
+            <p class="ac-hint" style="margin-top:10px">没有手机号可以收验证码，所以改密码要用群里发的「修改权限码」。填好昵称、邀请码、权限码和新密码，就能重设并直接登录。</p>
+            <div class="ac-field">
+              <label for="acForgotName">昵称</label>
+              <input class="ac-input" id="acForgotName" type="text" maxlength="12" placeholder="要重设密码的昵称">
+            </div>
+            <div class="ac-field">
+              <label for="acForgotCode">邀请码</label>
+              <input class="ac-input ac-input--code" id="acForgotCode" type="text" maxlength="24" placeholder="群里发的那串">
+            </div>
+            <div class="ac-field">
+              <label for="acForgotPerm">修改权限码</label>
+              <input class="ac-input ac-input--code" id="acForgotPerm" type="text" maxlength="24" placeholder="问群里的管理员要">
+            </div>
+            <div class="ac-field">
+              <label for="acForgotPass">新密码</label>
+              <input class="ac-input" id="acForgotPass" type="password" maxlength="64" autocomplete="new-password" placeholder="至少 6 位">
+            </div>
+            <div class="ac-actions">
+              <button class="ac-btn" id="acForgotBtn" type="button">重设密码并登录</button>
+            </div>
+            <div class="ac-msg" id="acForgotMsg"></div>
+          </details>
         </div>
 
         <!-- 已登录：我的账号 -->
@@ -104,8 +129,8 @@
           <details class="ac-pass">
             <summary>修改密码</summary>
             <div class="ac-field">
-              <label for="acOldPass">原密码</label>
-              <input class="ac-input" id="acOldPass" type="password" maxlength="64" autocomplete="current-password" placeholder="现在用的密码">
+              <label for="acPermCode">修改权限码</label>
+              <input class="ac-input ac-input--code" id="acPermCode" type="text" maxlength="24" placeholder="群里发的那个权限码">
             </div>
             <div class="ac-field">
               <label for="acNewPass">新密码</label>
@@ -193,8 +218,8 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/api.js?v=a7262a08"></script>
-<script src="assets/js/account.js?v=7184d6e9"></script>
+<script src="assets/js/api.js?v=9677dc96"></script>
+<script src="assets/js/account.js?v=99948696"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }

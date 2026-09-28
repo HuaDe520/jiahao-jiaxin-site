@@ -99,8 +99,12 @@
         token: deviceToken() || token()
       });
     },
-    changePassword: function (oldPassword, newPassword) {
-      return call('POST', '/api/password', { oldPassword: oldPassword, newPassword: newPassword });
+    changePassword: function (permCode, newPassword, oldPassword) {
+      return call('POST', '/api/password', { permCode: permCode, newPassword: newPassword, oldPassword: oldPassword || '' });
+    },
+    /* 忘了密码：昵称 + 邀请码 + 修改权限码 → 重设并直接登录 */
+    resetPassword: function (name, code, permCode, newPassword) {
+      return call('POST', '/api/password/reset', { name: name, code: code, permCode: permCode, newPassword: newPassword });
     },
     me: function () { return call('GET', '/api/me'); },
     report: function (targetName, reason, detail) {
