@@ -151,4 +151,14 @@
     serviceReady: serviceReady,
     reasons: ['骚扰或辱骂', '冒充他人', '发广告或刷屏', '泄露他人隐私', '其他'],
   };
+
+  /* 本机缓存被清掉/写坏了、但凭证还在 → 自动把昵称资料取回来，
+     免得页面上看起来「登录突然没了」。 */
+  try {
+    if (token() && (!user() || !user().name)) {
+      call('GET', '/api/me').then(function (r) {
+        if (r.status === 200 && r.data && r.data.user) saveSession(null, r.data.user);
+      });
+    }
+  } catch (e) { /* 忽略 */ }
 })();
