@@ -12,6 +12,19 @@
   var tabs = document.querySelectorAll('.calc-tabs button');
   var panels = document.querySelectorAll('.calc-panel');
 
+  /* 符号计算库（436KB）只在真正用到时下载，保证计算器秒开 */
+  var nerdamerState = 'idle';   /* idle | loading | ready | failed */
+  function loadNerdamer() {
+    if (window.nerdamer) { nerdamerState = 'ready'; return; }
+    if (nerdamerState === 'loading' || nerdamerState === 'failed') return;
+    nerdamerState = 'loading';
+    var s = document.createElement('script');
+    s.src = 'assets/js/lib/nerdamer.all.min.js';
+    s.onload = function () { nerdamerState = 'ready'; };
+    s.onerror = function () { nerdamerState = 'failed'; };
+    document.head.appendChild(s);
+  }
+
   function activateTab(name, scroll) {
     Array.prototype.forEach.call(tabs, function (b) {
       b.classList.toggle('is-active', b.getAttribute('data-tab') === name);
@@ -20,6 +33,7 @@
       p.classList.toggle('is-active', p.getAttribute('data-panel') === name);
     });
     if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (name !== 'basic') loadNerdamer();   /* 进入高级功能时才加载符号库 */
   }
 
   Array.prototype.forEach.call(tabs, function (btn) {
@@ -266,7 +280,9 @@
   });
 
   /* ---------- 初始化基础面板 ---------- */
-  activateTab((location.hash || '#basic').replace('#', ''), false);
+  var startTab = (location.hash || '#basic').replace('#', '');
+  activateTab(startTab, false);
+  if (startTab !== 'basic') loadNerdamer();
   loadHistory();
   renderKeys();
   renderHistory();
@@ -342,11 +358,14 @@
   }
 
   function guard(name) {
-    if (!E.hasNerdamer()) {
-      resultBox($(name), '提示', '符号计算库未加载，请检查网络后刷新页面。', '', true);
-      return false;
+    if (E.hasNerdamer()) { nerdamerState = 'ready'; return true; }
+    loadNerdamer();
+    if (nerdamerState === 'failed') {
+      resultBox($(name), '提示', '符号计算库加载失败，请检查网络后重试。', '', true);
+    } else {
+      resultBox($(name), '提示', '正在加载计算库，请稍等一两秒再点一次「计算」。', '', true);
     }
-    return true;
+    return false;
   }
 
   /* ---------- 求导 ---------- */
