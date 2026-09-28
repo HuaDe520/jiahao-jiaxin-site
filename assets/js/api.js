@@ -43,7 +43,13 @@
         localStorage.setItem(TOKEN_KEY, tok);
         localStorage.setItem(DEVICE_KEY, tok);   /* 设备凭证一起记住 */
       }
-      if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
+      if (u) {
+        /* 头像地址存成完整地址：有些页面没加载 api.js，也能直接拿来用 */
+        var copy = {};
+        for (var k in u) { if (Object.prototype.hasOwnProperty.call(u, k)) copy[k] = u[k]; }
+        if (copy.avatar && copy.avatar.charAt(0) === '/') copy.avatar = base() + copy.avatar;
+        localStorage.setItem(USER_KEY, JSON.stringify(copy));
+      }
     } catch (e) { /* 忽略 */ }
   }
 

@@ -130,6 +130,13 @@ button { font: inherit; color: inherit; }
 .site-nav a:hover { color: var(--jade-800); background: rgba(37, 156, 136, .08); }
 .site-nav a.is-active { color: var(--jade-800); font-weight: 600; }
 .site-nav a.is-active::after { width: 20px; }
+
+/* 登录后导航里的头像 */
+.site-nav__avatar {
+  width: 22px; height: 22px; border-radius: 50%; object-fit: cover;
+  vertical-align: -6px; margin-right: 6px; border: 1.5px solid rgba(201, 162, 75, .75);
+  background: var(--cream);
+}
 .site-nav__cta {
   margin-left: 8px; background: var(--jade-700); color: #fff !important;
   padding: 10px 20px !important; box-shadow: var(--shadow-s);
