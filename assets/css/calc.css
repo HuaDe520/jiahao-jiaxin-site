@@ -248,3 +248,8 @@
   display: block; font-size: 12.5px; line-height: 1.8; color: #4a6a60;
   word-break: break-all;
 }
+/* 极限不存在时的说明：与「取值过程」同为注解层，字号保持一致 */
+.fx-note {
+  display: block; font-size: 12.5px; line-height: 1.8; color: #4a6a60;
+  margin-bottom: 8px; word-break: break-word;
+}

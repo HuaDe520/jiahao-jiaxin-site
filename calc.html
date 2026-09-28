@@ -9,7 +9,7 @@
 <link rel="icon" href="assets/img/logo-main.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="assets/css/calc.css?v=7324b4e0">
+<link rel="stylesheet" href="assets/css/calc.css?v=980c221d">
 </head>
 <body class="calc-page">
 
@@ -19,12 +19,12 @@
     <a class="calc-back" href="workbench.html#jiaxue">← 工作台</a>
     <h1>学习计算器</h1>
     <span class="calc-top__spacer"></span>
-    <a class="calc-home" href="index.html" title="回到网站首页" aria-label="回到网站首页">
+    <a class="calc-home" href="index.html" title="返回首页" aria-label="返回首页">
       <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 10.6 12 3.2l9 7.4"></path>
         <path d="M5.6 9.6V20h12.8V9.6"></path>
       </svg>
-      <span>首页</span>
+      <span>返回首页</span>
     </a>
     <button class="calc-mode" id="calcMode" type="button" title="切换角度/弧度">DEG</button>
   </header>
@@ -128,7 +128,7 @@
       <button class="fx-go" id="defintGo" type="button">计算</button>
     </div>
     <div class="fx-result" id="defintResult" hidden></div>
-    <p class="fx-tip">上下限支持 <code>pi</code>、<code>e</code> 等常数与算式（如 <code>pi/2</code>）；三角函数按<strong>弧度</strong>计算。结果同时给出精确值与数值近似。</p>
+    <p class="fx-tip">上下限支持 <code>pi</code>、<code>e</code>、<code>inf</code> 等常数与算式（如 <code>pi/2</code>）；三角函数按<strong>弧度</strong>计算。含奇点或无穷区间的按广义积分计算。</p>
   </section>
 
   <!-- ================= 极限 ================= -->
@@ -163,7 +163,7 @@
 
 </div>
 
-<script src="assets/js/calc-engine.js?v=774e000f"></script>
-<script src="assets/js/calc.js?v=6c0d5aef"></script>
+<script src="assets/js/calc-engine.js?v=45da56a3"></script>
+<script src="assets/js/calc.js?v=b8656c42"></script>
 </body>
 </html>
