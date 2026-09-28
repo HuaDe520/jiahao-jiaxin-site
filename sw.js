@@ -31,7 +31,11 @@ const SHELL = [
   './comfort.html',
   './assets/css/comfort.css',
   './assets/js/comfort.js',
-  './assets/js/comfort-quotes.js'
+  './assets/js/comfort-quotes.js',
+  // 嘉窗·树洞纸条
+  './treehole.html',
+  './assets/css/treehole.css',
+  './assets/js/treehole.js'
 ];
 
 self.addEventListener('install', (event) => {

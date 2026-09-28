@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>树洞纸条 · 浙江嘉豪嘉欣协会</title>
+<meta name="description" content="浙江嘉豪嘉欣协会嘉庭工作台·嘉窗「树洞纸条」：写下心事，匿名投进树洞，看见的人只能回一句抱抱你。">
+<meta name="theme-color" content="#0f5f56">
+<link rel="icon" href="assets/img/logo-main.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="assets/css/style.css?v=4951e9b2">
+<link rel="stylesheet" href="assets/css/treehole.css?v=58259e49">
+</head>
+<body class="th-page">
+
+<header class="site-header">
+  <div class="wrap site-header__inner">
+    <a class="brand" href="index.html" aria-label="返回首页">
+      <img class="brand__logo" src="assets/img/logo-main.png" alt="浙江嘉豪嘉欣协会会徽">
+      <span class="brand__text">
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <small>ZHEJIANG JIAHAO JIAXIN ASSOCIATION</small>
+      </span>
+    </a>
+    <nav class="site-nav site-nav--plain" aria-label="主导航">
+      <a href="index.html">首页</a>
+      <a href="index.html#departments">部门矩阵</a>
+      <a href="app.html">下载 App</a>
+      <a href="workbench.html">嘉庭工作台</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="section" style="padding-top:56px">
+    <div class="wrap">
+      <header class="section__head">
+        <p class="eyebrow"><span class="eyebrow__line"></span>嘉窗 · 树洞纸条</p>
+        <h2>说给树洞听</h2>
+      </header>
+
+      <div class="th-stage">
+
+        <form class="th-write" id="thForm">
+          <label for="thInput" class="sr-only" hidden>写下你的纸条</label>
+          <textarea id="thInput" maxlength="300" placeholder="把心事折成纸条，投进树洞。这里不会有人知道是你。"></textarea>
+          <div class="th-write__foot">
+            <span class="th-count" id="thCount">0 / 300</span>
+            <button class="th-submit" id="thSubmit" type="submit" disabled>投进树洞</button>
+          </div>
+        </form>
+
+        <ul class="th-list" id="thList"></ul>
+        <p class="th-empty" id="thEmpty" hidden>树洞还是空的，做第一个说话的人吧。</p>
+
+        <p class="th-foot">纸条会在这里待七天，然后自己飘走。</p>
+        <p class="th-demo">演示版：纸条暂时只保存在本机，别人还看不到。</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap site-footer__inner">
+    <div class="site-footer__brand">
+      <img src="assets/img/logo-main.png" alt="" aria-hidden="true">
+      <div>
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <p>浙江高校生兴趣社交社群 · 非营利自组织</p>
+      </div>
+    </div>
+    <nav class="site-footer__nav" aria-label="页面导航">
+      <a href="index.html">首页</a>
+      <a href="workbench.html">嘉庭工作台</a>
+      <a href="comfort.html">安慰盲盒</a>
+      <a href="calc.html">学习计算器</a>
+      <a href="app.html">下载 App</a>
+    </nav>
+    <div class="site-footer__meta">
+      <p>本页面仅用于协会对外展示，内容以群内公告为准。</p>
+      <p>&copy; <span id="year">2026</span> 浙江嘉豪嘉欣协会 · 保留所有权利</p>
+    </div>
+  </div>
+</footer>
+
+<!-- 常驻入口：返回首页 -->
+<a class="quick-home" href="index.html" aria-label="返回首页">
+  <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 10.6 12 3.2l9 7.4"></path>
+    <path d="M5.6 9.6V20h12.8V9.6"></path>
+    <path d="M9.7 20v-5.3h4.6V20"></path>
+  </svg>
+  <span>返回首页</span>
+</a>
+
+<script src="assets/js/treehole.js?v=3152193f"></script>
+<script>
+  var y = document.getElementById('year');
+  if (y) { y.textContent = String(new Date().getFullYear()); }
+</script>
+</body>
+</html>
