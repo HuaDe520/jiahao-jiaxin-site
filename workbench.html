@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>嘉庭工作台 · 浙江嘉豪嘉欣协会</title>
-<meta name="description" content="嘉庭工作台：嘉枢、嘉番、嘉游、嘉墨、嘉体、嘉盟、嘉闲、嘉学、嘉窗九个部门的便捷工具入口。">
+<meta name="description" content="嘉庭工作台：嘉枢、嘉番、嘉游、嘉墨、嘉体、嘉盟、嘉闲、嘉学、嘉窗九个功能模块的便捷工具入口。">
 <meta name="theme-color" content="#0f5f56">
 <link rel="icon" href="assets/img/logo-main.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
@@ -37,8 +37,8 @@
     <div class="wrap">
       <header class="section__head">
         <p class="eyebrow"><span class="eyebrow__line"></span>嘉庭工作台</p>
-        <h2>各部门便捷工具</h2>
-        <p class="section__lead">选择部门查看该部门的工具，功能会陆续上线。</p>
+        <h2>各模块便捷工具</h2>
+        <p class="section__lead">选择模块查看该模块的工具，功能会陆续上线。</p>
       </header>
 
       <div class="wb-grid" id="wbGrid"></div>
@@ -78,16 +78,16 @@
 (function () {
   'use strict';
 
-  /* 九个部门与它们的工具（tools 为空表示功能建设中） */
-  var DEPTS = [
-    { key: 'shutong', short: '嘉枢', full: '嘉枢统筹部', logo: 'assets/img/dept-01-shutong.png', tools: [] },
-    { key: 'fanxun',  short: '嘉番', full: '嘉番巡礼部', logo: 'assets/img/dept-02-fanxun.png', tools: [] },
-    { key: 'youlun',  short: '嘉游', full: '嘉游论衡部', logo: 'assets/img/dept-03-youlun.png', tools: [] },
-    { key: 'mohui',   short: '嘉墨', full: '嘉墨绘梦部', logo: 'assets/img/dept-04-mohui.png', tools: [] },
-    { key: 'lixing',  short: '嘉体', full: '嘉体砺行部', logo: 'assets/img/dept-05-lixing.png', tools: [] },
-    { key: 'tongyou', short: '嘉盟', full: '嘉盟同游部', logo: 'assets/img/dept-06-tongyou.png', tools: [] },
-    { key: 'xianfu',  short: '嘉闲', full: '嘉闲浮生部', logo: 'assets/img/dept-07-xianfu.png', tools: [] },
-    { key: 'qingtan', short: '嘉学', full: '嘉学清谈部', logo: 'assets/img/dept-08-qingtan.png', tools: [
+  /* 九个功能模块（名称取自部门名，但这里是工作台的功能模块） */
+  var MODULES = [
+    { key: 'shutong', name: '嘉枢', logo: 'assets/img/dept-01-shutong.png', tools: [] },
+    { key: 'fanxun',  name: '嘉番', logo: 'assets/img/dept-02-fanxun.png', tools: [] },
+    { key: 'youlun',  name: '嘉游', logo: 'assets/img/dept-03-youlun.png', tools: [] },
+    { key: 'mohui',   name: '嘉墨', logo: 'assets/img/dept-04-mohui.png', tools: [] },
+    { key: 'lixing',  name: '嘉体', logo: 'assets/img/dept-05-lixing.png', tools: [] },
+    { key: 'tongyou', name: '嘉盟', logo: 'assets/img/dept-06-tongyou.png', tools: [] },
+    { key: 'xianfu',  name: '嘉闲', logo: 'assets/img/dept-07-xianfu.png', tools: [] },
+    { key: 'qingtan', name: '嘉学', logo: 'assets/img/dept-08-qingtan.png', tools: [
         {
           name: '学习计算器',
           desc: '基础运算、求导、不定积分、定积分、极限、解方程',
@@ -95,20 +95,20 @@
           icon: '∑'
         }
       ] },
-    { key: 'jieyou',  short: '嘉窗', full: '嘉窗解忧部', logo: 'assets/img/dept-09-jieyou.png', tools: [] }
+    { key: 'jieyou',  name: '嘉窗', logo: 'assets/img/dept-09-jieyou.png', tools: [] }
   ];
 
   var grid = document.getElementById('wbGrid');
   var detail = document.getElementById('wbDetail');
 
   function find(key) {
-    for (var i = 0; i < DEPTS.length; i++) { if (DEPTS[i].key === key) return DEPTS[i]; }
+    for (var i = 0; i < MODULES.length; i++) { if (MODULES[i].key === key) return MODULES[i]; }
     return null;
   }
 
   function renderGrid(activeKey) {
     grid.innerHTML = '';
-    DEPTS.forEach(function (d) {
+    MODULES.forEach(function (d) {
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'wb-dept' + (d.key === activeKey ? ' is-active' : '');
@@ -116,17 +116,13 @@
 
       var img = document.createElement('img');
       img.src = d.logo;
-      img.alt = d.full + '部徽';
+      img.alt = d.name + '模块图标';
       img.loading = 'lazy';
       btn.appendChild(img);
 
       var strong = document.createElement('strong');
-      strong.textContent = d.short;
+      strong.textContent = d.name;
       btn.appendChild(strong);
-
-      var span = document.createElement('span');
-      span.textContent = d.full;
-      btn.appendChild(span);
 
       var em = document.createElement('em');
       if (d.tools.length) {
@@ -146,7 +142,7 @@
   }
 
   function render(key) {
-    var d = find(key) || DEPTS[0];
+    var d = find(key) || MODULES[0];
     renderGrid(d.key);
     detail.innerHTML = '';
 
@@ -154,13 +150,13 @@
     head.className = 'wb-detail__head';
     var img = document.createElement('img');
     img.src = d.logo;
-    img.alt = d.full + '部徽';
+    img.alt = d.name + '模块图标';
     head.appendChild(img);
     var box = document.createElement('div');
     var h3 = document.createElement('h3');
-    h3.textContent = d.full;
+    h3.textContent = d.name;
     var p = document.createElement('p');
-    p.textContent = d.tools.length ? '可用工具 ' + d.tools.length + ' 个' : '该部门工具正在筹备';
+    p.textContent = d.tools.length ? '可用工具 ' + d.tools.length + ' 个' : '该模块工具正在筹备';
     box.appendChild(h3);
     box.appendChild(p);
     head.appendChild(box);
@@ -203,7 +199,7 @@
       var strong = document.createElement('strong');
       strong.textContent = '功能建设中';
       var p2 = document.createElement('p');
-      p2.textContent = '该部门的便捷工具正在筹备，上线后会在这里出现，敬请期待。';
+      p2.textContent = '该模块的便捷工具正在筹备，上线后会在这里出现，敬请期待。';
       empty.appendChild(strong);
       empty.appendChild(p2);
       detail.appendChild(empty);

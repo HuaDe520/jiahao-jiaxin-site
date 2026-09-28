@@ -21,21 +21,21 @@
 
 /* ---------- 顶部 ---------- */
 .calc-top {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; gap: 8px;
   padding: 6px 2px 2px;
 }
 .calc-back {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 14px; color: rgba(234, 250, 245, .8);
+  display: inline-flex; align-items: center; gap: 4px; flex: none;
+  font-size: 13.5px; color: rgba(234, 250, 245, .8); white-space: nowrap;
   text-decoration: none; padding: 6px 10px; border-radius: 999px;
   background: rgba(255, 255, 255, .08);
 }
 .calc-back:hover { background: rgba(255, 255, 255, .16); }
 .calc-top h1 {
-  font-size: 17px; font-weight: 700; margin: 0; letter-spacing: .04em;
-  color: #fff;
+  font-size: 16.5px; font-weight: 700; margin: 0; letter-spacing: .02em;
+  color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.calc-top__spacer { flex: 1; }
+.calc-top__spacer { flex: 1 1 0; min-width: 6px; }
 .calc-mode {
   border: 1px solid rgba(234, 250, 245, .3); background: rgba(0, 0, 0, .18);
   color: #fff; font-size: 13px; font-weight: 700; letter-spacing: .06em;
@@ -225,3 +225,11 @@
 .calc-display__result.is-long { font-size: 21px; }
 .calc-display__result.is-xlong { font-size: 16.5px; letter-spacing: -.01em; }
 .calc-display__expr { caret-color: #12655a; }
+/* 极限的取值过程 */
+.fx-proc__title {
+  display: block; margin: 2px 0 4px; font-weight: 700; font-size: 12.5px; color: #3d5f56;
+}
+.fx-proc__line {
+  display: block; font-size: 12.5px; line-height: 1.8; color: #4a6a60;
+  word-break: break-all;
+}

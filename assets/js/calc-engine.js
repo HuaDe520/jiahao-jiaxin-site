@@ -487,13 +487,38 @@
         if (t.indexOf('limit(') < 0 && t.indexOf('diff(') < 0 && t.indexOf('integrate(') < 0) exact = t;
       } catch (e) { /* 继续尝试数值 */ }
     }
-    if (exact !== null && !/limit/i.test(exact)) return { exact: exact, numeric: null };
-
     var av;
     if (/^-?\s*(inf|infinity|∞)$/i.test(target)) av = target.charAt(0) === '-' ? -Infinity : Infinity;
     else av = evaluate(target, {}, deg);
+
+    /* 取值过程：从左右（或从大数）逼近，供界面展示"怎么得到的" */
+    var pick = function (x) {
+      var env = {};
+      env[v] = x;
+      try { return evaluate(expr, env, deg); } catch (e) { return NaN; }
+    };
+    var sides = { left: [], right: [], toInfinity: !isFinite(av) };
+    if (isFinite(av)) {
+      var scale = Math.max(1, Math.abs(av));
+      [0.1, 0.01, 0.001, 0.0001].forEach(function (h) {
+        var d = h * scale;
+        sides.left.push({ x: av - d, y: pick(av - d) });
+        sides.right.push({ x: av + d, y: pick(av + d) });
+      });
+    } else {
+      var sign = av > 0 ? 1 : -1;
+      [100, 1000, 10000, 100000].forEach(function (m) {
+        sides.right.push({ x: sign * m, y: pick(sign * m) });
+      });
+    }
+
+    if (exact !== null && !/limit/i.test(exact)) {
+      return { exact: exact, numeric: null, sides: sides, diverges: false };
+    }
+
     var nv = numericLimit(expr, v, av, deg);
-    return { exact: null, numeric: nv };
+    var diverges = !isFinite(nv) || Number.isNaN(nv);
+    return { exact: null, numeric: nv, sides: sides, diverges: diverges };
   }
 
   /** 解方程 */
@@ -534,7 +559,7 @@
   function prettify(text) {
     var s = String(text);
     s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    s = s.replace(/\bpi\b/g, 'π').replace(/\binf(inity)?\b/g, '∞');
+    s = s.replace(/\bpi\b/g, 'π').replace(/\binf(inity)?\b/gi, '∞');
     s = s.replace(/\blog\(/g, 'ln(');            /* nerdamer 的 log 即自然对数 */
     s = s.replace(/\bsqrt\(/g, '√(');
     s = s.replace(/\*/g, '·');

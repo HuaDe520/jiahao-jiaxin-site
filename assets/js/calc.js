@@ -282,6 +282,9 @@
     if (!modeBtn) return;
     modeBtn.textContent = E.degrees ? 'DEG' : 'RAD';
     modeBtn.classList.toggle('is-rad', !E.degrees);
+    /* 显示屏上的提示必须同步，否则会以为没切换成功 */
+    var hint = $('angleHint');
+    if (hint) hint.textContent = E.degrees ? 'DEG · 角度制' : 'RAD · 弧度制';
   }
   if (modeBtn) {
     modeBtn.addEventListener('click', function () {
@@ -386,6 +389,52 @@
     document.body.removeChild(ta);
   }
 
+  /* ---------- 极限的"取值过程"渲染 ---------- */
+  function fmtSampleX(x) {
+    if (!isFinite(x)) return x > 0 ? '∞' : '-∞';
+    var abs = Math.abs(x);
+    if (abs !== 0 && (abs >= 1e5 || abs < 1e-4)) return E.formatNumber(x);
+    return String(parseFloat(x.toPrecision(6)));
+  }
+
+  /* 根据左右采样判断发散方向，给出结论文字 */
+  function divergenceNote(sides, fallbackSign) {
+    if (!sides || !sides.left || !sides.left.length) {
+      return '<br><span style="font-size:.86em">数学上写作 ' + (fallbackSign > 0 ? '+∞' : '−∞') +
+             '，但它不是有限值，所以通常说该极限不存在。</span>';
+    }
+    var L = sides.left[sides.left.length - 1].y;
+    var R = sides.right[sides.right.length - 1].y;
+    if (typeof L === 'number' && typeof R === 'number' && !Number.isNaN(L) && !Number.isNaN(R) &&
+        Math.abs(L) > 1 && Math.abs(R) > 1 && (L > 0) !== (R > 0)) {
+      return '<br><span style="font-size:.86em">左侧趋向 ' + (L > 0 ? '+∞' : '−∞') +
+             '、右侧趋向 ' + (R > 0 ? '+∞' : '−∞') + '，两侧方向不同，因此极限不存在。</span>';
+    }
+    return '<br><span style="font-size:.86em">数学上写作 ' + (fallbackSign > 0 ? '+∞' : '−∞') +
+           '，但它不是有限值，所以通常说该极限不存在。</span>';
+  }
+
+  function processHtml(sides, to) {
+    if (!sides) return '';
+    var blocks = [];
+    function line(arr, title) {
+      if (!arr || !arr.length) return;
+      var pts = arr.slice(-3).map(function (p) {
+        var y = (typeof p.y === 'number' && !Number.isNaN(p.y)) ? E.formatNumber(p.y) : '无定义';
+        return 'f(' + fmtSampleX(p.x) + ') = ' + y;
+      });
+      blocks.push('<span class="fx-proc__line">' + title + '：' + pts.join('，') + '</span>');
+    }
+    if (sides.toInfinity) {
+      line(sides.right, 'x 不断增大 / 减小');
+    } else {
+      line(sides.left, 'x 从左侧趋近');
+      line(sides.right, 'x 从右侧趋近');
+    }
+    if (!blocks.length) return '';
+    return '<span class="fx-proc__title">取值过程</span>' + blocks.join('');
+  }
+
   function guard(name) {
     if (E.hasNerdamer()) { nerdamerState = 'ready'; return true; }
     loadNerdamer();
@@ -483,12 +532,25 @@
       try {
         var r = E.limit(f, 'x', to, false);
         var label = 'lim(x→' + to + ') ' + E.prettify(f);
-        if (r.exact !== null && r.exact !== undefined) {
-          resultBox($('limitResult'), '极限结果', label + ' = ' + E.prettify(r.exact));
-        } else if (r.numeric !== null && !Number.isNaN(r.numeric)) {
-          resultBox($('limitResult'), '极限结果（数值）', label + ' ≈ ' + E.formatNumber(r.numeric));
+        var proc = processHtml(r.sides, to);
+
+        var exactIsInfinite = (r.exact !== null && r.exact !== undefined) && /inf/i.test(String(r.exact));
+        var numericIsInfinite = (typeof r.numeric === 'number') && !Number.isNaN(r.numeric) && !isFinite(r.numeric);
+
+        if (r.exact !== null && r.exact !== undefined && !exactIsInfinite) {
+          resultBox($('limitResult'), '极限结果', label + ' = ' + E.prettify(r.exact), proc);
+        } else if (exactIsInfinite || numericIsInfinite) {
+          /* 发散到无穷：极限不存在，但把过程与方向一并给出 */
+          var sign = exactIsInfinite ? (/^-/.test(String(r.exact).trim()) ? -1 : 1) : (r.numeric > 0 ? 1 : -1);
+          var dir = sign > 0 ? '+∞' : '−∞';
+          resultBox($('limitResult'), '极限不存在（发散）',
+            label + ' 不存在：当 x → ' + to + ' 时函数值趋向 ' + dir + '。' + divergenceNote(r.sides, sign),
+            proc);
+        } else if (r.numeric !== null && !Number.isNaN(r.numeric) && isFinite(r.numeric)) {
+          resultBox($('limitResult'), '极限结果（数值）', label + ' ≈ ' + E.formatNumber(r.numeric), proc);
         } else {
-          resultBox($('limitResult'), '极限', '该极限不存在，或左右极限不相等。', '', true);
+          resultBox($('limitResult'), '极限不存在',
+            label + ' 不存在：左右极限不相等（或函数在该点附近无定义）。', proc);
         }
       } catch (err) {
         resultBox($('limitResult'), '极限', '计算失败：' + err.message, '', true);
