@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>下载 App · 浙江嘉豪嘉欣协会</title>
+<meta name="description" content="下载「嘉豪嘉欣」手机客户端：安卓安装包直接下载，iPhone 用 Safari 添加到主屏幕。">
+<meta name="theme-color" content="#0f5f56">
+<link rel="icon" href="assets/img/logo-main.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<!-- ============ 页头 ============ -->
+<header class="site-header">
+  <div class="wrap site-header__inner">
+    <a class="brand" href="index.html" aria-label="返回首页">
+      <img class="brand__logo" src="assets/img/logo-main.png" alt="浙江嘉豪嘉欣协会会徽">
+      <span class="brand__text">
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <small>ZHEJIANG JIAHAO JIAXIN ASSOCIATION</small>
+      </span>
+    </a>
+    <nav class="site-nav site-nav--plain" aria-label="主导航">
+      <a href="index.html">首页</a>
+      <a href="index.html#departments">部门矩阵</a>
+      <a href="index.html#activities">活动安排</a>
+      <a href="index.html#rules">群规公约</a>
+      <a href="app.html" class="is-active">下载 App</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="section section--tint" style="padding-top:64px">
+    <div class="wrap">
+      <header class="section__head">
+        <p class="eyebrow"><span class="eyebrow__line"></span>客户端下载</p>
+        <h2>把协会装进手机</h2>
+        <p class="section__lead">客户端直接打开官网，内容实时同步，桌面图标为协会会徽。</p>
+      </header>
+
+      <div class="dl-grid">
+
+        <article class="dl-card">
+          <span class="dl-card__os">Android</span>
+          <h3>安卓版</h3>
+          <p class="dl-card__meta">版本 1.0 · 333 KB · 支持 Android 5.0 及以上</p>
+          <a class="btn btn--primary dl-card__btn" href="download/jiahao-jiaxin-1.0.apk" download>下载 APK</a>
+          <p class="dl-card__note">安装时若提示「未知来源应用」，选择允许即可。</p>
+        </article>
+
+        <article class="dl-card">
+          <span class="dl-card__os">iPhone / iPad</span>
+          <h3>iOS 版</h3>
+          <p class="dl-card__meta">无需下载安装包，用 Safari 添加到主屏幕</p>
+          <ol class="dl-steps">
+            <li>用 <strong>Safari</strong> 打开 xbc-zjja.com.cn</li>
+            <li>点屏幕底部中间的「分享」按钮</li>
+            <li>选择「添加到主屏幕」，右上角点「添加」</li>
+          </ol>
+        </article>
+
+      </div>
+
+      <div class="dl-qr">
+        <img src="assets/img/qr-site.png" alt="官网二维码" width="150" height="150">
+        <div class="dl-qr__text">
+          <strong>手机扫码打开官网</strong>
+          <p>用手机相机或微信扫一扫，即可访问 xbc-zjja.com.cn</p>
+        </div>
+      </div>
+
+      <p class="dl-foot">
+        客户端仅用于访问本协会官网，不收集任何个人信息。
+        你也可以直接用手机浏览器打开
+        <a href="https://xbc-zjja.com.cn/">xbc-zjja.com.cn</a>，功能完全一致。
+      </p>
+    </div>
+  </section>
+</main>
+
+<!-- ============ 页脚 ============ -->
+<footer class="site-footer">
+  <div class="wrap site-footer__inner">
+    <div class="site-footer__brand">
+      <img src="assets/img/logo-main.png" alt="" aria-hidden="true">
+      <div>
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <p>浙江高校生兴趣社交社群 · 非营利自组织</p>
+      </div>
+    </div>
+    <nav class="site-footer__nav" aria-label="页面导航">
+      <a href="index.html">首页</a>
+      <a href="index.html#about">协会简介</a>
+      <a href="index.html#departments">部门矩阵</a>
+      <a href="index.html#activities">活动安排</a>
+      <a href="index.html#rules">群规公约</a>
+      <a href="index.html#join">加入我们</a>
+      <a href="index.html#club">社团联系</a>
+    </nav>
+    <div class="site-footer__meta">
+      <p>本页面仅用于协会对外展示，内容以群内公告为准。</p>
+      <p>&copy; <span id="year">2026</span> 浙江嘉豪嘉欣协会 · 保留所有权利</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  var y = document.getElementById('year');
+  if (y) { y.textContent = String(new Date().getFullYear()); }
+</script>
+</body>
+</html>

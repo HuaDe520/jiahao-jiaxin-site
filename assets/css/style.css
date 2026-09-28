@@ -574,3 +574,50 @@ button { font: inherit; color: inherit; }
   .club__badge { width: 64px; height: 64px; }
   .club__id { font-size: 17px; }
 }
+
+/* ---------------- 下载页 ---------------- */
+.site-nav--plain { flex-wrap: wrap; }
+.site-nav--plain a.is-active { color: var(--jade-800); font-weight: 600; }
+
+.dl-grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px; margin-bottom: 26px;
+}
+.dl-card {
+  background: var(--white); border: 1px solid var(--line);
+  border-radius: var(--radius-l); padding: 30px 28px;
+  box-shadow: var(--shadow-s);
+  transition: transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s var(--ease);
+}
+.dl-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); border-color: rgba(201, 162, 75, .5); }
+.dl-card__os {
+  display: inline-block; font-size: 11.5px; letter-spacing: .18em; font-weight: 700;
+  color: var(--gold-600); background: var(--gold-100);
+  border-radius: 999px; padding: 3px 12px;
+}
+.dl-card h3 { font-size: 22px; color: var(--jade-900); margin: 12px 0 8px; }
+.dl-card__meta { font-size: 14px; color: var(--ink-mute); }
+.dl-card__btn { margin-top: 20px; }
+.dl-card__note { margin-top: 14px; font-size: 13px; color: var(--ink-mute); }
+
+.dl-steps { margin: 18px 0 0; padding-left: 22px; list-style: decimal; display: grid; gap: 9px; }
+.dl-steps li { font-size: 14.5px; color: var(--ink-soft); line-height: 1.7; }
+.dl-steps li::marker { color: var(--gold-500); font-weight: 700; }
+.dl-steps strong { color: var(--jade-700); }
+
+.dl-qr {
+  display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+  background: var(--white); border: 1px solid var(--line);
+  border-radius: var(--radius-l); padding: 24px 26px; box-shadow: var(--shadow-s);
+}
+.dl-qr img { width: 150px; height: 150px; border-radius: var(--radius-s); background: var(--cream); }
+.dl-qr__text strong { display: block; font-size: 17px; color: var(--jade-900); margin-bottom: 6px; }
+.dl-qr__text p { font-size: 14px; color: var(--ink-soft); }
+
+.dl-foot { margin-top: 24px; font-size: 13.5px; color: var(--ink-mute); line-height: 1.9; }
+.dl-foot a { color: var(--jade-700); border-bottom: 1px solid rgba(18, 101, 90, .3); }
+
+@media (max-width: 820px) {
+  .dl-grid { grid-template-columns: 1fr; }
+  .dl-card { padding: 24px 22px; }
+}
