@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>学习计算器 · 嘉庭工作台</title>
+<meta name="description" content="掌上嘉协学习计算器：基础运算、求导、不定积分、定积分、极限、解方程，手机端友好。">
+<meta name="theme-color" content="#0b3f39">
+<link rel="icon" href="assets/img/logo-main.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="assets/css/calc.css">
+</head>
+<body class="calc-page">
+
+<div class="calc-shell">
+
+  <header class="calc-top">
+    <a class="calc-back" href="workbench.html#jiaxue">← 嘉庭工作台</a>
+    <h1>学习计算器</h1>
+    <span class="calc-top__spacer"></span>
+    <button class="calc-mode" id="calcMode" type="button" title="切换角度/弧度">DEG</button>
+  </header>
+
+  <nav class="calc-tabs" aria-label="计算模式">
+    <button type="button" data-tab="basic" class="is-active">计算</button>
+    <button type="button" data-tab="diff">求导</button>
+    <button type="button" data-tab="integral">不定积分</button>
+    <button type="button" data-tab="defint">定积分</button>
+    <button type="button" data-tab="limit">极限</button>
+    <button type="button" data-tab="solve">解方程</button>
+  </nav>
+
+  <!-- ================= 计算 ================= -->
+  <section class="calc-panel is-active" data-panel="basic">
+    <div class="calc-display">
+      <div class="calc-display__status">
+        <span id="memIndicator"></span>
+        <span id="angleHint">DEG · 角度制</span>
+      </div>
+      <input class="calc-display__expr" id="calcExpr" type="text" inputmode="none"
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+             placeholder="输入算式，或直接点下面的按键" aria-label="算式输入">
+      <div class="calc-display__result" id="calcResult">0</div>
+    </div>
+
+    <div class="calc-aux">
+      <button type="button" id="auxAns">ANS</button>
+      <button type="button" id="auxMC">MC</button>
+      <button type="button" id="auxMR">MR</button>
+      <button type="button" id="auxMPlus">M+</button>
+      <button type="button" id="auxMMinus">M−</button>
+    </div>
+
+    <div class="calc-keys" id="calcKeys"></div>
+
+    <div class="calc-history">
+      <div class="calc-history__head">
+        <span>历史记录</span>
+        <button type="button" id="calcClearHistory">清空</button>
+      </div>
+      <div class="calc-history__list" id="calcHistoryList"></div>
+    </div>
+  </section>
+
+  <!-- ================= 求导 ================= -->
+  <section class="calc-panel" data-panel="diff">
+    <div class="fx-card">
+      <div class="fx-field">
+        <label for="diffF">函数 f(x)</label>
+        <input class="fx-input" id="diffF" type="text" placeholder="例如 x^3+2*x 或 sin(x)" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="fx-field">
+        <label>求导阶数</label>
+        <div class="fx-chips" id="diffOrder">
+          <button type="button" data-v="1" class="is-active">一阶</button>
+          <button type="button" data-v="2">二阶</button>
+          <button type="button" data-v="3">三阶</button>
+        </div>
+      </div>
+      <div class="fx-field">
+        <label for="diffAt">在 x = 处的导数（可选）</label>
+        <input class="fx-input" id="diffAt" type="text" placeholder="例如 2，留空只给导函数" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="fx-go" id="diffGo" type="button">计算</button>
+    </div>
+    <div class="fx-result" id="diffResult" hidden></div>
+    <p class="fx-tip">变量固定为 <code>x</code>；三角函数按<strong>弧度</strong>计算（与课本微积分一致）。</p>
+  </section>
+
+  <!-- ================= 不定积分 ================= -->
+  <section class="calc-panel" data-panel="integral">
+    <div class="fx-card">
+      <div class="fx-field">
+        <label for="integF">被积函数 f(x)</label>
+        <input class="fx-input" id="integF" type="text" placeholder="例如 x^2 或 1/x" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="fx-go" id="integGo" type="button">计算</button>
+    </div>
+    <div class="fx-result" id="integResult" hidden></div>
+    <p class="fx-tip">结果已省略积分常数 <code>C</code>。</p>
+  </section>
+
+  <!-- ================= 定积分 ================= -->
+  <section class="calc-panel" data-panel="defint">
+    <div class="fx-card">
+      <div class="fx-field">
+        <label for="defintF">被积函数 f(x)</label>
+        <input class="fx-input" id="defintF" type="text" placeholder="例如 x^2 或 sin(x)" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="fx-row">
+        <div class="fx-field">
+          <label for="defintA">下限 a</label>
+          <input class="fx-input" id="defintA" type="text" placeholder="0" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="fx-field">
+          <label for="defintB">上限 b</label>
+          <input class="fx-input" id="defintB" type="text" placeholder="1" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+      <button class="fx-go" id="defintGo" type="button">计算</button>
+    </div>
+    <div class="fx-result" id="defintResult" hidden></div>
+    <p class="fx-tip">上下限支持 <code>pi</code>、<code>e</code> 等常数与算式（如 <code>pi/2</code>）；三角函数按<strong>弧度</strong>计算。结果同时给出精确值与数值近似。</p>
+  </section>
+
+  <!-- ================= 极限 ================= -->
+  <section class="calc-panel" data-panel="limit">
+    <div class="fx-card">
+      <div class="fx-field">
+        <label for="limitF">函数 f(x)</label>
+        <input class="fx-input" id="limitF" type="text" placeholder="例如 sin(x)/x" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="fx-field">
+        <label for="limitTo">x 趋近于</label>
+        <input class="fx-input" id="limitTo" type="text" placeholder="0、inf（正无穷）、-inf（负无穷）或 pi/2" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="fx-go" id="limitGo" type="button">计算</button>
+    </div>
+    <div class="fx-result" id="limitResult" hidden></div>
+    <p class="fx-tip">三角函数按<strong>弧度</strong>计算；求不出精确值时会自动用数值方法（左右逼近 + 外推）估算。</p>
+  </section>
+
+  <!-- ================= 解方程 ================= -->
+  <section class="calc-panel" data-panel="solve">
+    <div class="fx-card">
+      <div class="fx-field">
+        <label for="solveEq">方程（含等号；不写等号按 = 0 处理）</label>
+        <input class="fx-input" id="solveEq" type="text" placeholder="例如 x^2-4=0 或 2*x+1=0" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="fx-go" id="solveGo" type="button">求解</button>
+    </div>
+    <div class="fx-result" id="solveResult" hidden></div>
+    <p class="fx-tip">支持一次、二次、三次方程与部分超越方程；结果按从小到大排列。</p>
+  </section>
+
+</div>
+
+<script src="assets/js/lib/nerdamer.all.min.js"></script>
+<script src="assets/js/calc-engine.js"></script>
+<script src="assets/js/calc.js"></script>
+</body>
+</html>

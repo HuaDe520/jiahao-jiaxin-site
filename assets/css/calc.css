@@ -1,0 +1,214 @@
+/* =========================================================
+   学习计算器 · 样式（手机优先）
+   ========================================================= */
+
+.calc-page {
+  margin: 0;
+  background: linear-gradient(170deg, #0b3f39, #12655a 55%, #0e2b27);
+  min-height: 100vh;
+  color: #eafaf5;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.calc-shell {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 10px 12px calc(18px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---------- 顶部 ---------- */
+.calc-top {
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 2px 2px;
+}
+.calc-back {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 14px; color: rgba(234, 250, 245, .8);
+  text-decoration: none; padding: 6px 10px; border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+}
+.calc-back:hover { background: rgba(255, 255, 255, .16); }
+.calc-top h1 {
+  font-size: 17px; font-weight: 700; margin: 0; letter-spacing: .04em;
+  color: #fff;
+}
+.calc-top__spacer { flex: 1; }
+.calc-mode {
+  border: 1px solid rgba(234, 250, 245, .3); background: rgba(0, 0, 0, .18);
+  color: #fff; font-size: 13px; font-weight: 700; letter-spacing: .06em;
+  border-radius: 999px; padding: 6px 14px; cursor: pointer;
+  font-family: Consolas, monospace;
+}
+.calc-mode.is-rad { border-color: var(--gold-400); color: var(--gold-400); }
+
+/* ---------- 模式标签 ---------- */
+.calc-tabs {
+  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.calc-tabs::-webkit-scrollbar { display: none; }
+.calc-tabs button {
+  flex: none; border: 1px solid rgba(234, 250, 245, .2);
+  background: rgba(255, 255, 255, .07); color: rgba(234, 250, 245, .82);
+  font-size: 13.5px; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  transition: .2s; white-space: nowrap;
+}
+.calc-tabs button.is-active {
+  background: var(--gold-400); border-color: var(--gold-400); color: #2b2109; font-weight: 700;
+}
+
+/* ---------- 面板 ---------- */
+.calc-panel { display: none; flex-direction: column; gap: 10px; }
+.calc-panel.is-active { display: flex; }
+
+/* ---------- 显示屏 ---------- */
+.calc-display {
+  background: linear-gradient(180deg, #d7e8d9, #c3d9c6);
+  border-radius: 14px; padding: 10px 14px 12px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, .28), 0 8px 20px -12px rgba(0, 0, 0, .8);
+  color: #10312b;
+}
+.calc-display__status {
+  display: flex; justify-content: space-between; align-items: center;
+  font: 700 11px/1 Consolas, monospace; letter-spacing: .12em;
+  color: #4a6a60; min-height: 12px;
+}
+.calc-display__expr {
+  width: 100%; border: 0; background: transparent; outline: none;
+  font: 600 20px/1.35 Consolas, "Courier New", monospace;
+  color: #10312b; text-align: right; padding: 6px 0 2px;
+  direction: ltr;
+}
+.calc-display__expr::placeholder { color: #7c9a90; font-weight: 400; }
+.calc-display__result {
+  font: 700 26px/1.3 Consolas, "Courier New", monospace;
+  text-align: right; color: #0b3f39; word-break: break-all; min-height: 34px;
+}
+.calc-display__result.is-error { font-size: 15px; color: #a3372f; line-height: 1.5; }
+
+/* ---------- 副键区（记忆/ANS） ---------- */
+.calc-aux { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.calc-aux button {
+  border: 1px solid rgba(234, 250, 245, .18); background: rgba(255, 255, 255, .07);
+  color: rgba(234, 250, 245, .85); border-radius: 10px; padding: 9px 0;
+  font: 600 13px/1 Consolas, monospace; cursor: pointer;
+}
+.calc-aux button:active { background: rgba(255, 255, 255, .2); }
+
+/* ---------- 主键盘 ---------- */
+.calc-keys { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.calc-keys button {
+  position: relative; border: 0; border-radius: 12px; cursor: pointer;
+  padding: 13px 0; font: 600 18px/1.1 "PingFang SC", Consolas, monospace;
+  background: #f7f5ef; color: #16302b;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, .22), 0 6px 12px -8px rgba(0, 0, 0, .8);
+  transition: transform .08s, background .15s;
+  touch-action: manipulation;
+}
+.calc-keys button:active { transform: translateY(2px); box-shadow: 0 0 0 rgba(0, 0, 0, .2); }
+.calc-keys button.k-fn { background: #dfe9e3; font-size: 16px; }
+.calc-keys button.k-op { background: #17806f; color: #fff; font-size: 20px; }
+.calc-keys button.k-eq { background: linear-gradient(180deg, #dfc077, #c9a24b); color: #2b2109; font-size: 20px; }
+.calc-keys button.k-ac { background: #b6544a; color: #fff; font-size: 15px; }
+.calc-keys button.k-del { background: #c98a4b; color: #fff; font-size: 15px; }
+.calc-keys .k-shift-on { background: var(--gold-500); color: #2b2109; }
+.calc-keys button small {
+  display: block; font-size: 9.5px; font-weight: 500; opacity: .62; margin-top: 2px;
+  letter-spacing: .02em;
+}
+
+/* ---------- 历史 ---------- */
+.calc-history { margin-top: 4px; }
+.calc-history__head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12.5px; color: rgba(234, 250, 245, .6); padding: 2px 4px 6px;
+}
+.calc-history__head button {
+  border: 0; background: none; color: rgba(234, 250, 245, .6);
+  font-size: 12.5px; cursor: pointer; text-decoration: underline;
+}
+.calc-history__list { display: grid; gap: 6px; max-height: 190px; overflow-y: auto; }
+.calc-history__item {
+  background: rgba(255, 255, 255, .07); border-radius: 10px;
+  padding: 8px 12px; cursor: pointer; text-align: right;
+  font: 500 14px/1.4 Consolas, monospace; color: #eafaf5;
+  border: 1px solid rgba(234, 250, 245, .1);
+}
+.calc-history__item span { display: block; font-size: 12px; color: rgba(234, 250, 245, .55); }
+
+/* ---------- 高级功能表单 ---------- */
+.fx-card {
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(234, 250, 245, .16);
+  border-radius: 16px; padding: 16px 16px 18px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.fx-field { display: flex; flex-direction: column; gap: 6px; }
+.fx-field > label {
+  font-size: 12.5px; color: rgba(234, 250, 245, .7); letter-spacing: .04em;
+}
+.fx-input {
+  width: 100%; box-sizing: border-box;
+  background: rgba(0, 0, 0, .22); border: 1px solid rgba(234, 250, 245, .22);
+  border-radius: 10px; padding: 11px 14px; color: #fff; outline: none;
+  font: 600 17px/1.3 Consolas, "Courier New", monospace;
+}
+.fx-input:focus { border-color: var(--gold-400); }
+.fx-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fx-chips { display: flex; gap: 6px; }
+.fx-chips button {
+  border: 1px solid rgba(234, 250, 245, .22); background: rgba(255, 255, 255, .06);
+  color: rgba(234, 250, 245, .85); border-radius: 999px; padding: 7px 14px;
+  font-size: 13px; cursor: pointer;
+}
+.fx-chips button.is-active { background: var(--gold-400); border-color: var(--gold-400); color: #2b2109; font-weight: 700; }
+.fx-go {
+  border: 0; border-radius: 12px; padding: 14px 0; cursor: pointer;
+  background: linear-gradient(180deg, #dfc077, #c9a24b); color: #2b2109;
+  font-size: 16.5px; font-weight: 700; letter-spacing: .06em;
+}
+.fx-go:active { transform: translateY(1px); }
+
+.fx-result {
+  background: linear-gradient(180deg, #d7e8d9, #c3d9c6);
+  border-radius: 14px; padding: 14px 16px; color: #10312b;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, .24);
+}
+.fx-result__label { font-size: 12px; color: #4a6a60; letter-spacing: .06em; margin-bottom: 6px; }
+.fx-result__main {
+  font: 700 19px/1.5 Consolas, "Courier New", monospace; word-break: break-word;
+}
+.fx-result__main sup { font-size: .72em; vertical-align: super; }
+.fx-result__extra {
+  margin-top: 8px; font: 500 13.5px/1.6 Consolas, monospace; color: #3d5f56;
+  word-break: break-word;
+}
+.fx-result__error { color: #a3372f; font-size: 14.5px; line-height: 1.6; }
+.fx-result__actions { display: flex; gap: 8px; margin-top: 12px; }
+.fx-result__actions button {
+  border: 1px solid rgba(16, 49, 43, .28); background: rgba(255, 255, 255, .5);
+  color: #10312b; border-radius: 999px; padding: 6px 14px; font-size: 12.5px; cursor: pointer;
+}
+.fx-tip {
+  font-size: 12.5px; color: rgba(234, 250, 245, .55); line-height: 1.8;
+  padding: 0 4px;
+}
+.fx-tip code {
+  background: rgba(0, 0, 0, .25); border-radius: 6px; padding: 1px 6px;
+  font-family: Consolas, monospace; color: var(--gold-400);
+}
+
+/* ---------- 桌面端 ---------- */
+@media (min-width: 620px) {
+  .calc-shell {
+    max-width: 520px;
+    padding-top: 22px;
+    padding-bottom: 30px;
+  }
+  .calc-keys button { padding: 16px 0; font-size: 19px; }
+  .calc-keys button.k-fn { font-size: 17px; }
+  .calc-display__result { font-size: 30px; }
+}

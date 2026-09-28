@@ -1,0 +1,84 @@
+/* =========================================================
+   嘉庭工作台 · 样式
+   ========================================================= */
+
+.wb-page { background: var(--cream); }
+
+.wb-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.wb-dept {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 20px 12px 16px; cursor: pointer; text-align: center;
+  background: var(--white); border: 1.5px solid var(--line);
+  border-radius: var(--radius-l); box-shadow: var(--shadow-s);
+  transition: transform .28s var(--ease), box-shadow .28s var(--ease), border-color .28s var(--ease);
+}
+.wb-dept:hover { transform: translateY(-5px); box-shadow: var(--shadow); border-color: rgba(201, 162, 75, .5); }
+.wb-dept.is-active {
+  border-color: var(--gold-500);
+  box-shadow: 0 0 0 3px rgba(201, 162, 75, .18), var(--shadow);
+}
+.wb-dept img {
+  width: 58px; height: 58px; border-radius: 50%;
+  background: var(--cream); border: 1px solid var(--line);
+}
+.wb-dept strong { font-size: 17px; color: var(--jade-900); letter-spacing: .06em; }
+.wb-dept span { font-size: 12px; color: var(--ink-mute); }
+.wb-dept em {
+  font-style: normal; font-size: 11.5px; padding: 2px 10px; border-radius: 999px;
+  background: var(--jade-050); color: var(--jade-700); border: 1px solid rgba(37, 156, 136, .18);
+}
+.wb-dept em.is-ready { background: var(--gold-100); color: var(--gold-600); border-color: rgba(201, 162, 75, .35); }
+
+/* ---------- 详情区 ---------- */
+.wb-detail { margin-top: 28px; }
+.wb-detail__head {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+}
+.wb-detail__head img {
+  width: 52px; height: 52px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--cream); flex: none;
+}
+.wb-detail__head h3 { font-size: 20px; color: var(--jade-900); margin: 0 0 2px; }
+.wb-detail__head p { font-size: 13.5px; color: var(--ink-mute); }
+
+.wb-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+
+.wb-tool {
+  display: flex; align-items: center; gap: 16px; text-decoration: none;
+  background: var(--white); border: 1px solid var(--line);
+  border-radius: var(--radius-l); padding: 20px 22px; box-shadow: var(--shadow-s);
+  transition: transform .28s var(--ease), box-shadow .28s var(--ease), border-color .28s var(--ease);
+}
+.wb-tool:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: rgba(201, 162, 75, .5); }
+.wb-tool__icon {
+  flex: none; width: 52px; height: 52px; border-radius: 16px;
+  display: grid; place-items: center; font-size: 24px; font-weight: 700;
+  background: linear-gradient(135deg, var(--jade-700), var(--jade-500)); color: #fff;
+  box-shadow: 0 10px 18px -12px rgba(18, 101, 90, .9);
+}
+.wb-tool__body { min-width: 0; }
+.wb-tool__body strong { display: block; font-size: 17px; color: var(--jade-900); margin-bottom: 4px; }
+.wb-tool__body span { font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; }
+.wb-tool__arrow { margin-left: auto; color: var(--gold-500); font-size: 20px; flex: none; }
+
+.wb-empty {
+  border: 1.5px dashed rgba(18, 101, 90, .3);
+  border-radius: var(--radius-l); padding: 40px 24px;
+  text-align: center; background: rgba(255, 255, 255, .6);
+}
+.wb-empty strong { display: block; font-size: 16px; color: var(--jade-800); margin-bottom: 8px; }
+.wb-empty p { font-size: 13.5px; color: var(--ink-mute); }
+
+@media (max-width: 820px) {
+  .wb-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .wb-dept { padding: 14px 8px 12px; border-radius: var(--radius); }
+  .wb-dept img { width: 46px; height: 46px; }
+  .wb-dept strong { font-size: 15px; }
+  .wb-dept span { font-size: 10.5px; }
+  .wb-dept em { font-size: 10.5px; padding: 1px 8px; }
+  .wb-tools { grid-template-columns: 1fr; }
+}

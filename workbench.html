@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>嘉庭工作台 · 浙江嘉豪嘉欣协会</title>
+<meta name="description" content="嘉庭工作台：嘉枢、嘉番、嘉游、嘉墨、嘉体、嘉盟、嘉闲、嘉学、嘉窗九个部门的便捷工具入口。">
+<meta name="theme-color" content="#0f5f56">
+<link rel="icon" href="assets/img/logo-main.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/workbench.css">
+</head>
+<body class="wb-page">
+
+<header class="site-header">
+  <div class="wrap site-header__inner">
+    <a class="brand" href="index.html" aria-label="返回首页">
+      <img class="brand__logo" src="assets/img/logo-main.png" alt="浙江嘉豪嘉欣协会会徽">
+      <span class="brand__text">
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <small>ZHEJIANG JIAHAO JIAXIN ASSOCIATION</small>
+      </span>
+    </a>
+    <nav class="site-nav site-nav--plain" aria-label="主导航">
+      <a href="index.html">首页</a>
+      <a href="index.html#departments">部门矩阵</a>
+      <a href="app.html">下载 App</a>
+      <a href="workbench.html" class="is-active">嘉庭工作台</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="section section--tint" style="padding-top:56px">
+    <div class="wrap">
+      <header class="section__head">
+        <p class="eyebrow"><span class="eyebrow__line"></span>嘉庭工作台</p>
+        <h2>各部门便捷工具</h2>
+        <p class="section__lead">选择部门查看该部门的工具，功能会陆续上线。</p>
+      </header>
+
+      <div class="wb-grid" id="wbGrid"></div>
+
+      <div class="wb-detail" id="wbDetail"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap site-footer__inner">
+    <div class="site-footer__brand">
+      <img src="assets/img/logo-main.png" alt="" aria-hidden="true">
+      <div>
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <p>浙江高校生兴趣社交社群 · 非营利自组织</p>
+      </div>
+    </div>
+    <nav class="site-footer__nav" aria-label="页面导航">
+      <a href="index.html">首页</a>
+      <a href="index.html#about">协会简介</a>
+      <a href="index.html#departments">部门矩阵</a>
+      <a href="index.html#activities">活动安排</a>
+      <a href="index.html#rules">群规公约</a>
+      <a href="index.html#join">加入我们</a>
+      <a href="index.html#club">社团联系</a>
+      <a href="app.html">下载 App</a>
+    </nav>
+    <div class="site-footer__meta">
+      <p>本页面仅用于协会对外展示，内容以群内公告为准。</p>
+      <p>&copy; <span id="year">2026</span> 浙江嘉豪嘉欣协会 · 保留所有权利</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* 九个部门与它们的工具（tools 为空表示功能建设中） */
+  var DEPTS = [
+    { key: 'shutong', short: '嘉枢', full: '嘉枢统筹部', logo: 'assets/img/dept-01-shutong.png', tools: [] },
+    { key: 'fanxun',  short: '嘉番', full: '嘉番巡礼部', logo: 'assets/img/dept-02-fanxun.png', tools: [] },
+    { key: 'youlun',  short: '嘉游', full: '嘉游论衡部', logo: 'assets/img/dept-03-youlun.png', tools: [] },
+    { key: 'mohui',   short: '嘉墨', full: '嘉墨绘梦部', logo: 'assets/img/dept-04-mohui.png', tools: [] },
+    { key: 'lixing',  short: '嘉体', full: '嘉体砺行部', logo: 'assets/img/dept-05-lixing.png', tools: [] },
+    { key: 'tongyou', short: '嘉盟', full: '嘉盟同游部', logo: 'assets/img/dept-06-tongyou.png', tools: [] },
+    { key: 'xianfu',  short: '嘉闲', full: '嘉闲浮生部', logo: 'assets/img/dept-07-xianfu.png', tools: [] },
+    { key: 'qingtan', short: '嘉学', full: '嘉学清谈部', logo: 'assets/img/dept-08-qingtan.png', tools: [
+        {
+          name: '学习计算器',
+          desc: '基础运算、求导、不定积分、定积分、极限、解方程',
+          href: 'calc.html',
+          icon: '∑'
+        }
+      ] },
+    { key: 'jieyou',  short: '嘉窗', full: '嘉窗解忧部', logo: 'assets/img/dept-09-jieyou.png', tools: [] }
+  ];
+
+  var grid = document.getElementById('wbGrid');
+  var detail = document.getElementById('wbDetail');
+
+  function find(key) {
+    for (var i = 0; i < DEPTS.length; i++) { if (DEPTS[i].key === key) return DEPTS[i]; }
+    return null;
+  }
+
+  function renderGrid(activeKey) {
+    grid.innerHTML = '';
+    DEPTS.forEach(function (d) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'wb-dept' + (d.key === activeKey ? ' is-active' : '');
+      btn.setAttribute('data-dept', d.key);
+
+      var img = document.createElement('img');
+      img.src = d.logo;
+      img.alt = d.full + '部徽';
+      img.loading = 'lazy';
+      btn.appendChild(img);
+
+      var strong = document.createElement('strong');
+      strong.textContent = d.short;
+      btn.appendChild(strong);
+
+      var span = document.createElement('span');
+      span.textContent = d.full;
+      btn.appendChild(span);
+
+      var em = document.createElement('em');
+      if (d.tools.length) {
+        em.className = 'is-ready';
+        em.textContent = d.tools.length + ' 个工具';
+      } else {
+        em.textContent = '建设中';
+      }
+      btn.appendChild(em);
+
+      btn.addEventListener('click', function () {
+        if (location.hash === '#' + d.key) { render(d.key); }
+        else { location.hash = '#' + d.key; }
+      });
+      grid.appendChild(btn);
+    });
+  }
+
+  function render(key) {
+    var d = find(key) || DEPTS[0];
+    renderGrid(d.key);
+    detail.innerHTML = '';
+
+    var head = document.createElement('div');
+    head.className = 'wb-detail__head';
+    var img = document.createElement('img');
+    img.src = d.logo;
+    img.alt = d.full + '部徽';
+    head.appendChild(img);
+    var box = document.createElement('div');
+    var h3 = document.createElement('h3');
+    h3.textContent = d.full;
+    var p = document.createElement('p');
+    p.textContent = d.tools.length ? '可用工具 ' + d.tools.length + ' 个' : '该部门工具正在筹备';
+    box.appendChild(h3);
+    box.appendChild(p);
+    head.appendChild(box);
+    detail.appendChild(head);
+
+    if (d.tools.length) {
+      var wrap = document.createElement('div');
+      wrap.className = 'wb-tools';
+      d.tools.forEach(function (t) {
+        var a = document.createElement('a');
+        a.className = 'wb-tool';
+        a.href = t.href;
+
+        var icon = document.createElement('span');
+        icon.className = 'wb-tool__icon';
+        icon.textContent = t.icon || '·';
+        a.appendChild(icon);
+
+        var body = document.createElement('span');
+        body.className = 'wb-tool__body';
+        var strong = document.createElement('strong');
+        strong.textContent = t.name;
+        var desc = document.createElement('span');
+        desc.textContent = t.desc;
+        body.appendChild(strong);
+        body.appendChild(desc);
+        a.appendChild(body);
+
+        var arrow = document.createElement('span');
+        arrow.className = 'wb-tool__arrow';
+        arrow.textContent = '→';
+        a.appendChild(arrow);
+
+        wrap.appendChild(a);
+      });
+      detail.appendChild(wrap);
+    } else {
+      var empty = document.createElement('div');
+      empty.className = 'wb-empty';
+      var strong = document.createElement('strong');
+      strong.textContent = '功能建设中';
+      var p2 = document.createElement('p');
+      p2.textContent = '该部门的便捷工具正在筹备，上线后会在这里出现，敬请期待。';
+      empty.appendChild(strong);
+      empty.appendChild(p2);
+      detail.appendChild(empty);
+    }
+  }
+
+  function fromHash() {
+    render((location.hash || '#shutong').replace('#', ''));
+  }
+
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+
+  var y = document.getElementById('year');
+  if (y) { y.textContent = String(new Date().getFullYear()); }
+})();
+</script>
+</body>
+</html>

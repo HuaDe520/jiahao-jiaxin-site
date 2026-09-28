@@ -17,3 +17,7 @@ node_modules/
 # 访问令牌，绝对不要提交
 token.txt
 *.token
+
+# 临时探针页面（不要提交）
+probe-*.html
+calc-probe*.html

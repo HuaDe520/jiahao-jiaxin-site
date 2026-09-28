@@ -86,6 +86,7 @@ function collectFiles(dir, base = dir, out = []) {
       collectFiles(full, base, out);
     } else if (entry.isFile()) {
       if (SKIP_FILES.has(entry.name)) continue;
+      if (/^(probe-|calc-probe)/.test(entry.name)) continue;   /* 临时探针文件不上传 */
       const size = statSync(full).size;
       if (size > MAX_BYTES) { console.warn(`  ! 跳过超过 25MB 的文件: ${entry.name}`); continue; }
       out.push({ path: relative(base, full).split(sep).join('/'), file: full, size });
