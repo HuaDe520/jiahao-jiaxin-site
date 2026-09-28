@@ -11,9 +11,10 @@
 | 仓库 | https://github.com/HuaDe520/jiahao-jiaxin-site |
 | 域名解析 | 阿里云云解析：4×A + 4×AAAA + `www` 的 CNAME，**全部已生效** ✅ |
 | HTTPS | ✅ 已启用强制 HTTPS（Let's Encrypt 证书，同时覆盖 `xbc-zjja.com.cn` 与 `www.xbc-zjja.com.cn`） |
+| 手机 App | ✅ 支持「添加到手机桌面」（PWA）：**图标就是协会会徽**，点开全屏无地址栏、离线也能看 → 见 [手机App安装说明.md](手机App安装说明.md) |
 | 发布方式 | GitHub Pages · 分支发布（`main` 分支根目录） |
 | 更新内容 | 本地改完后执行 `node tools\publish.mjs`（走 `api.github.com`，不需要 git push） |
-| 相关文档 | [DEPLOY.md](DEPLOY.md) · [自定义域名教程.md](自定义域名教程.md) · [域名解析配置单.md](域名解析配置单.md) |
+| 相关文档 | [DEPLOY.md](DEPLOY.md) · [自定义域名教程.md](自定义域名教程.md) · [域名解析配置单.md](域名解析配置单.md) · [手机App安装说明.md](手机App安装说明.md) |
 | 站点模块 | 首页 / 协会简介 / 部门矩阵（九部门，点开可见部长）/ 活动安排 / 群规公约 / 加入我们 / **社团联系（嘉协首座微信）** |
 
 ## 目录结构
