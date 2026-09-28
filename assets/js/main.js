@@ -322,11 +322,48 @@
   /* ---------- 9. 手机桌面快捷方式 ---------- */
   var installBtn = document.getElementById('installApp');
   var installHint = document.getElementById('installHint');
+  var installPanel = document.getElementById('installPanel');
+  var installList = document.getElementById('installList');
+  var copyUrlBtn = document.getElementById('copySiteUrl');
   var deferredPrompt = null;
   var ua = navigator.userAgent || '';
   var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var isWeChat = /MicroMessenger/i.test(ua);
+  var isAndroid = /Android/i.test(ua);
   var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+  var INSTALL_STEPS = {
+    wechat: [
+      '点右上角「…」（三个点）',
+      '选「在浏览器打开」',
+      '再点页面里的「安装到手机桌面」，或从浏览器菜单选「添加到主屏幕」'
+    ],
+    ios: [
+      '确认是用 Safari 打开的（微信、Chrome 不行）',
+      '点屏幕底部中间的「分享」按钮（方框带向上箭头）',
+      '在弹出的列表里往下滑，选「添加到主屏幕」',
+      '右上角点「添加」，桌面就会出现会徽图标'
+    ],
+    iosOther: [
+      'iPhone 只能用 Safari 添加到桌面',
+      '先点下面「复制网址」，再用 Safari 打开它',
+      '然后点底部「分享」→「添加到主屏幕」'
+    ],
+    android: [
+      '点浏览器右上角的「⋮」菜单',
+      '选「安装应用」或「添加到主屏幕」',
+      '确认后桌面就会出现会徽图标'
+    ],
+    desktop: [
+      '点浏览器地址栏右侧的「安装」小图标，或菜单里的「安装 浙江嘉豪嘉欣协会」',
+      '手机端：用手机浏览器打开本页，再点「安装到手机桌面」',
+      'iPhone 需要 Safari；安卓用 Chrome / Edge / 自带浏览器都可以'
+    ],
+    installed: [
+      '已经装到桌面了 ✓',
+      '直接在桌面上点会徽图标打开即可'
+    ]
+  };
 
   function showInstallHint(text) {
     if (!installHint) return;
@@ -334,40 +371,78 @@
     installHint.hidden = false;
   }
 
-  if (!isStandalone) {
-    window.addEventListener('beforeinstallprompt', function (e) {
-      e.preventDefault();
-      deferredPrompt = e;
-      if (installBtn) installBtn.hidden = false;
-      if (installHint) installHint.hidden = true;
+  function renderInstallSteps() {
+    if (!installPanel || !installList) return;
+    var isSafariIOS = isIOS && !/CriOS|FxiOS|EdgiOS|MicroMessenger/i.test(ua);
+    var key = 'desktop';
+    if (isStandalone) key = 'installed';
+    else if (isWeChat) key = 'wechat';
+    else if (isIOS) key = isSafariIOS ? 'ios' : 'iosOther';
+    else if (isAndroid) key = 'android';
+
+    var steps = INSTALL_STEPS[key] || INSTALL_STEPS.desktop;
+    installList.innerHTML = '';
+    steps.forEach(function (s) {
+      var li = document.createElement('li');
+      li.textContent = s;
+      installList.appendChild(li);
     });
+    installPanel.hidden = false;
+  }
 
-    if (installBtn) {
-      installBtn.addEventListener('click', function () {
-        if (!deferredPrompt) { showInstallHint('请用浏览器菜单里的「安装应用」或「添加到主屏幕」'); return; }
+  if (isStandalone && installBtn) {
+    installBtn.textContent = '已安装到桌面 ✓';
+  }
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installHint) installHint.hidden = true;
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener('click', function () {
+      if (deferredPrompt) {
         deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(function () {
-          deferredPrompt = null;
-          installBtn.hidden = true;
-        });
-      });
-    }
+        deferredPrompt.userChoice.then(function () { deferredPrompt = null; });
+        return;
+      }
+      if (installPanel && !installPanel.hidden) { installPanel.hidden = true; return; }
+      renderInstallSteps();
+    });
+  }
 
-    if (isWeChat) {
-      showInstallHint('微信里请点右上角「…」→「在浏览器打开」，再从浏览器菜单添加到主屏幕');
-    } else if (isIOS) {
-      showInstallHint('iPhone：点底部「分享」按钮 → 选「添加到主屏幕」');
-    } else {
-      window.setTimeout(function () {
-        if (!deferredPrompt && installHint && installHint.hidden) {
-          showInstallHint('在浏览器菜单里选「安装应用」或「添加到主屏幕」');
-        }
-      }, 3500);
-    }
+  if (copyUrlBtn) {
+    copyUrlBtn.addEventListener('click', function () {
+      var url = location.origin + location.pathname;
+      var restore = function () { window.setTimeout(function () { copyUrlBtn.textContent = '复制网址'; }, 2000); };
+      var done = function () { copyUrlBtn.textContent = '已复制 ✓'; restore(); };
+      var fallback = function () {
+        var ta = document.createElement('textarea');
+        ta.value = url;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) { copyUrlBtn.textContent = '请手动复制'; restore(); }
+        document.body.removeChild(ta);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(done).catch(fallback);
+      } else {
+        fallback();
+      }
+    });
+  }
+
+  if (isWeChat && !isStandalone) {
+    showInstallHint('微信里请点右上角「…」→「在浏览器打开」，再点「安装到手机桌面」');
   }
 
   window.addEventListener('appinstalled', function () {
-    if (installBtn) installBtn.hidden = true;
+    if (installBtn) installBtn.textContent = '已安装到桌面 ✓';
+    if (installPanel) installPanel.hidden = true;
     showInstallHint('已添加到手机桌面 ✓');
   });
 
