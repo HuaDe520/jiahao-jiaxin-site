@@ -312,7 +312,66 @@
     });
   }
 
-  /* ---------- 8. 页脚年份 ---------- */
+  /* ---------- 8. PWA：注册 Service Worker ---------- */
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () { /* 注册失败不影响使用 */ });
+    });
+  }
+
+  /* ---------- 9. 手机桌面快捷方式 ---------- */
+  var installBtn = document.getElementById('installApp');
+  var installHint = document.getElementById('installHint');
+  var deferredPrompt = null;
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isWeChat = /MicroMessenger/i.test(ua);
+  var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+  function showInstallHint(text) {
+    if (!installHint) return;
+    installHint.textContent = text;
+    installHint.hidden = false;
+  }
+
+  if (!isStandalone) {
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (installBtn) installBtn.hidden = false;
+      if (installHint) installHint.hidden = true;
+    });
+
+    if (installBtn) {
+      installBtn.addEventListener('click', function () {
+        if (!deferredPrompt) { showInstallHint('请用浏览器菜单里的「安装应用」或「添加到主屏幕」'); return; }
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function () {
+          deferredPrompt = null;
+          installBtn.hidden = true;
+        });
+      });
+    }
+
+    if (isWeChat) {
+      showInstallHint('微信里请点右上角「…」→「在浏览器打开」，再从浏览器菜单添加到主屏幕');
+    } else if (isIOS) {
+      showInstallHint('iPhone：点底部「分享」按钮 → 选「添加到主屏幕」');
+    } else {
+      window.setTimeout(function () {
+        if (!deferredPrompt && installHint && installHint.hidden) {
+          showInstallHint('在浏览器菜单里选「安装应用」或「添加到主屏幕」');
+        }
+      }, 3500);
+    }
+  }
+
+  window.addEventListener('appinstalled', function () {
+    if (installBtn) installBtn.hidden = true;
+    showInstallHint('已添加到手机桌面 ✓');
+  });
+
+  /* ---------- 10. 页脚年份 ---------- */
   var yearEl = document.getElementById('year');
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());
 })();

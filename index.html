@@ -7,6 +7,12 @@
 <meta name="description" content="浙江嘉豪嘉欣协会是由浙江高校生组成的兴趣社交社群，围绕股票趋势、中东局势、3A 大作等话题展开讨论，下设嘉枢统筹部、嘉番巡礼部、嘉游论衡部等九个细分部门。">
 <meta name="theme-color" content="#0f5f56">
 <link rel="icon" href="assets/img/logo-main.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="嘉豪嘉欣">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -429,6 +435,15 @@
           <button class="btn club__copy" id="copyWechat" type="button">复制微信号</button>
         </div>
       </article>
+
+      <div class="install reveal">
+        <div class="install__text">
+          <strong>把官网装到手机桌面</strong>
+          <span>点开后像 App 一样全屏打开，图标就是协会会徽。</span>
+        </div>
+        <button class="btn club__copy" id="installApp" type="button" hidden>一键安装</button>
+        <span class="install__hint" id="installHint" hidden></span>
+      </div>
 
       <p class="club__tip reveal">各部门部长信息：点击上方「部门矩阵」中的任一部门，即可在部门简介里看到。</p>
     </div>

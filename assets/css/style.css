@@ -39,6 +39,9 @@
 
 * { box-sizing: border-box; }
 
+/* hidden 属性必须真正隐藏：否则会被 .btn 等 class 的 display 覆盖 */
+[hidden] { display: none !important; }
+
 html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header-h) + 12px); }
 
 body {
@@ -570,4 +573,19 @@ button { font: inherit; color: inherit; }
   .club__card { padding: 26px 22px; gap: 18px; }
   .club__badge { width: 64px; height: 64px; }
   .club__id { font-size: 17px; }
+}
+
+/* ---------------- 安装到手机桌面 ---------------- */
+.install {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  max-width: 760px; margin-top: 22px;
+  background: rgba(255, 255, 255, .06);
+  border: 1px dashed rgba(223, 192, 119, .5);
+  border-radius: var(--radius); padding: 18px 24px;
+}
+.install__text { flex: 1 1 240px; display: flex; flex-direction: column; gap: 4px; }
+.install__text strong { color: #fff; font-size: 15.5px; letter-spacing: .02em; }
+.install__text span { color: rgba(234, 250, 245, .7); font-size: 13px; }
+.install__hint {
+  flex: 1 1 100%; font-size: 13px; color: var(--gold-400); line-height: 1.7;
 }
