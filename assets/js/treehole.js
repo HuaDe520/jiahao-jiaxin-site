@@ -26,7 +26,7 @@
     { key: 'great', label: '你很棒' }
   ];
 
-  var state = { notes: [], kinds: [], keepDays: 7, maxLen: 300, busy: false };
+  var state = { notes: [], kinds: [], keepDays: 7, maxLen: 500, busy: false };
 
   var listEl = $('thList');
   var formEl = $('thForm');
@@ -188,7 +188,7 @@
         if (res.data.maxLen) state.maxLen = res.data.maxLen;
         show('main');
         render();
-        if (footEl) footEl.textContent = '纸条会在这里待 ' + state.keepDays + ' 天，然后自己飘走。别人只能按一下反应，不能回话。';
+        if (footEl) footEl.textContent = '纸条会在这里待 ' + state.keepDays + ' 天，然后自己飘走。';
         return true;
       }
       if (res.status === 401 || res.status === 403) { show('guest'); return false; }
@@ -199,7 +199,7 @@
 
   /* ---------------- 写纸条 ---------------- */
   function updateCount() {
-    var max = state.maxLen || 300;
+    var max = state.maxLen || 500;
     if (Array.from(inputEl.value).length > max) inputEl.value = Array.from(inputEl.value).slice(0, max).join('');
     countEl.textContent = Array.from(inputEl.value).length + ' / ' + max;
     submitEl.disabled = inputEl.value.trim().length === 0;

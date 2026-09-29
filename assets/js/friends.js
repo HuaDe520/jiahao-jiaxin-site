@@ -642,19 +642,9 @@
     });
   }
 
-  /* 解除好友：先问一句，确认了再解，解完回到好友列表 */
-  function removeFriend() {
-    var f = state.current;
-    if (!f) return;
-    if (!confirm('解除和「' + f.name + '」的好友关系？解除后就不能再聊天了。')) return;
-    var btn = $('frChatRemove');
-    btn.disabled = true;
-    API.friendRemove(f.id).then(function (res) {
-      btn.disabled = false;
-      if (res.status === 200) { closeChat(); }
-      else { alert((res.data && res.data.error) || '解除失败'); }
-    });
-  }
+  /* 解除好友挪到「对方主页」上了（点好友头像进去才能看到），
+     这里不再放按钮：放在聊天顶部会挤占对方昵称的显示位置。
+     主页上那一份在 assets/js/profile.js 里。 */
 
   /* ---------------- 数据刷新 ---------------- */
   function refresh() {
@@ -713,7 +703,6 @@
   $('frTabRequests').addEventListener('click', function () { showPane('requests'); });
   $('frTabSearch').addEventListener('click', function () { showPane('search'); });
   $('frChatBack').addEventListener('click', closeChat);
-  $('frChatRemove').addEventListener('click', removeFriend);
   $('frChatRefresh').addEventListener('click', function () { loadChat(state.lastAt); });
   $('frChatSend').addEventListener('click', send);
   $('frChatInput').addEventListener('input', updateComposer);

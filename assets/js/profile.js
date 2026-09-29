@@ -50,6 +50,21 @@
     }
     if (relation === 'friends') {
       box.appendChild(button('发消息', '', function () { location.href = 'friends.html#chat=' + user.id; }));
+      /* 解除好友放在这里：聊天界面顶部放它会挤占对方昵称的位置 */
+      var un = button('解除好友', 'fr-btn--danger', function () {
+        if (!confirm('解除和「' + user.name + '」的好友关系？解除后就不能再聊天了。')) return;
+        un.disabled = true;
+        API.friendRemove(user.id).then(function (r) {
+          if (r.status === 200) {
+            msg('已经解除好友了，之后不能再聊天', 'ok');
+            renderActions('none', user);
+          } else {
+            un.disabled = false;
+            msg((r.data && r.data.error) || '没能解除，稍后再试', 'error');
+          }
+        });
+      });
+      box.appendChild(un);
       box.appendChild(button('看好友列表', 'fr-btn--ghost', function () { location.href = 'friends.html'; }));
       return;
     }
