@@ -318,6 +318,48 @@
     });
   }
 
+  /* 撤回前先确认一下：点「撤回」→ 变成「确认 / 取消」，防止手滑点错 */
+  function askRecall(rowEl, m, btn) {
+    var wrap = document.createElement('span');
+    wrap.className = 'fr-recall-confirm';
+    wrap.id = 'frRecallConfirm';
+
+    var yes = document.createElement('button');
+    yes.type = 'button';
+    yes.className = 'fr-recall-confirm__yes';
+    yes.textContent = '确认';
+    yes.title = '确认撤回这条消息';
+    yes.addEventListener('click', function (e) {
+      e.stopPropagation();
+      yes.disabled = true;
+      no.disabled = true;
+      doRecall(m, rowEl);
+    });
+
+    var no = document.createElement('button');
+    no.type = 'button';
+    no.className = 'fr-recall-confirm__no';
+    no.textContent = '取消';
+    no.addEventListener('click', function (e) {
+      e.stopPropagation();
+      closeRecallConfirm();
+    });
+
+    wrap.appendChild(yes);
+    wrap.appendChild(no);
+    btn.parentNode.insertBefore(wrap, btn);
+    btn.hidden = true;
+    wrap.__btn = btn;
+  }
+
+  /* 关掉正在确认的那条（页面里同时只留一个） */
+  function closeRecallConfirm() {
+    var el = $('frRecallConfirm');
+    if (!el) return;
+    if (el.__btn) el.__btn.hidden = false;
+    if (el.parentNode) el.parentNode.removeChild(el);
+  }
+
   /* 把一条消息行变成「已撤回」的样子 */
   function markRecalled(rowEl, mine) {
     rowEl.classList.add('is-recalled');
@@ -367,7 +409,8 @@
     t.textContent = fmtTime(m.createdAt);
     b.appendChild(t);
 
-    /* 自己发的、2 分钟内的消息：直接在旁边给一个「撤回」按钮，不用长按 */
+    /* 自己发的、2 分钟内的消息：直接在旁边给一个「撤回」按钮，不用长按；
+       点它之后会变成「确认 / 取消」，防止误触 */
     if (canRecallNow(m, mine)) {
       b.classList.add('is-recallable');
       var rb = document.createElement('button');
@@ -377,8 +420,10 @@
       rb.title = '撤回这条消息';
       rb.addEventListener('click', function (e) {
         e.stopPropagation();
-        rb.disabled = true;
-        doRecall(m, row);
+        if (rb.hidden) return;
+        var open = $('frRecallConfirm');
+        if (open) closeRecallConfirm();
+        askRecall(row, m, rb);
       });
       row.appendChild(rb);
     }
@@ -395,6 +440,8 @@
       var btn = rows[i].querySelector('.fr-recall-btn');
       if (!btn) continue;
       if (now - Number(rows[i].getAttribute('data-time') || 0) > RECALL_WINDOW) {
+        var confirmBox = rows[i].querySelector('#frRecallConfirm');
+        if (confirmBox) closeRecallConfirm();
         if (btn.parentNode) btn.parentNode.removeChild(btn);
         var b = rows[i].querySelector('.fr-bubble');
         if (b) b.classList.remove('is-recallable');

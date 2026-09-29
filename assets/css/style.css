@@ -48,8 +48,10 @@ body {
   margin: 0;
   background: var(--cream);
   color: var(--ink);
-  font-family: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Noto Sans SC",
-               "Source Han Sans SC", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* 先用手机会自己决定的那套字体（system-ui 跟着系统走：iOS 的苹方、安卓的
+     Noto/系统字体、Windows 的雅黑），列在后面的只是没命中时的兜底 */
+  font-family: system-ui, -apple-system, "PingFang SC", "HarmonyOS Sans SC",
+               "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", "Segoe UI", sans-serif;
   font-size: 16px;
   line-height: 1.75;
   -webkit-font-smoothing: antialiased;

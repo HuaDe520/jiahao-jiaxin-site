@@ -163,6 +163,18 @@
 .fr-recall-btn:active { transform: scale(.94); }
 .fr-recall-btn:disabled { opacity: .5; cursor: default; }
 
+/* 点「撤回」之后：确认 / 取消，防止误触 */
+.fr-recall-confirm { display: inline-flex; gap: 5px; flex: none; margin-bottom: 3px; animation: frPop2 .16s var(--ease); }
+.fr-recall-confirm button {
+  border: 0; border-radius: 999px; font-family: inherit; font-size: 12px; font-weight: 700;
+  padding: 5px 11px; cursor: pointer; white-space: nowrap;
+}
+.fr-recall-confirm__yes { background: #a3372f; color: #fff; box-shadow: 0 8px 16px -10px rgba(163, 55, 47, .9); }
+.fr-recall-confirm__yes:active { transform: scale(.94); }
+.fr-recall-confirm__no { background: rgba(18, 101, 90, .1); color: var(--jade-800); }
+.fr-recall-confirm button:disabled { opacity: .6; cursor: default; }
+@keyframes frPop2 { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+
 .fr-recalled { align-self: center; font-size: 12px; color: #8b9793; background: var(--chat-day-bg); border-radius: 999px; padding: 4px 12px; }
 
 .fr-chat-empty { margin: auto; font-size: 13px; color: var(--ink-mute); }
@@ -261,7 +273,8 @@
   --chat-day-bg: rgba(120, 100, 60, .12);
   --chat-input-bg: #fffdf7;
 }
-#frPaneChat[data-chat-theme="paper"] .fr-bubble { font-family: Georgia, "Songti SC", "SimSun", serif; }
+/* 纸感：只用颜色和描边做旧纸的感觉，字体仍然用手机自己的字体，
+   不去指定衬线字体（以前指定过，有些手机上会跳到很怪的字体） */
 
 /* 列表里可点的头像 / 昵称 */
 .is-clickable { cursor: pointer; }
