@@ -10,7 +10,7 @@
   if (!API) return;
 
   var $ = function (id) { return document.getElementById(id); };
-  var state = { friends: [], incoming: [], outgoing: [], threads: [], current: null, lastAt: 0, timer: null };
+  var state = { friends: [], incoming: [], outgoing: [], threads: [], current: null, lastAt: 0, timer: null, polls: 0 };
 
   function fmtTime(ts) {
     var d = new Date(ts);
@@ -269,6 +269,27 @@
 
   /* ---------------- 聊天 ---------------- */
   var RECALL_WINDOW = 2 * 60 * 1000;   /* 和后端一致：2 分钟内可撤回 */
+  var THEME_KEY = 'jhjx-chat-theme';
+  var THEMES = ['jade', 'ink', 'night', 'candy', 'paper'];
+  var GROUP_WINDOW = 2 * 60 * 1000;    /* 同一人 2 分钟内的连续消息算一组 */
+
+  function currentTheme() {
+    try {
+      var t = localStorage.getItem(THEME_KEY);
+      return THEMES.indexOf(t) >= 0 ? t : 'jade';
+    } catch (e) { return 'jade'; }
+  }
+
+  function applyTheme(name) {
+    var t = THEMES.indexOf(name) >= 0 ? name : 'jade';
+    var pane = $('frPaneChat');
+    if (pane) pane.setAttribute('data-chat-theme', t);
+    var dots = document.querySelectorAll('#frChatStyles .fr-style-dot');
+    for (var i = 0; i < dots.length; i++) {
+      dots[i].classList.toggle('is-active', dots[i].getAttribute('data-theme') === t);
+    }
+    try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* 忽略 */ }
+  }
 
   function dayLabel(ts) {
     var d = new Date(ts);
@@ -287,12 +308,6 @@
     return d;
   }
 
-  /* 撤回：长按自己刚发的消息（2 分钟内）→ 弹一个小气泡，点「撤回」才真撤 */
-  function hideRecallMenu() {
-    var el = $('frRecallMenu');
-    if (el && el.parentNode) el.parentNode.removeChild(el);
-  }
-
   function doRecall(m, rowEl) {
     API.recallMessage(m.id).then(function (res) {
       if (res.status === 200) {
@@ -303,46 +318,10 @@
     });
   }
 
-  function showRecallMenu(rowEl, m) {
-    hideRecallMenu();
-    var menu = document.createElement('div');
-    menu.className = 'fr-recall-menu';
-    menu.id = 'frRecallMenu';
-
-    var ok = document.createElement('button');
-    ok.type = 'button';
-    ok.className = 'fr-recall-menu__ok';
-    ok.textContent = '撤回';
-    ok.addEventListener('click', function (e) {
-      e.stopPropagation();
-      hideRecallMenu();
-      doRecall(m, rowEl);
-    });
-
-    var no = document.createElement('button');
-    no.type = 'button';
-    no.className = 'fr-recall-menu__no';
-    no.textContent = '取消';
-    no.addEventListener('click', function (e) {
-      e.stopPropagation();
-      hideRecallMenu();
-    });
-
-    menu.appendChild(ok);
-    menu.appendChild(no);
-    rowEl.appendChild(menu);
-
-    /* 点别处就把菜单收起来 */
-    setTimeout(function () {
-      document.addEventListener('click', hideRecallMenu, { once: true });
-      document.addEventListener('touchstart', hideRecallMenu, { once: true });
-    }, 0);
-  }
-
   /* 把一条消息行变成「已撤回」的样子 */
   function markRecalled(rowEl, mine) {
     rowEl.classList.add('is-recalled');
-    rowEl.classList.remove('is-mine', 'is-theirs');
+    rowEl.classList.remove('is-mine', 'is-theirs', 'is-grouped');
     rowEl.innerHTML = '';
     var d = document.createElement('div');
     d.className = 'fr-recalled';
@@ -350,11 +329,18 @@
     rowEl.appendChild(d);
   }
 
-  function messageRow(m, mine) {
+  function canRecallNow(m, mine) {
+    return !!mine && !m.recalledAt && (Date.now() - m.createdAt) <= RECALL_WINDOW;
+  }
+
+  /* 一条消息 = [撤回按钮?] + [气泡]，对方的消息左边还带小头像 */
+  function messageRow(m, mine, grouped) {
     var row = document.createElement('div');
-    row.className = 'fr-msgrow ' + (mine ? 'is-mine' : 'is-theirs');
+    row.className = 'fr-msgrow ' + (mine ? 'is-mine' : 'is-theirs') + (grouped ? ' is-grouped' : '');
     row.setAttribute('data-id', String(m.id));
     row.setAttribute('data-time', String(m.createdAt));
+    row.setAttribute('data-mine', mine ? '1' : '0');
+    if (m.readAt) row.setAttribute('data-read', '1');
 
     if (m.recalledAt) {
       markRecalled(row, mine);
@@ -381,45 +367,64 @@
     t.textContent = fmtTime(m.createdAt);
     b.appendChild(t);
 
-    if (mine) {
-      var canRecall = Date.now() - m.createdAt <= RECALL_WINDOW;
-      if (canRecall) {
-        b.classList.add('is-recallable');
-        b.title = '长按撤回';
-        attachLongPress(b, function () { showRecallMenu(row, m); });
-      }
+    /* 自己发的、2 分钟内的消息：直接在旁边给一个「撤回」按钮，不用长按 */
+    if (canRecallNow(m, mine)) {
+      b.classList.add('is-recallable');
+      var rb = document.createElement('button');
+      rb.type = 'button';
+      rb.className = 'fr-recall-btn';
+      rb.textContent = '撤回';
+      rb.title = '撤回这条消息';
+      rb.addEventListener('click', function (e) {
+        e.stopPropagation();
+        rb.disabled = true;
+        doRecall(m, row);
+      });
+      row.appendChild(rb);
     }
 
     row.appendChild(b);
     return row;
   }
 
-  /* 长按（手机）或按住不动（电脑）都能触发 */
-  function attachLongPress(el, handler) {
-    var timer = null;
-    var fired = false;
-
-    function start() {
-      fired = false;
-      timer = setTimeout(function () {
-        fired = true;
-        if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) { /* 忽略 */ } }
-        handler();
-      }, 550);
+  /* 到点了就把「撤回」按钮收掉（不用刷新页面） */
+  function sweepRecall() {
+    var rows = document.querySelectorAll('#frChatList .fr-msgrow.is-mine');
+    var now = Date.now();
+    for (var i = 0; i < rows.length; i++) {
+      var btn = rows[i].querySelector('.fr-recall-btn');
+      if (!btn) continue;
+      if (now - Number(rows[i].getAttribute('data-time') || 0) > RECALL_WINDOW) {
+        if (btn.parentNode) btn.parentNode.removeChild(btn);
+        var b = rows[i].querySelector('.fr-bubble');
+        if (b) b.classList.remove('is-recallable');
+      }
     }
-    function cancel() {
-      if (timer) { clearTimeout(timer); timer = null; }
-    }
+  }
 
-    el.addEventListener('touchstart', start, { passive: true });
-    el.addEventListener('touchend', cancel);
-    el.addEventListener('touchmove', cancel);
-    el.addEventListener('touchcancel', cancel);
-    el.addEventListener('mousedown', start);
-    el.addEventListener('mouseup', cancel);
-    el.addEventListener('mouseleave', cancel);
-    el.addEventListener('contextmenu', function (e) { e.preventDefault(); });
-    el.addEventListener('click', function (e) { if (fired) { e.preventDefault(); e.stopPropagation(); } });
+  /* 只在最后一条自己发的消息上标「已读」，跟常见聊天软件一致 */
+  function markReadState() {
+    var box = $('frChatList');
+    var marks = box.querySelectorAll('.fr-bubble__read');
+    for (var i = 0; i < marks.length; i++) {
+      if (marks[i].parentNode) marks[i].parentNode.removeChild(marks[i]);
+    }
+    var mineRows = box.querySelectorAll('.fr-msgrow.is-mine');
+    for (var j = mineRows.length - 1; j >= 0; j--) {
+      var bubble = mineRows[j].querySelector('.fr-bubble');
+      if (!bubble) continue;
+      if (mineRows[j].getAttribute('data-read') === '1') {
+        var s = document.createElement('span');
+        s.className = 'fr-bubble__read';
+        s.textContent = '已读';
+        bubble.appendChild(s);
+      }
+      break;   /* 只看最后一条 */
+    }
+  }
+
+  function nearBottom(box) {
+    return box.scrollHeight - box.scrollTop - box.clientHeight < 90;
   }
 
   function appendMessages(list) {
@@ -430,40 +435,79 @@
 
     list.forEach(function (m) {
       var prev = box.lastElementChild;
-      var prevTime = prev && prev.getAttribute('data-time') ? Number(prev.getAttribute('data-time')) : 0;
-      var prevIsDay = prev && prev.classList.contains('fr-day');
-      if (prevIsDay) prevTime = Number(prev.getAttribute('data-day') || 0);
+      var prevTime = 0;
+      var prevMine = null;
+      if (prev && !prev.classList.contains('fr-day')) {
+        prevTime = Number(prev.getAttribute('data-time') || 0);
+        prevMine = prev.getAttribute('data-mine') === '1';
+      } else if (prev) {
+        prevTime = Number(prev.getAttribute('data-day') || 0);
+      }
       if (!prevTime || dayLabel(prevTime) !== dayLabel(m.createdAt)) {
         var sep = daySeparator(m.createdAt);
         sep.setAttribute('data-day', String(m.createdAt));
         box.appendChild(sep);
+        prevMine = null;
+        prevTime = 0;
       }
-      box.appendChild(messageRow(m, m.from === mine));
+      var isMine = m.from === mine;
+      var grouped = prevMine === isMine && prevTime && (m.createdAt - prevTime) < GROUP_WINDOW;
+      box.appendChild(messageRow(m, isMine, grouped));
       state.lastAt = Math.max(state.lastAt, m.createdAt);
     });
-    box.scrollTop = box.scrollHeight;
+    markReadState();
+  }
+
+  function showNewMsgHint(show) {
+    var el = $('frChatToBottom');
+    if (!el) return;
+    el.hidden = !show;
   }
 
   function loadChat(since) {
     if (!state.current) return Promise.resolve();
+    var box = $('frChatList');
     return API.thread(state.current.id, since || 0).then(function (res) {
       if (res.status !== 200) return;
       var list = res.data.messages || [];
-      if (!since) { $('frChatList').innerHTML = ''; state.lastAt = 0; }
-      if (list.length) appendMessages(list);
-      else if (!since) {
+      var wasNearBottom = nearBottom(box);
+      var keepTop = box.scrollTop;
+      if (!since) { box.innerHTML = ''; state.lastAt = 0; }
+      if (list.length) {
+        appendMessages(list);
+        if (wasNearBottom) {
+          box.scrollTop = box.scrollHeight;
+          showNewMsgHint(false);
+        } else if (since) {
+          showNewMsgHint(true);
+        } else {
+          box.scrollTop = Math.min(keepTop, box.scrollHeight);
+        }
+      } else if (!since) {
         var empty = document.createElement('div');
         empty.className = 'fr-chat-empty';
         empty.id = 'frChatEmpty';
         empty.textContent = '还没有消息，打个招呼吧';
-        $('frChatList').appendChild(empty);
+        box.appendChild(empty);
       }
+      sweepRecall();
+      updateComposer();
     });
+  }
+
+  /* 输入框跟着内容长高（最多 4 行） */
+  function updateComposer() {
+    var input = $('frChatInput');
+    if (!input) return;
+    input.style.height = 'auto';
+    var max = 4 * 24 + 24;
+    input.style.height = Math.min(input.scrollHeight, max) + 'px';
   }
 
   function openChat(friend) {
     state.current = friend;
     state.lastAt = 0;
+    state.polls = 0;
     $('frPaneFriends').hidden = true;
     $('frPaneRequests').hidden = true;
     $('frPaneSearch').hidden = true;
@@ -478,13 +522,21 @@
       meta.textContent = bits.join(' · ');
       meta.hidden = !bits.length;
     }
+    applyTheme(currentTheme());
     $('frChatList').innerHTML = '';
+    showNewMsgHint(false);
     loadChat(0).then(function () { refresh(); });
     var input = $('frChatInput');
     if (input && window.matchMedia('(min-width: 721px)').matches) input.focus();
+    updateComposer();
 
     if (state.timer) clearInterval(state.timer);
-    state.timer = setInterval(function () { loadChat(state.lastAt); }, 4000);
+    state.timer = setInterval(function () {
+      state.polls = (state.polls || 0) + 1;
+      /* 每 4 次（约 16 秒）整体重拉一遍：这样对方撤回、已读状态也能跟着更新 */
+      if (state.polls % 4 === 0) loadChat(0);
+      else loadChat(state.lastAt);
+    }, 4000);
   }
 
   function closeChat() {
@@ -492,20 +544,26 @@
     if (state.timer) { clearInterval(state.timer); state.timer = null; }
     $('frPaneChat').hidden = true;
     $('frPaneFriends').hidden = false;
+    showNewMsgHint(false);
     refresh();
   }
 
   function send() {
     var input = $('frChatInput');
-    var text = input.value.trim();
-    if (!text || !state.current) return;
+    var text = input.value.replace(/\s+$/, '');
+    if (!text.trim() || !state.current) return;
     var btn = $('frChatSend');
     btn.disabled = true;
     API.sendMessage(state.current.id, text).then(function (res) {
       btn.disabled = false;
       if (res.status === 200) {
         input.value = '';
+        updateComposer();
         appendMessages([res.data.message]);
+        var box = $('frChatList');
+        box.scrollTop = box.scrollHeight;
+        showNewMsgHint(false);
+        sweepRecall();
       } else {
         alert((res.data && res.data.error) || '发送失败');
       }
@@ -583,7 +641,26 @@
   $('frChatRemove').addEventListener('click', removeFriend);
   $('frChatRefresh').addEventListener('click', function () { loadChat(state.lastAt); });
   $('frChatSend').addEventListener('click', send);
-  $('frChatInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } });
+  $('frChatInput').addEventListener('input', updateComposer);
+  $('frChatInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+  $('frChatToBottom').addEventListener('click', function () {
+    var box = $('frChatList');
+    box.scrollTop = box.scrollHeight;
+    showNewMsgHint(false);
+  });
+  $('frChatList').addEventListener('scroll', function () {
+    if (nearBottom(this)) showNewMsgHint(false);
+  });
+  /* 气泡风格：点小圆点切换，记在本机 */
+  (function () {
+    var dots = document.querySelectorAll('#frChatStyles .fr-style-dot');
+    for (var i = 0; i < dots.length; i++) {
+      dots[i].addEventListener('click', function () { applyTheme(this.getAttribute('data-theme')); });
+    }
+    applyTheme(currentTheme());
+  })();
   $('frChatAvatar').addEventListener('click', function () { goProfile(state.current && state.current.id); });
   $('frChatName').addEventListener('click', function () { goProfile(state.current && state.current.id); });
   $('frSearchBtn').addEventListener('click', function () {

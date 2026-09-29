@@ -293,7 +293,10 @@
   /* ---------- 初始：确认一下本地凭证还有效 ---------- */
   render();
   if (API.token()) {
+    var tokenAtCheck = API.token();
     API.me().then(function (r) {
+      /* 这期间如果重新登录过（凭证换了），就别拿旧结果把新登录状态清掉 */
+      if (API.token() !== tokenAtCheck) return;
       if (r.status === 200 && r.data && r.data.user) {
         API.saveSession(null, r.data.user);
         render();
