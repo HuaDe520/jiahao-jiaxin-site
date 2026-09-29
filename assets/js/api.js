@@ -164,6 +164,12 @@
     /* ---- 撤回消息（发出后 2 分钟内） ---- */
     recallMessage: function (id) { return call('POST', '/api/messages/' + encodeURIComponent(id) + '/recall'); },
 
+    /* ---- 树洞纸条（匿名，7 天） ---- */
+    treehole: function () { return call('GET', '/api/treehole'); },
+    postNote: function (body) { return call('POST', '/api/treehole', { body: body }); },
+    reactNote: function (id, kind) { return call('POST', '/api/treehole/' + encodeURIComponent(id) + '/react', { kind: kind }); },
+    deleteNote: function (id) { return call('POST', '/api/treehole/' + encodeURIComponent(id) + '/delete'); },
+
     /* 把接口返回的相对路径（头像）拼成完整地址 */
     asset: function (path) {
       if (!path) return '';
