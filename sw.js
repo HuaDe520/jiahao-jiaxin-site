@@ -14,7 +14,7 @@
  *   · 后端接口（另一个域名）不拦，直接放行。
  */
 
-const CACHE = 'jhjx-site-v6';
+const CACHE = 'jhjx-site-v7';
 
 /* 首屏必需的东西，装完 SW 就悄悄缓存好；注意别放 512 图标这类大文件 */
 const SHELL = [
@@ -73,9 +73,15 @@ async function cacheFirst(req) {
   }
 }
 
-/* 页面导航：网络优先但限时，超时/失败用缓存兜底 */
+/* 页面导航
+   - 这一页在缓存里：最多等网络 NAV_TIMEOUT，超了先把缓存里的给出去（打开更快）
+   - 这一页不在缓存里：老老实实等网络。提前切「兜底页」没有好处 ——
+     网络只是慢一点（国内到 GitHub 经常 3~9 秒），用户会以为网站坏了
+   - 网络真的失败：首页兜到 index.html，别的页面给「网络好像不太行」的兜底页 */
 async function navigationFirst(req) {
   const cache = await caches.open(CACHE);
+  const cached = await cache.match(req, { ignoreSearch: true });
+
   const network = fetch(req).then((res) => {
     if (res && res.status === 200 && res.type === 'basic') {
       cache.put(req, res.clone()).catch(() => undefined);
@@ -83,24 +89,21 @@ async function navigationFirst(req) {
     return res;
   });
 
+  if (!cached) {
+    const fresh = await network.catch(() => null);
+    if (fresh) return fresh;
+    let path = '/';
+    try { path = new URL(req.url).pathname; } catch (e) { path = '/'; }
+    if (/^\/(index\.html)?$/.test(path)) {
+      const home = await cache.match('./index.html', { ignoreSearch: true });
+      if (home) return home;
+    }
+    return (await cache.match('./offline.html', { ignoreSearch: true })) || Response.error();
+  }
+
   const timeout = new Promise((resolve) => setTimeout(() => resolve(null), NAV_TIMEOUT));
   const res = await Promise.race([network.catch(() => null), timeout]);
-  if (res) return res;
-
-  const hit = await cache.match(req, { ignoreSearch: true });
-  if (hit) return hit;
-
-  /* 没有这一页的缓存：只有「首页 / 根路径」才兜到 index.html，
-     其它页面给「网络好像不太行」的兜底页。
-     （以前不管哪一页都兜 index.html —— 网络一慢，点「好友」会莫名其妙
-     看到首页，用户还以为自己点错了） */
-  let path = '/';
-  try { path = new URL(req.url).pathname; } catch (e) { path = '/'; }
-  if (/^\/(index\.html)?$/.test(path)) {
-    const home = await cache.match('./index.html', { ignoreSearch: true });
-    if (home) return home;
-  }
-  return (await cache.match('./offline.html', { ignoreSearch: true })) || Response.error();
+  return res || cached;
 }
 
 self.addEventListener('fetch', (event) => {
