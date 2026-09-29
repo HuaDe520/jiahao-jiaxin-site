@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>贪吃蛇 · 浙江嘉豪嘉欣协会</title>
+<meta name="description" content="浙江嘉豪嘉欣协会嘉庭工作台·嘉游「贪吃蛇」：电脑用方向键或 WASD，手机在棋盘上滑动或用方向键，都能玩。">
+<meta name="theme-color" content="#0f5f56">
+<link rel="icon" href="assets/img/logo-main.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="assets/css/style.css?v=9c4e3219">
+<link rel="stylesheet" href="assets/css/snake.css?v=62ddbaed">
+</head>
+<body class="sn-page">
+
+<header class="site-header">
+  <div class="wrap site-header__inner">
+    <a class="brand" href="index.html" aria-label="返回首页">
+      <img class="brand__logo" src="assets/img/logo-main.png" alt="浙江嘉豪嘉欣协会会徽" width="46" height="46" decoding="async">
+      <span class="brand__text">
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <small>ZHEJIANG JIAHAO JIAXIN ASSOCIATION</small>
+      </span>
+    </a>
+<a class="nav-quick" href="friends.html" aria-label="好友与聊天" title="好友与聊天">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15.6 20.5v-1.7a3.7 3.7 0 0 0-3.7-3.7H7.2a3.7 3.7 0 0 0-3.7 3.7v1.7"></path>
+        <circle cx="9.6" cy="7.7" r="3.5"></circle>
+        <path d="M20.6 20.5v-1.7a3.7 3.7 0 0 0-2.8-3.6"></path>
+        <path d="M15.1 4.3a3.5 3.5 0 0 1 0 6.8"></path>
+      </svg>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="siteNav" aria-label="展开导航菜单">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="site-nav site-nav--plain" id="siteNav" aria-label="主导航">
+      <a href="index.html">首页</a>
+      <a href="index.html#departments">部门矩阵</a>
+      <a href="app.html">下载 App</a>
+      <a href="workbench.html">嘉庭工作台</a>
+          <a href="account.html">我的账号</a>
+</nav>
+  </div>
+</header>
+
+<main>
+  <section class="section">
+    <div class="wrap">
+      <header class="section__head">
+        <p class="eyebrow"><span class="eyebrow__line"></span>嘉游 · 贪吃蛇</p>
+        <h2>再来一局</h2>
+      </header>
+
+      <div class="sn-stage">
+        <div class="sn-hud">
+          <div class="sn-stat">
+            <span class="sn-stat__label">本局分数</span>
+            <strong class="sn-stat__value" id="snScore">0</strong>
+          </div>
+          <div class="sn-stat">
+            <span class="sn-stat__label">最高分</span>
+            <strong class="sn-stat__value sn-stat__value--gold" id="snBest">0</strong>
+          </div>
+          <div class="sn-stat sn-stat--speed">
+            <span class="sn-stat__label">速度</span>
+            <div class="sn-speeds" id="snSpeeds" role="group" aria-label="速度">
+              <button type="button" class="sn-speed" data-speed="easy">悠闲</button>
+              <button type="button" class="sn-speed is-active" data-speed="normal">标准</button>
+              <button type="button" class="sn-speed" data-speed="hard">挑战</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sn-board-wrap" id="snWrap">
+          <canvas id="snBoard" class="sn-board" width="360" height="360" role="img" aria-label="贪吃蛇棋盘"></canvas>
+          <div class="sn-overlay" id="snOverlay">
+            <strong class="sn-overlay__title" id="snOverlayTitle">贪吃蛇</strong>
+            <p class="sn-overlay__text" id="snOverlayText">吃到金色的果实就会变长，撞到墙或自己就结束。</p>
+            <button type="button" class="sn-overlay__btn" id="snOverlayBtn">开始游戏</button>
+          </div>
+        </div>
+
+        <div class="sn-status" id="snStatus" aria-live="polite">准备好了就按「开始游戏」</div>
+
+        <div class="sn-pad" id="snPad" role="group" aria-label="方向键">
+          <button type="button" class="sn-key sn-key--up" data-dir="up" aria-label="向上">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"></path><path d="M5.5 11.5 12 5l6.5 6.5"></path></svg>
+          </button>
+          <button type="button" class="sn-key sn-key--left" data-dir="left" aria-label="向左">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M11.5 5.5 5 12l6.5 6.5"></path></svg>
+          </button>
+          <button type="button" class="sn-key sn-key--down" data-dir="down" aria-label="向下">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5.5 12.5 12 19l6.5-6.5"></path></svg>
+          </button>
+          <button type="button" class="sn-key sn-key--right" data-dir="right" aria-label="向右">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12.5 5.5 19 12l-6.5 6.5"></path></svg>
+          </button>
+          <div class="sn-pad__mid">
+            <button type="button" class="sn-key sn-key--pause" id="snPause" aria-label="暂停或继续">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="currentColor"><rect x="7" y="5" width="3.6" height="14" rx="1.4"></rect><rect x="13.4" y="5" width="3.6" height="14" rx="1.4"></rect></svg>
+            </button>
+          </div>
+        </div>
+
+        <p class="sn-hint">电脑：方向键 / WASD 转向，空格暂停，回车重开。手机：在棋盘上滑动，或点下面的方向键。</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap site-footer__inner">
+    <div class="site-footer__brand">
+      <img src="assets/img/logo-main.png" alt="" aria-hidden="true" width="56" height="56" loading="lazy" decoding="async">
+      <div>
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <p>浙江高校生兴趣社交社群 · 非营利自组织</p>
+      </div>
+    </div>
+    <nav class="site-footer__nav" aria-label="页面导航">
+      <a href="index.html">首页</a>
+      <a href="workbench.html">嘉庭工作台</a>
+      <a href="comfort.html">安慰盲盒</a>
+      <a href="index.html#departments">部门矩阵</a>
+      <a href="app.html">下载 App</a>
+      <a href="account.html">我的账号</a>
+      <a href="friends.html">好友</a>
+    </nav>
+    <div class="site-footer__meta">
+      <p>本页面仅用于协会对外展示，内容以群内公告为准。</p>
+      <p>&copy; <span id="year">2026</span> 浙江嘉豪嘉欣协会 · 保留所有权利</p>
+    </div>
+  </div>
+</footer>
+
+<!-- 常驻入口：返回首页 -->
+<a class="quick-home" href="index.html" aria-label="返回首页">
+  <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 10.6 12 3.2l9 7.4"></path>
+    <path d="M5.6 9.6V20h12.8V9.6"></path>
+    <path d="M9.7 20v-5.3h4.6V20"></path>
+  </svg>
+  <span>返回首页</span>
+</a>
+
+<script src="assets/js/snake.js?v=d134a908"></script>
+<script>
+  var y = document.getElementById('year');
+  if (y) { y.textContent = String(new Date().getFullYear()); }
+</script>
+<script src="assets/js/nav.js?v=873330b1"></script>
+</body>
+</html>
