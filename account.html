@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=2425f1e6">
-<link rel="stylesheet" href="assets/css/account.css?v=10f7d165">
+<link rel="stylesheet" href="assets/css/account.css?v=ec68667e">
 </head>
 <body class="ac-page">
 
@@ -126,6 +126,35 @@
           <div class="ac-msg" id="acAvatarMsg"></div>
           <p class="ac-hint">点左边的头像就能换一张（自动裁成方形）。</p>
 
+          <!-- 个人信息：性别 + 个人签名（会显示在你的主页上） -->
+          <div class="ac-profile" id="acProfile">
+            <div class="ac-profile__title">个人信息</div>
+            <p class="ac-hint" style="margin:0 0 14px">这些会显示在你的主页上，别人点你的头像就能看到。</p>
+            <div class="ac-field">
+              <label for="acGender">性别</label>
+              <select class="ac-input ac-select" id="acGender">
+                <option value="unknown">未知</option>
+                <option value="male">男</option>
+                <option value="female">女</option>
+                <option value="custom">自定义</option>
+              </select>
+            </div>
+            <div class="ac-field" id="acGenderCustomWrap" hidden>
+              <label for="acGenderCustom">自定义性别（最多 8 个字）</label>
+              <input class="ac-input" id="acGenderCustom" type="text" maxlength="8" placeholder="比如：嘉友 / 保密 / 猫">
+            </div>
+            <div class="ac-field">
+              <label for="acSignature">个人签名（最多 50 个字）</label>
+              <textarea class="ac-input ac-textarea" id="acSignature" maxlength="50" placeholder="写一句想让别人看到的话"></textarea>
+              <div class="ac-count" id="acSignCount">0 / 50</div>
+            </div>
+            <div class="ac-actions">
+              <button class="ac-btn" id="acProfileSave" type="button">保存资料</button>
+              <a class="ac-btn ac-btn--ghost" id="acMyPage" href="user.html">看看我的主页</a>
+            </div>
+            <div class="ac-msg" id="acProfileMsg"></div>
+          </div>
+
           <details class="ac-pass">
             <summary>修改密码</summary>
             <div class="ac-field">
@@ -218,8 +247,8 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/api.js?v=34353ff9"></script>
-<script src="assets/js/account.js?v=d9116ad4"></script>
+<script src="assets/js/api.js?v=8b74ae07"></script>
+<script src="assets/js/account.js?v=c3c0f96f"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }

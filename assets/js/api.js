@@ -141,6 +141,19 @@
     /* ---- 头像 ---- */
     uploadAvatar: function (dataUrl) { return call('POST', '/api/avatar', { dataUrl: dataUrl }); },
 
+    /* ---- 个人信息与主页 ---- */
+    saveProfile: function (profile) {
+      return call('POST', '/api/profile', {
+        gender: profile.gender,
+        genderCustom: profile.genderCustom,
+        signature: profile.signature
+      });
+    },
+    userProfile: function (id) { return call('GET', '/api/user/' + encodeURIComponent(id)); },
+
+    /* ---- 撤回消息（发出后 2 分钟内） ---- */
+    recallMessage: function (id) { return call('POST', '/api/messages/' + encodeURIComponent(id) + '/recall'); },
+
     /* 把接口返回的相对路径（头像）拼成完整地址 */
     asset: function (path) {
       if (!path) return '';

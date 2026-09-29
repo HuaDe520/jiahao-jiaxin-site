@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>举报处理台 · 浙江嘉豪嘉欣协会</title>
-<meta name="description" content="浙江嘉豪嘉欣协会管理员后台：处理成员举报、管理昵称账号。">
-<meta name="robots" content="noindex">
+<title>用户主页 · 浙江嘉豪嘉欣协会</title>
+<meta name="description" content="浙江嘉豪嘉欣协会成员主页">
 <meta name="theme-color" content="#0f5f56">
 <link rel="icon" href="assets/img/logo-main.png">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=2425f1e6">
 <link rel="stylesheet" href="assets/css/account.css?v=ec68667e">
+<link rel="stylesheet" href="assets/css/profile.css?v=dc91220a">
 </head>
 <body class="ac-page">
 
+<!-- ============ 页头 ============ -->
 <header class="site-header">
   <div class="wrap site-header__inner">
     <a class="brand" href="index.html" aria-label="返回首页">
@@ -27,79 +27,70 @@
     <nav class="site-nav site-nav--plain" aria-label="主导航">
       <a href="index.html">首页</a>
       <a href="workbench.html">嘉庭工作台</a>
+      <a href="app.html">下载 App</a>
       <a href="account.html">我的账号</a>
       <a href="friends.html">好友</a>
-      <a href="admin.html" class="is-active">举报处理台</a>
     </nav>
   </div>
 </header>
 
 <main>
-  <section class="section" style="padding-top:56px">
+  <section class="section" style="padding-top:52px">
     <div class="wrap">
       <header class="section__head">
-        <p class="eyebrow"><span class="eyebrow__line"></span>管理员</p>
-        <h2>举报处理台</h2>
+        <p class="eyebrow"><span class="eyebrow__line"></span>成员主页</p>
+        <h2 id="pfTitle">看看这位成员</h2>
       </header>
 
-      <div class="ac-stage">
+      <div class="pf-stage">
 
-        <!-- 不是管理员 -->
-        <div class="ac-card" id="adGuard" hidden>
-          <div class="ac-card__head">
-            <span class="ac-card__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="4" y="10" width="16" height="10" rx="2"></rect>
-                <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
-              </svg>
-            </span>
-            <span>
-              <h2 style="font-size:17px">这里只有管理员能进</h2>
-              <p class="ac-card__sub">用管理员邀请码进来的账号才能看到举报。</p>
-            </span>
-          </div>
-          <div class="ac-actions">
-            <button class="ac-btn ac-btn--ghost" id="adToAccount" type="button">去我的账号</button>
-          </div>
+        <!-- 没登录 -->
+        <div class="pf-card" id="pfGuest" hidden>
+          <div class="fr-empty">先到「我的账号」用昵称 + 密码进来，才能看别人的主页。</div>
+          <div style="text-align:center"><a class="fr-btn" href="account.html">去我的账号</a></div>
         </div>
 
-        <!-- 管理台主体 -->
-        <div id="adMain" hidden>
-          <div class="ac-card">
-            <div class="ac-card__head" style="margin-bottom:12px">
-              <span>
-                <h2 style="font-size:17px" id="adWho">管理员</h2>
-                <p class="ac-card__sub" id="adUpdated">—</p>
-              </span>
-            </div>
-            <div class="ac-chips" id="adSummary"></div>
-            <div class="ac-actions">
-              <button class="ac-btn ac-btn--ghost" id="adRefresh" type="button">刷新</button>
-              <button class="ac-btn ac-btn--ghost" id="adLogout" type="button">退出登录</button>
-            </div>
-            <div class="ac-msg" id="adMsg"></div>
-          </div>
-
-          <div class="ac-tabs" style="margin-top:20px">
-            <button class="ac-tab is-active" id="adTabReports" type="button">举报</button>
-            <button class="ac-tab" id="adTabUsers" type="button">成员</button>
-          </div>
-
-          <div class="ac-card" id="adReportsCard">
-            <div class="ac-list" id="adReports"></div>
-          </div>
-
-          <div class="ac-card" id="adUsersCard" hidden>
-            <div class="ac-list" id="adUsers"></div>
-          </div>
+        <!-- 加载中 -->
+        <div class="pf-card" id="pfLoading">
+          <div class="fr-empty">正在打开主页…</div>
         </div>
 
-        <p class="ac-foot" id="adFoot" hidden>举报只有管理员能看到；处理记录会一直留着。</p>
+        <!-- 出错 -->
+        <div class="pf-card" id="pfError" hidden>
+          <div class="fr-empty" id="pfErrorText">没找到这个人。</div>
+          <div style="text-align:center"><a class="fr-btn fr-btn--ghost" href="friends.html">回好友页</a></div>
+        </div>
+
+        <!-- 主页内容 -->
+        <div class="pf-card" id="pfMain" hidden>
+          <div class="pf-head">
+            <button class="pf-avatar" id="pfAvatarBtn" type="button" title="看大头像">
+              <img id="pfAvatar" alt="">
+            </button>
+            <div class="pf-head__text">
+              <h3 class="pf-name" id="pfName">—</h3>
+              <div class="pf-tags" id="pfTags"></div>
+              <p class="pf-since" id="pfSince"></p>
+            </div>
+          </div>
+
+          <div class="pf-field">
+            <span class="pf-field__label">个人签名</span>
+            <p class="pf-sign" id="pfSign">这个人很神秘，什么都没写。</p>
+          </div>
+
+          <div class="pf-actions" id="pfActions"></div>
+          <div class="pf-msg" id="pfMsg"></div>
+
+          <p class="pf-foot" id="pfFoot"></p>
+        </div>
+
       </div>
     </div>
   </section>
 </main>
 
+<!-- ============ 页脚 ============ -->
 <footer class="site-footer">
   <div class="wrap site-footer__inner">
     <div class="site-footer__brand">
@@ -114,6 +105,7 @@
       <a href="workbench.html">嘉庭工作台</a>
       <a href="account.html">我的账号</a>
       <a href="friends.html">好友</a>
+      <a href="comfort.html">安慰盲盒</a>
       <a href="app.html">下载 App</a>
     </nav>
     <div class="site-footer__meta">
@@ -134,7 +126,7 @@
 </a>
 
 <script src="assets/js/api.js?v=8b74ae07"></script>
-<script src="assets/js/admin.js?v=00181f27"></script>
+<script src="assets/js/profile.js?v=f401e78d"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }

@@ -98,6 +98,9 @@ export function createJsonStore(io) {
           token,
           pass_hash: passHash || null,
           pass_salt: passSalt || null,
+          gender: 'unknown',
+          gender_custom: '',
+          signature: '',
           avatar: null,
           avatar_ver: 0,
           created_at: now,
@@ -241,6 +244,20 @@ export function createJsonStore(io) {
       const rows = d.messages.filter((m) => m.from === userId || m.to === userId);
       rows.sort((x, y) => num(x.created_at) - num(y.created_at));
       return rows.slice(-(limit || 500));
+    },
+    async getMessageById(id) {
+      const d = await load();
+      return d.messages.find((m) => m.id === id) || null;
+    },
+    async recallMessage(id, ts) {
+      return withLock(async () => {
+        const d = await load();
+        const row = d.messages.find((m) => m.id === id);
+        if (!row) return null;
+        row.recalled_at = ts;
+        await persist();
+        return row;
+      });
     },
     async markMessagesRead(userId, otherId, ts) {
       return withLock(async () => {

@@ -73,6 +73,16 @@
     } else {
       toAdmin.hidden = true;
     }
+
+    /* 个人信息：把当前值填进表单 */
+    var gender = $('acGender');
+    gender.value = user.gender || 'unknown';
+    $('acGenderCustom').value = user.genderCustom || '';
+    $('acGenderCustomWrap').hidden = gender.value !== 'custom';
+    var sign = $('acSignature');
+    sign.value = user.signature || '';
+    $('acSignCount').textContent = Array.from(sign.value).length + ' / 50';
+    $('acMyPage').href = 'user.html?id=' + user.id;
   }
 
   /* ---------- 进入 ---------- */
@@ -104,6 +114,39 @@
         return;
       } else {
         showMsg(msg, (r.data && r.data.error) || '没能进来，再试一次', 'error');
+      }
+    });
+  });
+
+  /* ---------- 个人信息（性别 + 签名） ---------- */
+  $('acGender').addEventListener('change', function () {
+    $('acGenderCustomWrap').hidden = this.value !== 'custom';
+    if (this.value === 'custom') $('acGenderCustom').focus();
+  });
+  $('acSignature').addEventListener('input', function () {
+    $('acSignCount').textContent = Array.from(this.value).length + ' / 50';
+  });
+
+  $('acProfileSave').addEventListener('click', function () {
+    var pmsg = $('acProfileMsg');
+    var gender = $('acGender').value;
+    var custom = $('acGenderCustom').value.trim();
+    var signature = $('acSignature').value.trim();
+    if (gender === 'custom' && !custom) { showMsg(pmsg, '自定义性别还没填', 'error'); return; }
+    if (Array.from(custom).length > 8) { showMsg(pmsg, '自定义性别最多 8 个字', 'error'); return; }
+    if (Array.from(signature).length > 50) { showMsg(pmsg, '个人签名最多 50 个字', 'error'); return; }
+
+    var btn = this;
+    btn.disabled = true;
+    hideMsg(pmsg);
+    API.saveProfile({ gender: gender, genderCustom: custom, signature: signature }).then(function (r) {
+      btn.disabled = false;
+      if (r.status === 200 && r.data && r.data.ok) {
+        API.saveSession(null, r.data.user);
+        render();
+        showMsg(pmsg, '资料保存好了，别人点你的头像就能看到', 'ok');
+      } else {
+        showMsg(pmsg, (r.data && r.data.error) || '没保存成功，再试一次', 'error');
       }
     });
   });

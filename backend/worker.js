@@ -105,6 +105,39 @@ const PBKDF2_ROUNDS = 30000;
 /* 改密码要用的「修改权限码」：固定 XBCNB（没有手机验证，用它当本人凭证） */
 const PERM_CODE = 'XBCNB';
 
+/* 个人信息：性别 + 个人签名 */
+const GENDERS = ['male', 'female', 'unknown', 'custom'];
+const GENDER_CUSTOM_MAX = 8;    /* 自定义性别最多 8 个字 */
+const SIGNATURE_MAX = 50;       /* 个人签名最多 50 个字 */
+const RECALL_WINDOW = 2 * 60 * 1000;   /* 消息发出后 2 分钟内可以撤回 */
+
+function charCount(s) {
+  return Array.from(String(s == null ? '' : s)).length;
+}
+
+function genderText(row) {
+  const g = String((row && row.gender) || 'unknown');
+  if (g === 'male') return '男';
+  if (g === 'female') return '女';
+  if (g === 'custom') return String((row && row.gender_custom) || '').trim() || '未知';
+  return '未知';
+}
+
+/* 别人看到的主页信息：只有昵称、头像、性别、签名、加入时间 —— 不含角色（不显示是不是管理员） */
+function publicProfile(row) {
+  if (!row) return null;
+  const g = String(row.gender || 'unknown');
+  return {
+    id: row.id,
+    name: row.name,
+    avatar: row.avatar ? `/api/avatar/${row.id}?v=${row.avatar_ver || 0}` : null,
+    gender: GENDERS.indexOf(g) >= 0 ? g : 'unknown',
+    genderText: genderText(row),
+    signature: String(row.signature || ''),
+    createdAt: row.created_at,
+  };
+}
+
 function permCodeOk(input, env) {
   const want = String((env && env.PERM_CODE) || PERM_CODE).trim();
   return String(input == null ? '' : input).trim() === want;
@@ -168,6 +201,10 @@ function publicUser(row) {
     createdAt: row.created_at,
     avatar: row.avatar ? `/api/avatar/${row.id}?v=${row.avatar_ver || 0}` : null,
     hasPassword: !!row.pass_hash,
+    gender: GENDERS.indexOf(String(row.gender || 'unknown')) >= 0 ? String(row.gender || 'unknown') : 'unknown',
+    genderCustom: String(row.gender_custom || ''),
+    genderText: genderText(row),
+    signature: String(row.signature || ''),
   };
 }
 
@@ -182,7 +219,17 @@ function briefUser(row) {
 }
 
 function publicMessage(m) {
-  return { id: m.id, from: m.from, to: m.to, body: m.body, createdAt: m.created_at, readAt: m.read_at || null };
+  const recalled = !!m.recalled_at;
+  return {
+    id: m.id,
+    from: m.from,
+    to: m.to,
+    /* 撤回之后正文不再下发，只留一个「已撤回」标记 */
+    body: recalled ? '' : m.body,
+    createdAt: m.created_at,
+    readAt: m.read_at || null,
+    recalledAt: m.recalled_at || null,
+  };
 }
 
 function publicReport(r) {
@@ -534,6 +581,65 @@ export async function handle(request, env) {
       return json({ ok: true, users: rows.map(briefUser) }, 200, origin);
     }
 
+    /* ---- 个人信息（改自己的性别 / 签名）---- */
+    if (path === '/api/profile' && method === 'POST') {
+      const me = await authUser(store, request);
+      if (!me) return fail('请先登录', 401, origin);
+      if (me.status === 'banned') return fail('这个昵称已被停用', 403, origin);
+      const body = await request.json().catch(() => ({}));
+
+      const gender = String(body.gender == null ? '' : body.gender).trim();
+      if (GENDERS.indexOf(gender) < 0) return fail('性别只能选：男 / 女 / 未知 / 自定义', 400, origin);
+
+      let custom = String(body.genderCustom == null ? '' : body.genderCustom).trim().replace(/\s+/g, ' ');
+      if (gender === 'custom') {
+        if (!custom) return fail('自定义性别还没填', 400, origin);
+        if (charCount(custom) > GENDER_CUSTOM_MAX) return fail(`自定义性别最多 ${GENDER_CUSTOM_MAX} 个字`, 400, origin);
+      } else {
+        custom = '';
+      }
+
+      const signature = String(body.signature == null ? '' : body.signature).trim();
+      if (charCount(signature) > SIGNATURE_MAX) return fail(`个人签名最多 ${SIGNATURE_MAX} 个字`, 400, origin);
+
+      const row = await store.updateUser(me.id, {
+        gender,
+        gender_custom: custom,
+        signature,
+      });
+      return json({ ok: true, user: publicUser(row), profile: publicProfile(row) }, 200, origin);
+    }
+
+    /* ---- 看别人的主页（不含角色，看不出是不是管理员）---- */
+    {
+      const userRoute = /^\/api\/user\/(\d+)$/.exec(path);
+      if (userRoute && method === 'GET') {
+        const me = await authUser(store, request);
+        if (!me) return fail('请先登录', 401, origin);
+        const id = Number(userRoute[1]);
+        const target = await store.getUserById(id);
+        if (!target) return fail('没有这个人', 404, origin);
+        if (target.status === 'banned') return fail('这个昵称已被停用', 403, origin);
+
+        let relation = 'none';
+        if (target.id === me.id) {
+          relation = 'self';
+        } else {
+          const rel = await store.getFriendship(me.id, target.id);
+          if (rel) {
+            if (rel.status === 'accepted') relation = 'friends';
+            else relation = rel.requester === me.id ? 'pending_out' : 'pending_in';
+          }
+        }
+        return json({
+          ok: true,
+          user: publicProfile(target),
+          relation,
+          friends: relation === 'friends' ? await store.countUnreadFrom(me.id, target.id) : 0,
+        }, 200, origin);
+      }
+    }
+
     /* ---- 好友列表 / 请求 ---- */
     if (path === '/api/friends' && method === 'GET') {
       const me = await authUser(store, request);
@@ -620,7 +726,7 @@ export async function handle(request, env) {
       for (const m of rows) {
         const otherId = m.from === me.id ? m.to : m.from;
         const cur = map.get(otherId) || { id: otherId, last: '', lastAt: 0, unread: 0 };
-        cur.last = m.body;
+        cur.last = m.recalled_at ? '（已撤回一条消息）' : m.body;
         cur.lastAt = m.created_at;
         if (m.to === me.id && !m.read_at) cur.unread += 1;
         map.set(otherId, cur);
@@ -633,6 +739,25 @@ export async function handle(request, env) {
       }
       threads.sort((a, b) => b.lastAt - a.lastAt);
       return json({ ok: true, threads, unread: await store.countUnreadTotal(me.id) }, 200, origin);
+    }
+
+    /* ---- 撤回消息：只能撤自己发的，且发出后 2 分钟内 ---- */
+    {
+      const recallRoute = /^\/api\/messages\/(\d+)\/recall$/.exec(path);
+      if (recallRoute && method === 'POST') {
+        const me = await authUser(store, request);
+        if (!me) return fail('请先登录', 401, origin);
+        if (me.status === 'banned') return fail('这个昵称已被停用', 403, origin);
+        const id = Number(recallRoute[1]);
+        const row = await store.getMessageById(id);
+        if (!row) return fail('没有这条消息', 404, origin);
+        if (row.from !== me.id) return fail('只能撤回自己发的消息', 403, origin);
+        if (row.recalled_at) return fail('这条消息已经撤回了', 400, origin);
+        const age = Date.now() - Number(row.created_at || 0);
+        if (age > RECALL_WINDOW) return fail('超过 2 分钟了，撤不回来了', 400, origin);
+        const updated = await store.recallMessage(id, Date.now());
+        return json({ ok: true, message: publicMessage(updated) }, 200, origin);
+      }
     }
 
     /* ---- 和某个好友的消息 ---- */
@@ -649,7 +774,11 @@ export async function handle(request, env) {
         const since = Number(url.searchParams.get('since') || 0);
         const rows = await store.listMessagesBetween(me.id, otherId, since, 200);
         await store.markMessagesRead(me.id, otherId, Date.now());
-        return json({ ok: true, friend: briefUser(other), messages: rows.map(publicMessage) }, 200, origin);
+        return json({
+          ok: true,
+          friend: { ...briefUser(other), genderText: genderText(other), signature: String(other.signature || '') },
+          messages: rows.map(publicMessage),
+        }, 200, origin);
       }
     }
 

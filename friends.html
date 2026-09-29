@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=2425f1e6">
-<link rel="stylesheet" href="assets/css/friends.css?v=4f064c90">
+<link rel="stylesheet" href="assets/css/friends.css?v=945061d9">
 </head>
 <body class="fr-page">
 
@@ -75,15 +75,19 @@
           <div class="fr-card" id="frPaneChat" hidden>
             <div class="fr-chat">
               <div class="fr-chat__head">
-                <img id="frChatAvatar" alt="">
-                <span class="fr-chat__name" id="frChatName">—</span>
-                <span style="margin-left:auto;display:flex;gap:8px">
+                <img id="frChatAvatar" alt="" title="看主页">
+                <span class="fr-chat__who">
+                  <span class="fr-chat__name" id="frChatName">—</span>
+                  <span class="fr-chat__meta" id="frChatMeta" hidden></span>
+                </span>
+                <span class="fr-chat__tools">
                   <button class="fr-btn fr-btn--ghost" id="frChatRemove" type="button">解除好友</button>
                   <button class="fr-btn fr-btn--ghost" id="frChatRefresh" type="button">刷新</button>
                   <button class="fr-btn fr-btn--ghost" id="frChatBack" type="button">返回</button>
                 </span>
               </div>
               <div class="fr-chat__list" id="frChatList"></div>
+              <div class="fr-chat__tip">长按自己发的消息可以撤回（发出后 2 分钟内）</div>
               <div class="fr-chat__foot">
                 <input class="fr-input" id="frChatInput" type="text" maxlength="500" placeholder="说点什么…" autocomplete="off">
                 <button class="fr-btn" id="frChatSend" type="button">发送</button>
@@ -145,8 +149,8 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/api.js?v=34353ff9"></script>
-<script src="assets/js/friends.js?v=34e89c3f"></script>
+<script src="assets/js/api.js?v=8b74ae07"></script>
+<script src="assets/js/friends.js?v=088cbae0"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }
