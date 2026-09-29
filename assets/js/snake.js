@@ -12,9 +12,13 @@
 
   var COLS = 20;
   var ROWS = 20;
+  var MODES = ['easy', 'normal', 'hard'];
+  var MODE_NAMES = { easy: '悠闲', normal: '标准', hard: '挑战' };
   var SPEEDS = { easy: 200, normal: 150, hard: 105 };   /* 每走一格的毫秒数 */
   var MIN_STEP = 80;
-  var BEST_KEY = 'jhjx-snake-best-v1';
+  var BEST_KEY = 'jhjx-snake-best-v2';       /* 每个模式各留一个最高分 */
+  var BEST_KEY_V1 = 'jhjx-snake-best-v1';    /* 老版本只有一个总记录，算进「标准」 */
+  var MODE_KEY = 'jhjx-snake-mode';
   var DIRS = {
     up: { x: 0, y: -1 },
     down: { x: 0, y: 1 },
@@ -30,6 +34,7 @@
   var overlayBtn = document.getElementById('snOverlayBtn');
   var scoreEl = document.getElementById('snScore');
   var bestEl = document.getElementById('snBest');
+  var bestLabel = document.getElementById('snBestLabel');
   var statusEl = document.getElementById('snStatus');
   var speedsEl = document.getElementById('snSpeeds');
   var padEl = document.getElementById('snPad');
@@ -44,26 +49,56 @@
   var queue = [];
   var food = { x: 14, y: 10 };
   var score = 0;
+  var mode = 'normal';         /* 悠闲 / 标准 / 挑战：决定速度和分数交到哪个榜 */
   var baseMs = SPEEDS.normal;
   var stepMs = SPEEDS.normal;
   var acc = 0;
   var lastTs = 0;
   var rafId = 0;
   var cell = 18;               /* 一格多少 CSS 像素，fit() 里算 */
-  var best = 0;
+  var bests = { easy: 0, normal: 0, hard: 0 };
 
-  /* ---------- 最高分 ---------- */
-  function loadBest() {
+  /* ---------- 最高分（按模式分开存） ---------- */
+  function loadBests() {
+    var out = { easy: 0, normal: 0, hard: 0 };
     try {
-      var v = parseInt(localStorage.getItem(BEST_KEY), 10);
-      return isFinite(v) && v > 0 ? v : 0;
-    } catch (e) { return 0; }
+      var raw = localStorage.getItem(BEST_KEY);
+      if (raw) {
+        var s = JSON.parse(raw);
+        for (var i = 0; i < MODES.length; i++) {
+          var v = parseInt(s && s[MODES[i]], 10);
+          if (isFinite(v) && v > 0) out[MODES[i]] = v;
+        }
+      } else {
+        var old = parseInt(localStorage.getItem(BEST_KEY_V1), 10);
+        if (isFinite(old) && old > 0) out.normal = old;
+      }
+    } catch (e) { /* 忽略 */ }
+    return out;
   }
-  function saveBest(v) {
-    try { localStorage.setItem(BEST_KEY, String(v)); } catch (e) { /* 忽略 */ }
+  function saveBests() {
+    try { localStorage.setItem(BEST_KEY, JSON.stringify(bests)); } catch (e) { /* 忽略 */ }
   }
-  best = loadBest();
-  bestEl.textContent = String(best);
+  function loadMode() {
+    try {
+      var m = localStorage.getItem(MODE_KEY);
+      if (MODES.indexOf(m) >= 0) return m;
+    } catch (e) { /* 忽略 */ }
+    return 'normal';
+  }
+  function saveMode() {
+    try { localStorage.setItem(MODE_KEY, mode); } catch (e) { /* 忽略 */ }
+  }
+  function currentBest() { return bests[mode] || 0; }
+  function paintBest() {
+    if (bestEl) bestEl.textContent = String(currentBest());
+    if (bestLabel) bestLabel.textContent = '最高分 · ' + MODE_NAMES[mode];
+  }
+
+  bests = loadBests();
+  mode = loadMode();
+  baseMs = SPEEDS[mode];
+  stepMs = baseMs;
 
   /* ---------- 尺寸 ---------- */
   function fit() {
@@ -228,7 +263,7 @@
     if (growing) {
       score++;
       scoreEl.textContent = String(score);
-      if (score > best) { best = score; bestEl.textContent = String(best); saveBest(best); }
+      if (score > currentBest()) { bests[mode] = score; paintBest(); saveBests(); }
       stepMs = Math.max(MIN_STEP, baseMs - Math.floor(score / 2) * 6);
       placeFood();
       if (food.x < 0) { gameOver('整块棋盘都被你占满了'); return; }
@@ -241,12 +276,12 @@
     state = 'over';
     if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
     draw();
-    var title = score >= best && score > 0 ? '新纪录 ' + score + ' 分' : '本局 ' + score + ' 分';
-    showOverlay(title, why + '。最高分 ' + best + ' 分。', '再来一局');
+    var title = score >= currentBest() && score > 0 ? '新纪录 ' + score + ' 分' : '本局 ' + score + ' 分';
+    showOverlay(title, why + '。' + MODE_NAMES[mode] + '模式的最高分 ' + currentBest() + ' 分。', '再来一局');
     setStatus(why + '，本局 ' + score + ' 分');
     /* 交到好友排行榜（没登录/没联网时它自己会安静地跳过） */
     if (score > 0 && window.jhjxSnakeRank && window.jhjxSnakeRank.submit) {
-      window.jhjxSnakeRank.submit(score);
+      window.jhjxSnakeRank.submit(score, mode);
     }
   }
 
@@ -329,6 +364,18 @@
     W: 'up', A: 'left', S: 'down', D: 'right',
     Up: 'up', Down: 'down', Left: 'left', Right: 'right'
   };
+  /* 焦点在按钮/链接/输入框上时，回车和空格是它们自己的事（页头的汉堡键、
+     排行榜的「刷新」、暂停遮罩上的「继续」……），游戏别抢。
+     方向键任何情况下都归游戏；R 只在输入框里让路。 */
+  function isTyping(el) {
+    if (!el || !el.tagName) return false;
+    return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable === true;
+  }
+  function isInteractive(el) {
+    if (!el || !el.tagName) return false;
+    return isTyping(el) || el.tagName === 'BUTTON' || el.tagName === 'A';
+  }
+
   document.addEventListener('keydown', function (e) {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     var name = KEYS[e.key];
@@ -339,12 +386,20 @@
       return;
     }
     if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'Space') {
+      if (isInteractive(e.target)) return;
       e.preventDefault();
       if (state === 'idle' || state === 'over') start();
       else togglePause();
       return;
     }
-    if (e.key === 'Enter' || e.key === 'r' || e.key === 'R') {
+    if (e.key === 'Enter') {
+      if (isInteractive(e.target)) return;
+      e.preventDefault();
+      restart();
+      return;
+    }
+    if (e.key === 'r' || e.key === 'R') {
+      if (isTyping(e.target)) return;
       e.preventDefault();
       restart();
     }
@@ -409,17 +464,38 @@
       if (d) pushDir(d);
     });
   }
+  /* ---------- 速度模式（同时也是分数交到哪个榜） ---------- */
+  function syncSpeedButtons() {
+    if (!speedsEl) return;
+    var all = speedsEl.querySelectorAll('.sn-speed');
+    for (var i = 0; i < all.length; i++) {
+      all[i].classList.toggle('is-active', all[i].getAttribute('data-speed') === mode);
+    }
+  }
+
+  function setMode(next, quiet) {
+    if (MODES.indexOf(next) < 0) return mode;
+    if (next !== mode) {
+      mode = next;
+      baseMs = SPEEDS[mode];
+      stepMs = Math.max(MIN_STEP, baseMs - Math.floor(score / 2) * 6);
+      saveMode();
+      syncSpeedButtons();
+      paintBest();
+      if (!quiet) setStatus('换成「' + MODE_NAMES[mode] + '」模式了');
+    }
+    /* 排行榜要跟着换榜：用事件通知它，别互相直接调 */
+    try {
+      window.dispatchEvent(new CustomEvent('jhjx:snake-mode', { detail: { mode: mode } }));
+    } catch (e) { /* 老浏览器没有 CustomEvent 就靠排行榜自己刷新 */ }
+    return mode;
+  }
+
   if (speedsEl) {
     speedsEl.addEventListener('click', function (e) {
       var btn = e.target && e.target.closest ? e.target.closest('.sn-speed') : null;
       if (!btn) return;
-      var name = btn.getAttribute('data-speed');
-      if (!SPEEDS[name]) return;
-      baseMs = SPEEDS[name];
-      stepMs = Math.max(MIN_STEP, baseMs - Math.floor(score / 2) * 6);
-      var all = speedsEl.querySelectorAll('.sn-speed');
-      for (var i = 0; i < all.length; i++) all[i].classList.toggle('is-active', all[i] === btn);
-      setStatus('速度：' + btn.textContent);
+      setMode(btn.getAttribute('data-speed'));
     });
   }
 
@@ -438,20 +514,28 @@
   window.jhjxSnake = {
     state: function () { return state; },
     score: function () { return score; },
-    best: function () { return best; },
+    /* 兼容老自检脚本：best() 给的是「当前模式」的最高分 */
+    best: function () { return currentBest(); },
+    bests: function () { return { easy: bests.easy, normal: bests.normal, hard: bests.hard }; },
+    bestOf: function (m) { return bests[m] || 0; },
+    mode: function () { return mode; },
+    setMode: setMode,
     dir: function () { return { x: dir.x, y: dir.y }; },
     head: function () { return { x: snake[0].x, y: snake[0].y }; },
     length: function () { return snake.length; },
     food: function () { return { x: food.x, y: food.y }; },
     placeFood: function (x, y) { food = { x: x, y: y }; draw(); },
     /* 服务端记的最高分比本机高时（换设备玩过），把本机记录抬上去 */
-    syncBest: function (serverBest) {
+    syncBest: function (serverBest, forMode) {
+      var m = MODES.indexOf(forMode) >= 0 ? forMode : mode;
       var v = Number(serverBest) || 0;
-      if (v > best) { best = v; bestEl.textContent = String(best); saveBest(best); }
-      return best;
+      if (v > (bests[m] || 0)) { bests[m] = v; saveBests(); if (m === mode) paintBest(); }
+      return bests[m];
     }
   };
 
+  syncSpeedButtons();
+  paintBest();
   reset();
   fit();
 })();

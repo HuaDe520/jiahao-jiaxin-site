@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=9c4e3219">
-<link rel="stylesheet" href="assets/css/snake.css?v=c4182460">
+<link rel="stylesheet" href="assets/css/snake.css?v=933b7800">
 </head>
 <body class="sn-page">
 
@@ -59,12 +59,12 @@
             <strong class="sn-stat__value" id="snScore">0</strong>
           </div>
           <div class="sn-stat">
-            <span class="sn-stat__label">最高分</span>
+            <span class="sn-stat__label" id="snBestLabel">最高分 · 标准</span>
             <strong class="sn-stat__value sn-stat__value--gold" id="snBest">0</strong>
           </div>
           <div class="sn-stat sn-stat--speed">
-            <span class="sn-stat__label">速度</span>
-            <div class="sn-speeds" id="snSpeeds" role="group" aria-label="速度">
+            <span class="sn-stat__label">模式</span>
+            <div class="sn-speeds" id="snSpeeds" role="group" aria-label="模式与速度">
               <button type="button" class="sn-speed" data-speed="easy">悠闲</button>
               <button type="button" class="sn-speed is-active" data-speed="normal">标准</button>
               <button type="button" class="sn-speed" data-speed="hard">挑战</button>
@@ -110,6 +110,11 @@
             <h3>好友分数排行榜</h3>
             <button type="button" class="sn-rank__refresh" id="snRankRefresh">刷新</button>
           </div>
+          <div class="sn-rank__modes" id="snRankModes" role="group" aria-label="按模式看榜">
+            <button type="button" class="sn-rank__mode" data-mode="easy">悠闲</button>
+            <button type="button" class="sn-rank__mode is-active" data-mode="normal">标准</button>
+            <button type="button" class="sn-rank__mode" data-mode="hard">挑战</button>
+          </div>
           <p class="sn-rank__hint" id="snRankHint" aria-live="polite">正在读取…</p>
           <ol class="sn-rank__list" id="snRankList"></ol>
         </section>
@@ -153,9 +158,9 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/api.js?v=91f7e5d8"></script>
-<script src="assets/js/snake.js?v=983171a8"></script>
-<script src="assets/js/snake-rank.js?v=60ffc67e"></script>
+<script src="assets/js/api.js?v=ce4e28c7"></script>
+<script src="assets/js/snake.js?v=716543de"></script>
+<script src="assets/js/snake-rank.js?v=538aa766"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }

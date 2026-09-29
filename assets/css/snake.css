@@ -163,6 +163,26 @@
 }
 .sn-rank__list { margin: 10px 0 0; display: grid; gap: 6px; }
 
+/* 三种速度模式各一张榜：这排标签和上面的「模式」是同一个设置 */
+.sn-rank__modes {
+  display: flex; gap: 4px; margin-top: 10px;
+  padding: 3px; border-radius: 999px;
+  background: rgba(18, 101, 90, .06);
+}
+.sn-rank__mode {
+  flex: 1 1 auto; font-family: inherit; cursor: pointer;
+  padding: 6px 10px; border-radius: 999px; border: 0;
+  background: transparent; color: var(--ink-soft);
+  font-size: 12.5px; font-weight: 600;
+  transition: background .2s var(--ease), color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.sn-rank__mode:hover { color: var(--jade-800); }
+.sn-rank__mode.is-active {
+  background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
+  color: #2b2109;
+  box-shadow: 0 8px 16px -10px rgba(160, 122, 32, .9);
+}
+
 .sn-rank__row {
   display: flex; align-items: center; gap: 10px;
   padding: 8px 10px; border-radius: 12px;
@@ -240,6 +260,7 @@
   .sn-overlay__btn { padding: 13px 26px; font-size: 16px; }
   .sn-rank { margin-top: 18px; padding: 14px 12px 12px; }
   .sn-rank__row { padding: 7px 8px; gap: 8px; }
+  .sn-rank__mode { padding: 6px 6px; font-size: 12px; }
   .sn-rank__avatar { width: 26px; height: 26px; font-size: 12px; }
   .sn-rank__name { font-size: 13.5px; }
   .sn-rank__score { font-size: 15px; }
