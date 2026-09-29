@@ -201,7 +201,7 @@
 .fr-style-dot[data-theme="night"] { background: linear-gradient(135deg, #14201d, #3d8d78); }
 .fr-style-dot[data-theme="candy"] { background: linear-gradient(135deg, #f6a23c, #f2708a); }
 .fr-style-dot[data-theme="paper"] { background: linear-gradient(135deg, #efe3c8, #b9a476); }
-.fr-style-dot[data-theme="genshin"] { background: linear-gradient(135deg, #2b3446, #d3bc8e); }
+.fr-style-dot[data-theme="supreme"] { background: linear-gradient(135deg, #2b3446, #d3bc8e); }
 
 .fr-chat__foot { display: flex; gap: 10px; align-items: flex-end; padding-top: 10px; border-top: 1px solid var(--chat-line); }
 .fr-chat__input {
@@ -282,17 +282,10 @@
    不去指定衬线字体（以前指定过，有些手机上会跳到很怪的字体） */
 
 /* ---------------------------------------------------------
-   「原神」风格：深海蓝底 + 米金描边 + 菱形小装饰
-   （纯 CSS 配色与线条的致敬，不使用任何游戏素材或字体文件）
-   字体按要求优先用「汉仪文黑-85w」；如果这台设备没装这个字体，
-   浏览器会自动退到后面的系统字体，页面不会乱
+   「至尊」风格：深海蓝底 + 米金描边 + 菱形小装饰
+   字体和其它主题一致：直接用手机自己的字体，不做任何指定
    --------------------------------------------------------- */
-#frPaneChat[data-chat-theme="genshin"] {
-  font-family: "汉仪文黑-85w", "汉仪文黑-85W", "汉仪文黑 85W", "汉仪文黑85W",
-               "HYWenHei-85W", "HYWenHei 85W", "HYWenHei",
-               system-ui, -apple-system, "PingFang SC", "HarmonyOS Sans SC",
-               "Microsoft YaHei", "Noto Sans SC", sans-serif;
-
+#frPaneChat[data-chat-theme="supreme"] {
   --chat-bg:
     linear-gradient(135deg, rgba(211, 188, 142, .055) 25%, transparent 25%) -9px 0 / 18px 18px,
     linear-gradient(225deg, rgba(211, 188, 142, .055) 25%, transparent 25%) -9px 0 / 18px 18px,
@@ -316,43 +309,43 @@
   --chat-day-bg: rgba(211, 188, 142, .16);
   --chat-input-bg: rgba(27, 34, 48, .96);
 }
-#frPaneChat[data-chat-theme="genshin"] { background: #1c2433; border-color: rgba(211, 188, 142, .35); }
-#frPaneChat[data-chat-theme="genshin"] .fr-chat__name { letter-spacing: .04em; }
-#frPaneChat[data-chat-theme="genshin"] .fr-day { color: #d3bc8e; letter-spacing: .04em; }
-#frPaneChat[data-chat-theme="genshin"] .fr-btn--ghost {
+#frPaneChat[data-chat-theme="supreme"] { background: #1c2433; border-color: rgba(211, 188, 142, .35); }
+#frPaneChat[data-chat-theme="supreme"] .fr-chat__name { letter-spacing: .04em; }
+#frPaneChat[data-chat-theme="supreme"] .fr-day { color: #d3bc8e; letter-spacing: .04em; }
+#frPaneChat[data-chat-theme="supreme"] .fr-btn--ghost {
   background: rgba(255, 255, 255, .06); border-color: rgba(211, 188, 142, .38); color: #f1e7d0;
 }
-#frPaneChat[data-chat-theme="genshin"] .fr-chat__tip { color: rgba(236, 227, 205, .6); }
-#frPaneChat[data-chat-theme="genshin"] .fr-chat__style-name { color: #d3bc8e; }
-#frPaneChat[data-chat-theme="genshin"] .fr-chat__input {
+#frPaneChat[data-chat-theme="supreme"] .fr-chat__tip { color: rgba(236, 227, 205, .6); }
+#frPaneChat[data-chat-theme="supreme"] .fr-chat__style-name { color: #d3bc8e; }
+#frPaneChat[data-chat-theme="supreme"] .fr-chat__input {
   border-color: rgba(211, 188, 142, .4); color: #f1e7d0;
 }
-#frPaneChat[data-chat-theme="genshin"] .fr-chat__input::placeholder { color: rgba(236, 227, 205, .38); }
-#frPaneChat[data-chat-theme="genshin"] .fr-chat__input:focus { box-shadow: 0 0 0 3px rgba(211, 188, 142, .18); }
-#frPaneChat[data-chat-theme="genshin"] .fr-chat__head img,
-#frPaneChat[data-chat-theme="genshin"] .fr-msgrow__avatar {
+#frPaneChat[data-chat-theme="supreme"] .fr-chat__input::placeholder { color: rgba(236, 227, 205, .38); }
+#frPaneChat[data-chat-theme="supreme"] .fr-chat__input:focus { box-shadow: 0 0 0 3px rgba(211, 188, 142, .18); }
+#frPaneChat[data-chat-theme="supreme"] .fr-chat__head img,
+#frPaneChat[data-chat-theme="supreme"] .fr-msgrow__avatar {
   border-color: rgba(211, 188, 142, .55);
 }
-#frPaneChat[data-chat-theme="genshin"] .fr-recalled { color: #d3bc8e; }
-#frPaneChat[data-chat-theme="genshin"] .fr-recall-btn {
+#frPaneChat[data-chat-theme="supreme"] .fr-recalled { color: #d3bc8e; }
+#frPaneChat[data-chat-theme="supreme"] .fr-recall-btn {
   background: rgba(211, 188, 142, .12); border-color: rgba(211, 188, 142, .45); color: #e7d6ab;
 }
-#frPaneChat[data-chat-theme="genshin"] .fr-recall-confirm__no {
+#frPaneChat[data-chat-theme="supreme"] .fr-recall-confirm__no {
   background: rgba(211, 188, 142, .14); color: #e7d6ab;
 }
-#frPaneChat[data-chat-theme="genshin"] .fr-btn--send {
+#frPaneChat[data-chat-theme="supreme"] .fr-btn--send {
   background: linear-gradient(135deg, #e2cd9f, #c9ac74); color: #262b36;
   box-shadow: 0 12px 22px -14px rgba(201, 172, 116, .9);
 }
 /* 气泡角上的小菱形（原神 UI 里常见的装饰感） */
-#frPaneChat[data-chat-theme="genshin"] .fr-bubble::after {
+#frPaneChat[data-chat-theme="supreme"] .fr-bubble::after {
   content: ""; position: absolute; width: 6px; height: 6px; background: #d3bc8e;
   transform: rotate(45deg); opacity: .9; top: -3px;
 }
-#frPaneChat[data-chat-theme="genshin"] .fr-bubble--them::after { left: 10px; }
-#frPaneChat[data-chat-theme="genshin"] .fr-bubble--me::after { right: 10px; background: #a98c53; }
-#frPaneChat[data-chat-theme="genshin"] .fr-bubble__time { color: rgba(43, 47, 58, .55); }
-#frPaneChat[data-chat-theme="genshin"] .fr-bubble--them .fr-bubble__time { color: rgba(236, 227, 205, .5); }
+#frPaneChat[data-chat-theme="supreme"] .fr-bubble--them::after { left: 10px; }
+#frPaneChat[data-chat-theme="supreme"] .fr-bubble--me::after { right: 10px; background: #a98c53; }
+#frPaneChat[data-chat-theme="supreme"] .fr-bubble__time { color: rgba(43, 47, 58, .55); }
+#frPaneChat[data-chat-theme="supreme"] .fr-bubble--them .fr-bubble__time { color: rgba(236, 227, 205, .5); }
 
 /* 列表里可点的头像 / 昵称 */
 .is-clickable { cursor: pointer; }
