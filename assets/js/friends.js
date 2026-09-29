@@ -270,8 +270,8 @@
   /* ---------------- 聊天 ---------------- */
   var RECALL_WINDOW = 2 * 60 * 1000;   /* 和后端一致：2 分钟内可撤回 */
   var THEME_KEY = 'jhjx-chat-theme';
-  var THEMES = ['jade', 'ink', 'night', 'candy', 'paper'];
-  var THEME_NAMES = { jade: '青绿', ink: '简约', night: '夜间', candy: '暖阳', paper: '纸感' };
+  var THEMES = ['jade', 'ink', 'night', 'candy', 'paper', 'genshin'];
+  var THEME_NAMES = { jade: '青绿', ink: '简约', night: '夜间', candy: '暖阳', paper: '纸感', genshin: '原神' };
   var GROUP_WINDOW = 2 * 60 * 1000;    /* 同一人 2 分钟内的连续消息算一组 */
 
   function currentTheme() {
