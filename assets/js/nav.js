@@ -67,3 +67,49 @@
     link.appendChild(document.createTextNode(u.name));
   } catch (e) { /* 忽略 */ }
 })();
+
+/* =========================================================
+   角落里的常驻入口（嘉庭工作台 / 返回首页）：往下翻的时候先让开
+   —— 它俩是固定定位的，一直显示就会压住正文里的字
+   ========================================================= */
+(function () {
+  'use strict';
+  var floats = document.querySelectorAll('.quick-workbench, .quick-home');
+  if (!floats.length) return;
+
+  var EDGE_TOP = 80;      /* 离页面顶部这么近，露出来 */
+  var EDGE_BOTTOM = 140;  /* 离页面底部这么近，露出来 */
+  var STEP = 10;          /* 手指动了这么多像素才算「在翻页」 */
+
+  var last = window.scrollY || window.pageYOffset || 0;
+  var hushed = false;
+
+  /* 入场动画是 animation-fill-mode: both，动画结束后它的 opacity:1 会盖住
+     .is-hushed 的 opacity —— 入场播完就把 animation 摘掉，让样式说了算 */
+  for (var k = 0; k < floats.length; k++) {
+    (function (el) {
+      el.addEventListener('animationend', function () { el.style.animation = 'none'; });
+    })(floats[k]);
+  }
+
+  function update() {
+    var y = window.scrollY || window.pageYOffset || 0;
+    var max = Math.max(0, (document.documentElement.scrollHeight || 0) - window.innerHeight);
+    var next;
+    if (y <= EDGE_TOP || y >= max - EDGE_BOTTOM) next = false;   /* 开头和结尾都露出来 */
+    else if (y > last + STEP) next = true;                        /* 往下翻 → 让位给正文 */
+    else if (y < last - STEP) next = false;                       /* 往上翻 → 该找入口了 */
+    else return;
+    last = y;
+    if (next === hushed) return;
+    hushed = next;
+    for (var i = 0; i < floats.length; i++) {
+      if (hushed) floats[i].style.animation = 'none';   /* 兜底：动画没播完也一样让开 */
+      floats[i].classList.toggle('is-hushed', hushed);
+    }
+  }
+
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', function () { last = window.scrollY || window.pageYOffset || 0; }, { passive: true });
+  update();
+})();

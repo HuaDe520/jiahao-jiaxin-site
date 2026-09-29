@@ -374,6 +374,6 @@
 .fr-page .quick-home { width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: 50%; }
 .fr-page .quick-home span { display: none; }
 @media (max-width: 820px) {
-  .fr-page .quick-home { bottom: 14px; left: 12px; width: 42px; height: 42px; }
+  .fr-page .quick-home { bottom: 14px; left: 12px; width: 44px; height: 44px; }
   .fr-page .site-footer { padding-bottom: 92px; }
 }
