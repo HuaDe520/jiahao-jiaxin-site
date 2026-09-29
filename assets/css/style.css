@@ -151,6 +151,19 @@ button { font: inherit; color: inherit; }
   background: var(--white); border-radius: 12px; cursor: pointer;
   flex-direction: column; align-items: center; justify-content: center; gap: 5px;
 }
+
+/* 右上角的「好友」快捷入口（两个半身人的图标），永远在汉堡键左边 */
+.nav-quick {
+  flex: none; margin-left: auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 1.5px solid rgba(18, 101, 90, .16); background: rgba(255, 255, 255, .94);
+  color: var(--jade-800); box-shadow: var(--shadow-s);
+  transition: transform .18s var(--ease), background .18s var(--ease), color .18s var(--ease);
+}
+.nav-quick svg { display: block; }
+.nav-quick:hover { background: var(--jade-700); color: #fff; transform: translateY(-1px); }
+.nav-quick:active { transform: scale(.94); }
 .nav-toggle span { display: block; width: 19px; height: 2px; background: var(--jade-800); border-radius: 2px; transition: transform .3s var(--ease), opacity .2s; }
 .nav-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
 .nav-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
@@ -503,7 +516,8 @@ button { font: inherit; color: inherit; }
 }
 
 @media (max-width: 820px) {
-  .nav-toggle { display: flex; }
+  .nav-toggle { display: flex; margin-left: 8px; }
+  .nav-quick { margin-left: auto; }
   .site-nav {
     position: absolute; top: 100%; left: 0; right: 0;
     flex-direction: column; align-items: stretch; gap: 2px;

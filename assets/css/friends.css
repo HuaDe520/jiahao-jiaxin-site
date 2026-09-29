@@ -185,6 +185,10 @@
 }
 .fr-chat__tip { font-size: 11.5px; color: var(--chat-muted); }
 .fr-chat__styles { margin-left: auto; display: flex; align-items: center; gap: 7px; }
+.fr-chat__style-name {
+  font-size: 12px; font-weight: 700; color: var(--chat-strong);
+  margin-right: 2px; white-space: nowrap;
+}
 .fr-style-dot {
   width: 20px; height: 20px; border-radius: 50%; cursor: pointer; padding: 0;
   border: 2px solid rgba(18, 101, 90, .18); box-shadow: none;

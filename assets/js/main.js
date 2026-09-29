@@ -162,19 +162,7 @@
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
-  if (navToggle && siteNav) {
-    navToggle.addEventListener('click', function () {
-      var open = navToggle.getAttribute('aria-expanded') === 'true';
-      navToggle.setAttribute('aria-expanded', String(!open));
-      siteNav.classList.toggle('is-open', !open);
-    });
-    siteNav.addEventListener('click', function (e) {
-      if (e.target.tagName === 'A') {
-        navToggle.setAttribute('aria-expanded', 'false');
-        siteNav.classList.remove('is-open');
-      }
-    });
-  }
+  /* 顶部菜单的展开/收起交给 nav.js（每个页面都会加载），这里不再重复绑定 */
 
   /* ---------- 4. 滚动入场动画 ---------- */
   var revealItems = Array.prototype.slice.call(document.querySelectorAll('.reveal'));

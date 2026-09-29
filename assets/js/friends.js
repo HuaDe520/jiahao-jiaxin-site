@@ -271,6 +271,7 @@
   var RECALL_WINDOW = 2 * 60 * 1000;   /* 和后端一致：2 分钟内可撤回 */
   var THEME_KEY = 'jhjx-chat-theme';
   var THEMES = ['jade', 'ink', 'night', 'candy', 'paper'];
+  var THEME_NAMES = { jade: '青绿', ink: '简约', night: '夜间', candy: '暖阳', paper: '纸感' };
   var GROUP_WINDOW = 2 * 60 * 1000;    /* 同一人 2 分钟内的连续消息算一组 */
 
   function currentTheme() {
@@ -288,6 +289,9 @@
     for (var i = 0; i < dots.length; i++) {
       dots[i].classList.toggle('is-active', dots[i].getAttribute('data-theme') === t);
     }
+    /* 把当前风格的名字显示在小圆点前面 */
+    var label = $('frChatStyleName');
+    if (label) label.textContent = THEME_NAMES[t] || '';
     try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* 忽略 */ }
   }
 
