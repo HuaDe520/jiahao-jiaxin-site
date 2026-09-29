@@ -170,6 +170,10 @@
     reactNote: function (id, kind) { return call('POST', '/api/treehole/' + encodeURIComponent(id) + '/react', { kind: kind }); },
     deleteNote: function (id) { return call('POST', '/api/treehole/' + encodeURIComponent(id) + '/delete'); },
 
+    /* ---- 贪吃蛇分数与好友排行榜 ---- */
+    snakeScore: function (score) { return call('POST', '/api/snake/score', { score: score }); },
+    snakeBoard: function () { return call('GET', '/api/snake/leaderboard'); },
+
     /* 把接口返回的相对路径（头像）拼成完整地址 */
     asset: function (path) {
       if (!path) return '';

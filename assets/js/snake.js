@@ -244,6 +244,10 @@
     var title = score >= best && score > 0 ? '新纪录 ' + score + ' 分' : '本局 ' + score + ' 分';
     showOverlay(title, why + '。最高分 ' + best + ' 分。', '再来一局');
     setStatus(why + '，本局 ' + score + ' 分');
+    /* 交到好友排行榜（没登录/没联网时它自己会安静地跳过） */
+    if (score > 0 && window.jhjxSnakeRank && window.jhjxSnakeRank.submit) {
+      window.jhjxSnakeRank.submit(score);
+    }
   }
 
   function loop(ts) {
@@ -439,7 +443,13 @@
     head: function () { return { x: snake[0].x, y: snake[0].y }; },
     length: function () { return snake.length; },
     food: function () { return { x: food.x, y: food.y }; },
-    placeFood: function (x, y) { food = { x: x, y: y }; draw(); }
+    placeFood: function (x, y) { food = { x: x, y: y }; draw(); },
+    /* 服务端记的最高分比本机高时（换设备玩过），把本机记录抬上去 */
+    syncBest: function (serverBest) {
+      var v = Number(serverBest) || 0;
+      if (v > best) { best = v; bestEl.textContent = String(best); saveBest(best); }
+      return best;
+    }
   };
 
   reset();

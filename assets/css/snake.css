@@ -136,6 +136,89 @@
   .sn-pad { display: none; }
 }
 
+/* ---------- 好友分数排行榜 ---------- */
+.sn-rank {
+  margin: 22px auto 0;
+  background: rgba(255, 255, 255, .86);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 16px 14px;
+  box-shadow: var(--shadow-s);
+}
+.sn-rank__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.sn-rank__head h3 { font-size: 15.5px; color: var(--jade-900); letter-spacing: .04em; }
+.sn-rank__refresh {
+  font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  padding: 5px 12px; border-radius: 999px;
+  border: 1px solid rgba(18, 101, 90, .22);
+  background: rgba(255, 255, 255, .92); color: var(--jade-800);
+  transition: border-color .2s var(--ease), transform .2s var(--ease);
+}
+.sn-rank__refresh:hover { border-color: var(--gold-500); transform: translateY(-1px); }
+
+.sn-rank__hint {
+  margin: 8px 0 0; font-size: 12.5px; color: var(--ink-mute); line-height: 1.75;
+}
+.sn-rank__list { margin: 10px 0 0; display: grid; gap: 6px; }
+
+.sn-rank__row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 12px;
+  background: rgba(251, 248, 241, .8);
+  border: 1px solid transparent;
+}
+.sn-rank__row.is-top { background: rgba(246, 236, 211, .6); border-color: rgba(201, 162, 75, .35); }
+.sn-rank__row.is-me { border-color: var(--gold-500); box-shadow: 0 0 0 2px rgba(201, 162, 75, .16); background: rgba(255, 255, 255, .95); }
+
+.sn-rank__no {
+  flex: none; width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 12.5px; font-weight: 700; color: var(--ink-mute);
+  background: rgba(18, 101, 90, .07);
+  font-variant-numeric: tabular-nums;
+}
+.sn-rank__row.is-top .sn-rank__no {
+  background: linear-gradient(135deg, var(--gold-400), var(--gold-500)); color: #2b2109;
+}
+
+.sn-rank__avatar {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; overflow: hidden;
+  background: var(--jade-050); color: var(--jade-700);
+  border: 1px solid rgba(18, 101, 90, .16);
+  font-size: 13px; font-weight: 700;
+}
+.sn-rank__avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.sn-rank__name {
+  flex: 1 1 auto; min-width: 0;
+  font-size: 14px; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sn-rank__row.is-me .sn-rank__name { font-weight: 700; color: var(--jade-900); }
+
+.sn-rank__score {
+  flex: none; font-size: 16px; color: var(--jade-800);
+  font-variant-numeric: tabular-nums;
+}
+.sn-rank__score.is-empty { font-size: 12px; font-weight: 600; color: var(--ink-mute); }
+
+.sn-rank__go {
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-top: 10px; padding: 10px 18px; border-radius: 999px;
+  font-size: 13.5px; font-weight: 700;
+  background: rgba(255, 255, 255, .95);
+  border: 1.5px solid rgba(18, 101, 90, .26);
+  color: var(--jade-800);
+  transition: border-color .2s var(--ease), transform .2s var(--ease);
+}
+.sn-rank__go:hover { border-color: var(--gold-500); transform: translateY(-1px); }
+/* 未登录时列表里只放这一个「去登录」 */
+.sn-rank__guest { display: flex; justify-content: center; }
+.sn-rank__guest .sn-rank__go { margin-top: 0; }
+
 @media (max-width: 560px) {
   /* 手机上目标是「棋盘 + 方向键」一屏能同时看到，所以每块都收紧一点 */
   .sn-page .section { padding-top: 14px; }
@@ -155,6 +238,11 @@
   .sn-overlay__title { font-size: 20px; }
   .sn-overlay__text { font-size: 13px; }
   .sn-overlay__btn { padding: 13px 26px; font-size: 16px; }
+  .sn-rank { margin-top: 18px; padding: 14px 12px 12px; }
+  .sn-rank__row { padding: 7px 8px; gap: 8px; }
+  .sn-rank__avatar { width: 26px; height: 26px; font-size: 12px; }
+  .sn-rank__name { font-size: 13.5px; }
+  .sn-rank__score { font-size: 15px; }
 }
 
 /* 这一页棋盘很宽，把「返回首页」留在最底边，免得压住方向键 */

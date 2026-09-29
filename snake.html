@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=9c4e3219">
-<link rel="stylesheet" href="assets/css/snake.css?v=62ddbaed">
+<link rel="stylesheet" href="assets/css/snake.css?v=c4182460">
 </head>
 <body class="sn-page">
 
@@ -104,6 +104,15 @@
         </div>
 
         <p class="sn-hint">电脑：方向键 / WASD 转向，空格暂停，回车重开。手机：在棋盘上滑动，或点下面的方向键。</p>
+
+        <section class="sn-rank" id="snRank" aria-label="好友分数排行榜">
+          <div class="sn-rank__head">
+            <h3>好友分数排行榜</h3>
+            <button type="button" class="sn-rank__refresh" id="snRankRefresh">刷新</button>
+          </div>
+          <p class="sn-rank__hint" id="snRankHint" aria-live="polite">正在读取…</p>
+          <ol class="sn-rank__list" id="snRankList"></ol>
+        </section>
       </div>
     </div>
   </section>
@@ -144,7 +153,9 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/snake.js?v=d134a908"></script>
+<script src="assets/js/api.js?v=91f7e5d8"></script>
+<script src="assets/js/snake.js?v=983171a8"></script>
+<script src="assets/js/snake-rank.js?v=60ffc67e"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }
