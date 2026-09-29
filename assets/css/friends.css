@@ -56,7 +56,9 @@
 
 .fr-search { display: flex; gap: 10px; }
 .fr-input {
-  flex: 1 1 auto; min-width: 0; font-family: inherit; font-size: 15.5px; color: var(--jade-900);
+  flex: 1 1 auto; min-width: 0; font-family: inherit;
+  /* 别小于 16px：iOS Safari 在小于 16px 的输入框上聚焦会自动放大页面 */
+  font-size: 16px; color: var(--jade-900);
   background: #fff; border: 1.5px solid rgba(18, 101, 90, .2); border-radius: 13px; padding: 12px 14px; outline: none;
 }
 .fr-input:focus { border-color: var(--jade-500); box-shadow: 0 0 0 3px rgba(79, 185, 164, .16); }
@@ -88,7 +90,9 @@
   --chat-input-bg: #ffffff;
 }
 
-.fr-chat { display: flex; flex-direction: column; height: 64vh; min-height: 380px; }
+/* 高度用 dvh：iOS Safari 的 vh 是「大视口」，会让输入框掉到折叠线以下；
+   老浏览器不认 dvh 就退回 vh。min-height 也放低一点，横屏小手机才放得下 */
+.fr-chat { display: flex; flex-direction: column; height: 64vh; height: 64dvh; min-height: 320px; }
 .fr-chat__head { display: flex; align-items: center; gap: 11px; padding-bottom: 12px; border-bottom: 1px solid var(--chat-line); }
 .fr-chat__head img {
   width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
@@ -205,7 +209,7 @@
 
 .fr-chat__foot { display: flex; gap: 10px; align-items: flex-end; padding-top: 10px; border-top: 1px solid var(--chat-line); }
 .fr-chat__input {
-  font-size: 15px; line-height: 1.5; resize: none; overflow-y: auto;
+  font-size: 16px; line-height: 1.5; resize: none; overflow-y: auto;
   min-height: 46px; max-height: 120px; background: var(--chat-input-bg); color: var(--chat-strong);
   padding: 12px 14px;
 }
@@ -355,7 +359,7 @@
 
 @media (max-width: 560px) {
   .fr-card { padding: 14px; border-radius: 16px; }
-  .fr-chat { height: 70vh; }
+  .fr-chat { height: 70vh; height: 70dvh; }
   .fr-btn { padding: 8px 13px; font-size: 13px; }
   .fr-chat__tools { gap: 5px; }
   .fr-chat__meta { max-width: 30vw; }

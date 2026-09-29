@@ -36,3 +36,34 @@
     if (e.key === 'Escape') setOpen(false);
   });
 })();
+
+/* =========================================================
+   登录后，导航里的「我的账号」换成「头像 + 昵称」
+   —— 放在这里而不是 main.js，这样每个页面都生效
+   ========================================================= */
+(function () {
+  'use strict';
+  var link = document.querySelector('.site-nav a[href="account.html"]');
+  if (!link) return;
+  try {
+    var raw = localStorage.getItem('jhjx-account-user');
+    if (!raw) return;
+    var u = JSON.parse(raw);
+    if (!u || !u.name) return;
+
+    link.textContent = '';
+    link.title = '我的账号：' + u.name;
+    if (u.avatar) {
+      var img = document.createElement('img');
+      img.className = 'site-nav__avatar';
+      img.alt = '';
+      img.width = 22;
+      img.height = 22;
+      img.decoding = 'async';
+      img.src = u.avatar;
+      img.onerror = function () { this.style.display = 'none'; };
+      link.appendChild(img);
+    }
+    link.appendChild(document.createTextNode(u.name));
+  } catch (e) { /* 忽略 */ }
+})();

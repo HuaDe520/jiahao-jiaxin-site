@@ -44,7 +44,7 @@
     box.innerHTML = '';
 
     if (relation === 'self') {
-      box.appendChild(button('修改我的资料', '', function () { location.href = 'account.html#profile'; }));
+      box.appendChild(button('修改我的资料', '', function () { location.href = 'account.html#acProfile'; }));
       box.appendChild(button('去好友页', 'fr-btn--ghost', function () { location.href = 'friends.html'; }));
       return;
     }
@@ -123,6 +123,8 @@
   }
   if (!API.token() || !API.user()) {
     show('pfGuest');
+    /* 登录资料被 api.js 补回来之后重新加载，别停在「请先登录」 */
+    window.addEventListener('jhjx:session', function () { location.reload(); });
     return;
   }
   $('pfTitle').textContent = '成员主页';

@@ -97,20 +97,30 @@
 
   window.JHJX_API = {
     enter: function (name, code, password) {
-      /* 带上设备凭证：同一台设备再进来时凭证不变，别的设备登录会把这里挤下线 */
+      /* 带上设备凭证：同一台设备再进来时凭证不变，别的设备登录会把这里挤下线。
+         邀请码输入框显示的是大写，用户敲小写也照样算对，所以这里统一转大写。 */
       return call('POST', '/api/enter', {
         name: name,
-        code: code,
+        code: String(code == null ? '' : code).trim().toUpperCase(),
         password: password,
         token: deviceToken() || token()
       });
     },
     changePassword: function (permCode, newPassword, oldPassword) {
-      return call('POST', '/api/password', { permCode: permCode, newPassword: newPassword, oldPassword: oldPassword || '' });
+      return call('POST', '/api/password', {
+        permCode: String(permCode == null ? '' : permCode).trim().toUpperCase(),
+        newPassword: newPassword,
+        oldPassword: oldPassword || ''
+      });
     },
     /* 忘了密码：昵称 + 邀请码 + 修改权限码 → 重设并直接登录 */
     resetPassword: function (name, code, permCode, newPassword) {
-      return call('POST', '/api/password/reset', { name: name, code: code, permCode: permCode, newPassword: newPassword });
+      return call('POST', '/api/password/reset', {
+        name: name,
+        code: String(code == null ? '' : code).trim().toUpperCase(),
+        permCode: String(permCode == null ? '' : permCode).trim().toUpperCase(),
+        newPassword: newPassword
+      });
     },
     me: function () { return call('GET', '/api/me'); },
     report: function (targetName, reason, detail) {
@@ -172,11 +182,15 @@
   };
 
   /* 本机缓存被清掉/写坏了、但凭证还在 → 自动把昵称资料取回来，
-     免得页面上看起来「登录突然没了」。 */
+     免得页面上看起来「登录突然没了」。
+     取回来之后发个事件，好友页 / 主页可以重新渲染一次（不然会停在「请先登录」）。 */
   try {
     if (token() && (!user() || !user().name)) {
       call('GET', '/api/me').then(function (r) {
-        if (r.status === 200 && r.data && r.data.user) saveSession(null, r.data.user);
+        if (r.status === 200 && r.data && r.data.user) {
+          saveSession(null, r.data.user);
+          try { window.dispatchEvent(new Event('jhjx:session')); } catch (e) { /* 忽略 */ }
+        }
       });
     }
   } catch (e) { /* 忽略 */ }

@@ -96,9 +96,9 @@
       var last = document.createElement('div');
       last.className = 'fr-row__last';
       last.textContent = t && t.last ? (t.last.length > 24 ? t.last.slice(0, 24) + '…' : t.last) : '点这里开始聊天';
+      clickable(last, f.id, '看 ' + f.name + ' 的主页');
       body.appendChild(name);
       body.appendChild(last);
-      clickable(body, f.id, '看 ' + f.name + ' 的主页');
       row.appendChild(body);
 
       var side = document.createElement('div');
@@ -521,9 +521,18 @@
   function loadChat(since) {
     if (!state.current) return Promise.resolve();
     var box = $('frChatList');
-    return API.thread(state.current.id, since || 0).then(function (res) {
+    var fid = state.current.id;          /* 记下这次请求是发给谁的 */
+    return API.thread(fid, since || 0).then(function (res) {
+      /* 请求飞在路上时用户可能已经切到别的会话了，那就别把旧数据画进去 */
+      if (!state.current || state.current.id !== fid) return;
       if (res.status !== 200) return;
       var list = res.data.messages || [];
+      /* 接口会把对方最新的性别 / 签名一起带回来，这里补上顶部那行小字
+         （好友列表里的数据没有这两个字段，所以必须用它） */
+      if (res.data.friend) {
+        state.current = Object.assign({}, state.current, res.data.friend);
+        updateChatMeta(state.current);
+      }
       var wasNearBottom = nearBottom(box);
       var keepTop = box.scrollTop;
       if (!since) { box.innerHTML = ''; state.lastAt = 0; }
@@ -549,6 +558,17 @@
     });
   }
 
+  /* 聊天顶部：昵称下面那行「性别 · 签名」 */
+  function updateChatMeta(friend) {
+    var meta = $('frChatMeta');
+    if (!meta || !friend) return;
+    var bits = [];
+    if (friend.genderText) bits.push(friend.genderText);
+    if (friend.signature) bits.push(friend.signature);
+    meta.textContent = bits.join(' · ');
+    meta.hidden = !bits.length;
+  }
+
   /* 输入框跟着内容长高（最多 4 行） */
   function updateComposer() {
     var input = $('frChatInput');
@@ -568,14 +588,7 @@
     $('frPaneChat').hidden = false;
     $('frChatAvatar').src = avatarUrl(friend.avatar);
     $('frChatName').textContent = friend.name;
-    var meta = $('frChatMeta');
-    if (meta) {
-      var bits = [];
-      if (friend.genderText) bits.push(friend.genderText);
-      if (friend.signature) bits.push(friend.signature);
-      meta.textContent = bits.join(' · ');
-      meta.hidden = !bits.length;
-    }
+    updateChatMeta(friend);
     applyTheme(currentTheme());
     $('frChatList').innerHTML = '';
     showNewMsgHint(false);
@@ -586,6 +599,8 @@
 
     if (state.timer) clearInterval(state.timer);
     state.timer = setInterval(function () {
+      /* 页面在后台（切到别的 App）就别一直请求了，回来看时再拉 */
+      if (document.hidden) return;
       state.polls = (state.polls || 0) + 1;
       /* 每 4 次（约 16 秒）整体重拉一遍：这样对方撤回、已读状态也能跟着更新 */
       if (state.polls % 4 === 0) loadChat(0);
@@ -607,9 +622,12 @@
     var text = input.value.replace(/\s+$/, '');
     if (!text.trim() || !state.current) return;
     var btn = $('frChatSend');
+    var fid = state.current.id;
     btn.disabled = true;
-    API.sendMessage(state.current.id, text).then(function (res) {
+    API.sendMessage(fid, text).then(function (res) {
       btn.disabled = false;
+      /* 发完切走了会话的话，就别把这条画到别人头上（消息其实已经发出去了） */
+      if (!state.current || state.current.id !== fid) return;
       if (res.status === 200) {
         input.value = '';
         updateComposer();
@@ -679,6 +697,9 @@
   if (!user || !API.token()) {
     $('frGuest').hidden = false;
     $('frToAccount').addEventListener('click', function () { location.href = 'account.html'; });
+    /* api.js 有时能把丢失的登录资料补回来（缓存被清掉但凭证还在），
+       补回来之后重新加载一次，别让用户停在「请先登录」上 */
+    window.addEventListener('jhjx:session', function () { location.reload(); });
     return;
   }
   $('frMain').hidden = false;
@@ -736,5 +757,10 @@
     var f = state.friends.filter(function (x) { return x.id === id; })[0];
     if (f) openChat(f);
   });
-  setInterval(function () { if (!state.current) refresh(); }, 20000);
+  setInterval(function () { if (!state.current && !document.hidden) refresh(); }, 20000);
+  /* 从后台切回来时立刻补一次，别等下一轮 */
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) return;
+    if (state.current) loadChat(0); else refresh();
+  });
 })();
