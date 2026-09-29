@@ -14,7 +14,7 @@
  *   · 后端接口（另一个域名）不拦，直接放行。
  */
 
-const CACHE = 'jhjx-site-v5';
+const CACHE = 'jhjx-site-v6';
 
 /* 首屏必需的东西，装完 SW 就悄悄缓存好；注意别放 512 图标这类大文件 */
 const SHELL = [
@@ -87,10 +87,20 @@ async function navigationFirst(req) {
   const res = await Promise.race([network.catch(() => null), timeout]);
   if (res) return res;
 
-  const hit = await cache.match(req, { ignoreSearch: true })
-    || await cache.match('./index.html', { ignoreSearch: true });
+  const hit = await cache.match(req, { ignoreSearch: true });
   if (hit) return hit;
-  return (await cache.match('./offline.html')) || Response.error();
+
+  /* 没有这一页的缓存：只有「首页 / 根路径」才兜到 index.html，
+     其它页面给「网络好像不太行」的兜底页。
+     （以前不管哪一页都兜 index.html —— 网络一慢，点「好友」会莫名其妙
+     看到首页，用户还以为自己点错了） */
+  let path = '/';
+  try { path = new URL(req.url).pathname; } catch (e) { path = '/'; }
+  if (/^\/(index\.html)?$/.test(path)) {
+    const home = await cache.match('./index.html', { ignoreSearch: true });
+    if (home) return home;
+  }
+  return (await cache.match('./offline.html', { ignoreSearch: true })) || Response.error();
 }
 
 self.addEventListener('fetch', (event) => {
