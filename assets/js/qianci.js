@@ -1203,7 +1203,7 @@
         body.appendChild(name);
         var metaLine = document.createElement('div');
         metaLine.className = 'qc-item__mean';
-        metaLine.textContent = '豪到了 ' + item.known + ' 词' + (item.todo ? ' · 待豪本 ' + item.todo + ' 词' : '');
+        metaLine.textContent = '豪到了 ' + item.known + ' 词';
         body.appendChild(metaLine);
         row.appendChild(body);
         rankList.appendChild(row);
