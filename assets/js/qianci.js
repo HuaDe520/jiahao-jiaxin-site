@@ -3,20 +3,22 @@
    ---------------------------------------------------------
    一个词库 = 一堆 [单词, 音标, 释义]，进度按词库存本机浏览器。
 
-   词的状态（决定它多常出现）：
-     unknown  不认识      —— 权重 8，最常回来看你
-     wrong    选错过      —— 权重 5
-     fuzzy    模糊        —— 权重 3
-     learning 刚认识      —— 权重 3（跟模糊一样；再答错退回 unknown，再答对才变 known）
-     known    完全认识    —— 权重 0.25，很低很低
+   词的状态（决定它多常出现，权重越大出现越勤）：
+     unknown  不认识      —— 8   （保持不变）
+     wrong    选错过      —— 5
+     fuzzy    模糊        —— 5   （调高了，之前是 3）
+     known    完全认识    —— 1   （调高了，之前是 0.25）
 
-   答对一次：原来是 unknown / wrong → 变 learning（进「豪到了」，但按模糊的频率重复）；
-             原来是 fuzzy / learning / known → 变 known。
-   答错：learning 变回 unknown；known 选错变 wrong、不认识变 unknown；fuzzy 保持。
-   待豪本 = 状态还在 unknown / wrong / fuzzy 的词（答对就从这里剔除，进「豪到了」）
-   豪到了 = 状态是 learning / known 的词
+   连对阶梯（答错/不认识之后要连对 4 次才算完全认识）：
+     答错一次           → 连对次数清零，状态回到 不认识 / 选错过
+     再连对 2 次        → 机制上等同「模糊」（频率跟模糊一样，还在待豪本）
+     再连对 2 次（共 4）→ 完全认识，进「豪到了」
+   第一次就答对的词：直接算完全认识（不用爬阶梯）。
+   答错 / 不认识之后不会再「隔两张就回来」，会拉开 8~15 张，免得靠短时记忆蒙对。
+   待豪本 = 状态还是 unknown / wrong / fuzzy 的词
+   豪到了 = 状态是 known 的词
 
-   牌堆：长牌堆按权重洗整个词库 + 短队列把刚答错/模糊/不认识的词插到后面几张。
+   牌堆：长牌堆按权重洗整个词库 + 短队列把弱词插到后面第几张再考一次。
    「重新背」= 不管历史，从头过一遍整个词库（不动两个本子）。
    ========================================================= */
 (function () {
@@ -25,13 +27,15 @@
   var STATE_KEY = 'jhjx-qianci-v1';
   var BANKS = (window.JHJX_WORD_BANKS || []).slice();
   var DETAIL = window.JHJX_DETAIL_INDEX || { base: 'assets/data/qianci-detail/', version: '' };
-  var DECK_WEIGHT = { unknown: 8, wrong: 5, fuzzy: 3, learning: 3, known: 0.25, unseen: 2.5 };
-  var REINJECT = { unknown: [3, 5], wrong: [5, 8], fuzzy: [8, 12], learning: [8, 12] };
+  var DECK_WEIGHT = { unknown: 8, wrong: 5, fuzzy: 5, known: 1, unseen: 2.5 };
+  /* 答错 / 不认识之后隔久一点再出现（张数） */
+  var REINJECT = { unknown: [8, 12], wrong: [10, 15], fuzzy: [6, 9] };
+  var LADDER = 4;              /* 连对这么多次才算完全认识（2 次等同模糊，再 2 次进豪到了） */
   var RECENT_GUARD = 5;
   var OPTION_COUNT = 4;
-  var STATE_LABEL = { unknown: '不认识', wrong: '选错过', fuzzy: '模糊', learning: '刚认识', known: '已掌握' };
+  var STATE_LABEL = { unknown: '不认识', wrong: '选错过', fuzzy: '模糊', known: '已掌握' };
   var TODO_STATES = ['unknown', 'wrong', 'fuzzy'];
-  var KNOWN_STATES = ['learning', 'known'];
+  var KNOWN_STATES = ['known'];
 
   /* ---------- DOM ---------- */
   var homeEl = document.getElementById('qcHome');
@@ -311,24 +315,31 @@
     nextBtn.hidden = false;
   }
 
-  /* ---------- 状态机 ---------- */
-  function nextState(prev, kind) {
+  /* ---------- 状态机 + 连对阶梯 ---------- */
+  /* 返回 [新状态, 新连对次数] */
+  function nextState(prev, streak, kind) {
     if (kind === 'right') {
-      if (prev === 'unknown' || prev === 'wrong') return 'learning';   /* 一次答对只算「刚认识」 */
-      return 'known';                                                  /* 模糊/刚认识/已掌握 再答对 = 完全认识 */
+      if (prev === 'known') return ['known', streak + 1];
+      if (prev === '' || !prev) return ['known', 1];      /* 第一次就答对，直接算会了 */
+      var c = streak + 1;
+      if (c >= LADDER) return ['known', c];               /* 连对够 4 次 → 完全认识 */
+      if (c >= 2) return ['fuzzy', c];                    /* 连对 2 次 → 机制上等同模糊 */
+      return [prev, c];                                   /* 才答对一次，先维持原来的弱状态 */
     }
-    if (kind === 'unknown') return 'unknown';
-    if (kind === 'fuzzy') return 'fuzzy';
-    /* 选错：刚认识或已掌握 掉下来 */
-    if (prev === 'learning') return 'unknown';
-    return 'wrong';
+    if (kind === 'unknown') return ['unknown', 0];
+    if (kind === 'fuzzy') return ['fuzzy', 0];
+    /* 选错：已经爬到模糊级的，退回不认识；否则就是选错 */
+    if (streak >= 2) return ['unknown', 0];
+    return ['wrong', 0];
   }
 
   function recordAnswer(kind) {
     var st = bankState(bankId);
     var key = current.word.toLowerCase();
-    var row = st.words[key] || { s: '', r: 0, u: 0, x: 0, f: 0, n: 0, t: 0 };
-    row.s = nextState(row.s, kind);
+    var row = st.words[key] || { s: '', c: 0, r: 0, u: 0, x: 0, f: 0, n: 0, t: 0 };
+    var out = nextState(row.s, row.c || 0, kind);
+    row.s = out[0];
+    row.c = out[1];
     row.n++;
     row.t = Date.now();
     if (kind === 'right') row.r++;
@@ -341,6 +352,7 @@
     sessionCount++;
     updateProgressText();
     schedulePush();
+    return row;
   }
 
   function chooseOption(idx) {
@@ -357,16 +369,19 @@
     fuzzyBtn.disabled = true;
     unknownBtn.disabled = true;
     if (opt.right) {
-      recordAnswer('right');
-      var now = wordRow(bankId, current.word.toLowerCase());
-      /* 「刚认识」按模糊的频率再回来考你（跟模糊词一个待遇） */
-      if (now && now.s === 'learning') scheduleAgain(current.i, 'learning');
-      showFeedback('正确', now && now.s === 'learning'
-        ? '记住了 —— 先算「刚认识」，还会再来考你一次。'
-        : current.mean, '');
+      var row = recordAnswer('right');
+      if (row.s === 'known') {
+        showFeedback('正确', row.r > 1 ? ('连对 ' + row.c + ' 次 —— 这个词收进「豪到了」。') : current.mean, '');
+      } else {
+        /* 还没爬完阶梯：告诉他还差几次 */
+        var need = LADDER - row.c;
+        showFeedback('正确', '已连对 ' + row.c + ' 次，再连对 ' + need + ' 次就进「豪到了」。', 'is-fuzzy');
+      }
+      /* 还没完全认识的词，让它按当前状态再回来（模糊级隔 6~9 张，更弱的隔 8~15 张） */
+      if (row.s !== 'known') scheduleAgain(current.i, row.s);
     } else {
-      recordAnswer('wrong');
-      scheduleAgain(current.i, 'wrong');
+      var row2 = recordAnswer('wrong');
+      scheduleAgain(current.i, row2.s);
       showFeedback('错误', '正确释义：' + current.mean, 'is-bad');
     }
   }
@@ -374,7 +389,7 @@
     if (!current || current.answered) return;
     current.answered = true;
     lockOptions();
-    recordAnswer('fuzzy');
+    var row = recordAnswer('fuzzy');
     scheduleAgain(current.i, 'fuzzy');
     showFeedback('加深印象', '正确释义：' + current.mean, 'is-fuzzy');
   }
@@ -636,10 +651,12 @@
     var total = rows.length;
     if (booksWhich === 'todo') {
       var sumU = rows.reduce(function (n, r) { return n + (r.s.u || 0); }, 0);
-      booksHintEl.textContent = '待豪本：' + total + ' 个词，累计没认出来 ' + sumU + ' 次。答对一次就会从这里移到「豪到了」。';
+      booksHintEl.textContent = '待豪本：' + total + ' 个词，累计没认出来 ' + sumU + ' 次。答错/不认识之后要连对 '
+        + LADDER + ' 次才进「豪到了」（连对 2 次先降成模糊的频率）。';
     } else {
-      var half = rows.filter(function (r) { return r.s.s === 'learning'; }).length;
-      booksHintEl.textContent = '豪到了：' + total + ' 个词，其中 ' + half + ' 个是「刚认识」（还会按模糊的频率再考你）。';
+      var perfect = rows.filter(function (r) { return (r.s.c || 0) >= LADDER; }).length;
+      booksHintEl.textContent = '豪到了：' + total + ' 个词，都是连对 ' + LADDER + ' 次以上的。答对过的词也会再出现，只是频率低。';
+      if (perfect !== total) booksHintEl.textContent += '（有 ' + (total - perfect) + ' 个是老版本记录的）';
     }
     booksCountEl.textContent = total + ' 个词';
 
@@ -683,22 +700,46 @@
       var tags = document.createElement('div');
       tags.className = 'qc-item__tags';
       var t1 = document.createElement('span');
-      t1.className = 'qc-tag ' + (r.s.s === 'fuzzy' || r.s.s === 'learning' ? 'qc-tag--fuzzy' : (r.s.s === 'known' ? 'qc-tag--ok' : 'qc-tag--bad'));
+      t1.className = 'qc-tag ' + (r.s.s === 'fuzzy' ? 'qc-tag--fuzzy' : (r.s.s === 'known' ? 'qc-tag--ok' : 'qc-tag--bad'));
       t1.textContent = STATE_LABEL[r.s.s] || '看过';
       tags.appendChild(t1);
-      var t2 = document.createElement('span');
-      t2.className = 'qc-tag qc-tag--bad';
-      t2.textContent = '未认出 ' + (r.s.u || 0) + ' 次';
-      tags.appendChild(t2);
-      var t3 = document.createElement('span');
-      t3.className = 'qc-tag';
-      t3.textContent = '对 ' + (r.s.r || 0) + ' · 错 ' + ((r.s.x || 0) + (r.s.u || 0));
-      tags.appendChild(t3);
-      if (r.s.f) {
-        var t4 = document.createElement('span');
-        t4.className = 'qc-tag qc-tag--fuzzy';
-        t4.textContent = '模糊 ' + r.s.f + ' 次';
-        tags.appendChild(t4);
+      if (booksWhich === 'todo') {
+        var t2 = document.createElement('span');
+        t2.className = 'qc-tag qc-tag--bad';
+        t2.textContent = '未认出 ' + (r.s.u || 0) + ' 次';
+        tags.appendChild(t2);
+        var t3 = document.createElement('span');
+        t3.className = 'qc-tag';
+        t3.textContent = '对 ' + (r.s.r || 0) + ' · 错 ' + ((r.s.x || 0) + (r.s.u || 0));
+        tags.appendChild(t3);
+        if (r.s.c > 0) {
+          var t5 = document.createElement('span');
+          t5.className = 'qc-tag qc-tag--fuzzy';
+          t5.textContent = '已连对 ' + r.s.c + ' / ' + LADDER + ' 次';
+          tags.appendChild(t5);
+        }
+        if (r.s.f) {
+          var t4 = document.createElement('span');
+          t4.className = 'qc-tag qc-tag--fuzzy';
+          t4.textContent = '模糊 ' + r.s.f + ' 次';
+          tags.appendChild(t4);
+        }
+      } else {
+        /* 豪到了里显示「认出次数」 */
+        var k1 = document.createElement('span');
+        k1.className = 'qc-tag qc-tag--ok';
+        k1.textContent = '认出 ' + (r.s.r || 0) + ' 次';
+        tags.appendChild(k1);
+        var k2 = document.createElement('span');
+        k2.className = 'qc-tag';
+        k2.textContent = '连对 ' + (r.s.c || 0) + ' 次';
+        tags.appendChild(k2);
+        if (r.s.u) {
+          var k3 = document.createElement('span');
+          k3.className = 'qc-tag qc-tag--bad';
+          k3.textContent = '以前没认出 ' + r.s.u + ' 次';
+          tags.appendChild(k3);
+        }
       }
       body.appendChild(tags);
       li.appendChild(body);
@@ -1144,16 +1185,25 @@
     word: function (w) {
       var row = wordRow(bankId, String(w).toLowerCase());
       if (!row) return null;
-      return { s: row.s, r: row.r || 0, u: row.u || 0, x: row.x || 0, f: row.f || 0, n: row.n || 0 };
+      return { s: row.s, c: row.c || 0, r: row.r || 0, u: row.u || 0, x: row.x || 0, f: row.f || 0, n: row.n || 0 };
     },
     detail: function () {
       return { word: detailWordKey, open: view === 'detail', text: detailBody ? detailBody.textContent : '' };
     },
+    /* 当前词库里、某个本子里的词（自检用，不依赖单词本视图开没开） */
     books: function (which) {
       if (!bank) return null;
-      return bookRows(which || booksWhich).map(function (r) {
-        return { word: r.word, s: r.s.s, u: r.s.u || 0, r: r.s.r || 0 };
-      });
+      var id = bankId || bank.id;
+      var st = bankState(id);
+      var want = (which || booksWhich) === 'todo' ? TODO_STATES : KNOWN_STATES;
+      var out = [];
+      for (var i = 0; i < bank.words.length; i++) {
+        var row = bank.words[i];
+        var s = st.words[row[0].toLowerCase()];
+        if (!s || want.indexOf(s.s) < 0) continue;
+        out.push({ word: row[0], s: s.s, c: s.c || 0, u: s.u || 0, r: s.r || 0 });
+      }
+      return out;
     },
     recent: function () { return recent.slice(); },
     weights: function () { return DECK_WEIGHT; },
