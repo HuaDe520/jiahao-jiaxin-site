@@ -73,6 +73,9 @@
 }
 .qc-bank__go--ghost:hover { border-color: var(--gold-500); }
 
+/* 「重新背」的二次确认：撑满整张词库卡片（选择器比重高一点，免得被 .qc-confirm 的下边距盖掉） */
+.qc-bank .qc-confirm--bank { grid-column: 1 / -1; margin: 12px 0 0; }
+
 .qc-home__tip {
   margin: 16px 0 0; text-align: center;
   font-size: 12.5px; color: var(--ink-mute); line-height: 1.8;

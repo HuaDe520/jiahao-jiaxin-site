@@ -522,6 +522,15 @@
   }
 
   /* ---------- 选词库 ---------- */
+  /* 关掉「重新背」的确认框，把按钮那行放回来 */
+  function closeRestartConfirm() {
+    if (!banksEl) return;
+    var boxes = banksEl.querySelectorAll('.qc-confirm--bank');
+    for (var i = 0; i < boxes.length; i++) boxes[i].hidden = true;
+    var rows = banksEl.querySelectorAll('.qc-bank__actions');
+    for (var j = 0; j < rows.length; j++) rows[j].hidden = false;
+  }
+
   function renderBanks() {
     banksEl.innerHTML = '';
     if (!BANKS.length) {
@@ -608,16 +617,58 @@
       go.textContent = learnedCount(b.id) ? '接着背' : '开始背';
       go.addEventListener('click', function () { startBank(b.id, 'continue'); });
       goWrap.appendChild(go);
+      var restartBox = null;
       if (learnedCount(b.id)) {
         var again = document.createElement('button');
         again.type = 'button';
         again.className = 'qc-bank__go qc-bank__go--ghost';
         again.setAttribute('data-restart', b.id);
         again.textContent = '重新背';
-        again.addEventListener('click', function () { startBank(b.id, 'restart'); });
+
+        /* 重新背会把整个词库从头再走一遍，点错了这一趟就白走，所以先问一句 */
+        restartBox = document.createElement('div');
+        restartBox.className = 'qc-confirm qc-confirm--bank';
+        restartBox.setAttribute('data-restart-confirm', b.id);
+        restartBox.hidden = true;
+        var rcText = document.createElement('p');
+        rcText.className = 'qc-confirm__text';
+        rcText.textContent = '重新背「' + b.name + '」？会把 ' + b.count + ' 个词整个过一遍（每个词都出一次），'
+          + '待豪本和豪到了里的记录都留着。';
+        restartBox.appendChild(rcText);
+        var rcActions = document.createElement('div');
+        rcActions.className = 'qc-confirm__actions';
+        var rcCancel = document.createElement('button');
+        rcCancel.type = 'button';
+        rcCancel.className = 'qc-bar__btn';
+        rcCancel.setAttribute('data-restart-cancel', b.id);
+        rcCancel.textContent = '取消';
+        var rcOk = document.createElement('button');
+        rcOk.type = 'button';
+        rcOk.className = 'qc-bar__btn qc-bar__btn--gold';
+        rcOk.setAttribute('data-restart-ok', b.id);
+        rcOk.textContent = '确认重新背';
+        rcActions.appendChild(rcCancel);
+        rcActions.appendChild(rcOk);
+        restartBox.appendChild(rcActions);
+
+        again.addEventListener('click', function () {
+          closeRestartConfirm();          /* 只留一个确认框开着 */
+          goWrap.hidden = true;
+          restartBox.hidden = false;
+        });
+        rcCancel.addEventListener('click', function () {
+          restartBox.hidden = true;
+          goWrap.hidden = false;
+        });
+        rcOk.addEventListener('click', function () {
+          restartBox.hidden = true;
+          goWrap.hidden = false;
+          startBank(b.id, 'restart');
+        });
         goWrap.appendChild(again);
       }
       card.appendChild(goWrap);
+      if (restartBox) card.appendChild(restartBox);
       banksEl.appendChild(card);
     });
 
