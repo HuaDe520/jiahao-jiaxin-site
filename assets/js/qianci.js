@@ -750,17 +750,31 @@
   var detailLoadingChunk = {};
   var detailWaiters = {};
 
-  function detailGlobal(letter) { return 'JHJX_DETAIL_' + letter.toUpperCase(); }
+  /* 词条数据按「每桶 50 个词」切好，索引里存每桶的第一个词，二分找桶 */
+  function bucketOf(word) {
+    var starts = DETAIL.starts || [];
+    if (!starts.length) return -1;
+    var lo = 0;
+    var hi = starts.length - 1;
+    var ans = 0;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1;
+      if (starts[mid] <= word) { ans = mid; lo = mid + 1; }
+      else hi = mid - 1;
+    }
+    return ans;
+  }
 
   function loadDetailChunk(word, cb) {
-    var c = /^[a-z]/.test(word) ? word[0] : '0';
-    var g = detailGlobal(c);
+    var idx = bucketOf(word);
+    if (idx < 0) { cb(null); return; }
+    var g = 'JHJX_DETAIL_D' + idx;
     if (window[g]) { cb(window[g] || null); return; }
     if (detailLoadingChunk[g]) { detailWaiters[g].push(cb); return; }
     detailLoadingChunk[g] = true;
     detailWaiters[g] = [cb];
     var s = document.createElement('script');
-    s.src = (DETAIL.base || 'assets/data/qianci-detail/') + c + '.js' + (DETAIL.version ? '?v=' + DETAIL.version : '');
+    s.src = (DETAIL.base || 'assets/data/qianci-detail/') + 'd' + idx + '.js' + (DETAIL.version ? '?v=' + DETAIL.version : '');
     var done = function (ok) {
       detailLoadingChunk[g] = false;
       var data = ok ? (window[g] || null) : null;
@@ -785,7 +799,13 @@
       for (var i = 0; i < bank.words.length; i++) { if (bank.words[i][0].toLowerCase() === detailWordKey) { known = bank.words[i]; break; } }
     }
     detailPhonetic.textContent = known && known[1] ? '[' + known[1] + ']' : '';
+    /* 网络慢的时候先把词库里已有的释义显示出来，详细资料到了再补上 */
     detailBody.innerHTML = '';
+    if (known && known[2]) {
+      var quick = section('释义');
+      line(quick, known[2]);
+      detailBody.appendChild(quick);
+    }
     detailLoading.hidden = false;
     detailLoading.textContent = '正在取这个词的详细释义…';
     showView('detail');
