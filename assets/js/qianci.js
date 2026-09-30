@@ -87,6 +87,24 @@
 
   /* ---------- 本机进度 ---------- */
   function emptyStore() { return { v: 1, banks: {}, lastBank: '', pushed: {} }; }
+  /* 老版本的状态迁移：learning 是上一版的「刚认识」，现在归到模糊级（连对 2 次） */
+  function migrateStore(s) {
+    if (!s || !s.banks) return s;
+    for (var id in s.banks) {
+      if (!Object.prototype.hasOwnProperty.call(s.banks, id)) continue;
+      var words = s.banks[id] && s.banks[id].words;
+      if (!words) continue;
+      for (var k in words) {
+        if (!Object.prototype.hasOwnProperty.call(words, k)) continue;
+        var row = words[k];
+        if (!row) continue;
+        if (row.s === 'learning') { row.s = 'fuzzy'; row.c = 2; }
+        if (typeof row.c !== 'number') row.c = 0;
+      }
+    }
+    return s;
+  }
+
   function loadStore() {
     try {
       var raw = localStorage.getItem(STATE_KEY);
@@ -94,7 +112,7 @@
         var s = JSON.parse(raw);
         if (s && s.v === 1 && s.banks && typeof s.banks === 'object') {
           if (!s.pushed) s.pushed = {};
-          return s;
+          return migrateStore(s);
         }
       }
     } catch (e) { /* 忽略 */ }
