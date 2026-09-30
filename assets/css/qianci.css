@@ -323,6 +323,19 @@
 }
 .qc-root__origin { color: var(--ink-mute); font-size: 12.5px; }
 
+/* ---------- 背单词时下面的小榜 ---------- */
+.qc-inline {
+  margin-top: 18px; padding: 14px 16px 12px;
+  background: rgba(255, 255, 255, .8);
+  border: 1px solid rgba(18, 101, 90, .14);
+  border-radius: var(--radius);
+}
+.qc-inline__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.qc-inline__head h4 { margin: 0; font-size: 13px; color: var(--jade-800); letter-spacing: .04em; }
+.qc-inline__actions { display: flex; gap: 6px; }
+.qc-inline .qc-item { padding: 8px 10px; }
+.qc-inline .qc-item__word { font-size: 14px; }
+
 /* ---------- 好友排行榜 ---------- */
 .qc-rank__row { align-items: center; }
 .qc-rank__row.is-me { border-color: var(--gold-500); box-shadow: 0 0 0 2px rgba(201, 162, 75, .16); }

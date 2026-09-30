@@ -83,6 +83,11 @@
   var rankHint = document.getElementById('qcRankHint');
   var rankList = document.getElementById('qcRankList');
   var rankRefresh = document.getElementById('qcRankRefresh');
+  var inlineEl = document.getElementById('qcRankInline');
+  var inlineHint = document.getElementById('qcRankInlineHint');
+  var inlineList = document.getElementById('qcRankInlineList');
+  var inlineRefresh = document.getElementById('qcRankInlineRefresh');
+  var inlineOpen = document.getElementById('qcRankInlineOpen');
   if (!homeEl || !studyEl || !booksEl || !banksEl) return;
 
   /* ---------- 本机进度 ---------- */
@@ -230,6 +235,75 @@
   function coreOf(mean) {
     return String(mean).replace(/^[a-z][a-z.&\s]*\.\s*/i, '').replace(/[，,；;。.、/\\|()（）\[\]\s'"“”‘’]/g, '');
   }
+
+  /* 形近词：先按前两个字母分桶，再算编辑距离（只给最近的几个）。
+     用途：错误选项优先用「长得像」的词，比如 conservation 的选项里
+     会出现 conversation（谈话），别让人一眼就排除掉。 */
+  var simIndex = null;
+  var simCache = {};
+  function buildSimIndex() {
+    simIndex = {};
+    for (var i = 0; i < bank.words.length; i++) {
+      var w = bank.words[i][0].toLowerCase();
+      /* 前两个字母 + 第 2~3 个字母：这样 affect / effect 这种也能撞到一起 */
+      var keys = [w.slice(0, 2)];
+      if (w.length > 3) keys.push(w.slice(1, 3));
+      for (var k = 0; k < keys.length; k++) {
+        var key = keys[k];
+        if (!key) continue;
+        if (!simIndex[key]) simIndex[key] = [];
+        simIndex[key].push(i);
+      }
+    }
+  }
+  function editDistance(a, b, cap) {
+    if (Math.abs(a.length - b.length) > cap) return cap + 1;
+    var prev = [];
+    for (var j = 0; j <= b.length; j++) prev[j] = j;
+    for (var i = 1; i <= a.length; i++) {
+      var cur = [i];
+      var best = i;
+      for (var k = 1; k <= b.length; k++) {
+        var cost = a.charAt(i - 1) === b.charAt(k - 1) ? 0 : 1;
+        cur[k] = Math.min(prev[k] + 1, cur[k - 1] + 1, prev[k - 1] + cost);
+        if (cur[k] < best) best = cur[k];
+      }
+      if (best > cap) return cap + 1;
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+  function similarIndices(idx) {
+    var w = bank.words[idx][0].toLowerCase();
+    if (simCache[w]) return simCache[w];
+    if (!simIndex) buildSimIndex();
+    var pool = [];
+    var seen = {};
+    var keys = [w.slice(0, 2)];
+    if (w.length > 3) keys.push(w.slice(1, 3));
+    for (var b = 0; b < keys.length; b++) {
+      var bucket = simIndex[keys[b]] || [];
+      for (var c = 0; c < bucket.length; c++) {
+        var candidate = bucket[c];
+        if (seen[candidate]) continue;
+        seen[candidate] = 1;
+        pool.push(candidate);
+      }
+    }
+    var out = [];
+    for (var k = 0; k < pool.length; k++) {
+      var j = pool[k];
+      if (j === idx) continue;
+      var o = bank.words[j][0].toLowerCase();
+      var d = editDistance(w, o, 3);
+      if (d >= 1 && d <= 3) out.push({ j: j, d: d });
+    }
+    out.sort(function (a, b) { return a.d - b.d; });
+    var res = out.slice(0, 10).map(function (x) { return x.j; });
+    simCache[w] = res;
+    return res;
+  }
+
   function buildOptions(idx) {
     var right = bank.words[idx][2];
     var rightCore = coreOf(right);
@@ -252,6 +326,9 @@
       picks.push(mean);
       return true;
     }
+    /* 先放 1~2 个形近词的释义（真找不到就算了） */
+    var sims = similarIndices(idx);
+    for (var s = 0; s < sims.length && picks.length < 2; s++) tryPick(sims[s], true);
     var tries = 0;
     while (picks.length < OPTION_COUNT - 1 && tries < 400) { tries++; tryPick(Math.floor(Math.random() * words.length), true); }
     tries = 0;
@@ -370,6 +447,7 @@
     sessionCount++;
     updateProgressText();
     schedulePush();
+    scheduleInlineRank();
     return row;
   }
 
@@ -440,6 +518,7 @@
     if (name === 'home') renderBanks();
     if (name === 'books') renderBooks();
     if (name === 'rank') renderRank();
+    if (name === 'study') { refreshInlineRank(); }
   }
 
   /* ---------- 选词库 ---------- */
@@ -590,6 +669,8 @@
     shortQueue = [];
     recent = [];
     sessionCount = 0;
+    simIndex = null;
+    simCache = {};
     rebuildDeck(passMode === 'restart');
     bankNameEl.textContent = bank.name;
     booksBankEl.textContent = bank.name;
@@ -618,7 +699,7 @@
     var meta = bankMeta(id);
     if (!meta) { cb(false); return; }
     var g = globalNameOf(meta);
-    if (window[g] && window[g].length) { bank = { id: meta.id, name: meta.name, words: window[g] }; bankId = meta.id; cb(true); return; }
+    if (window[g] && window[g].length) { bank = { id: meta.id, name: meta.name, words: window[g] }; bankId = meta.id; simIndex = null; simCache = {}; cb(true); return; }
     var s = document.createElement('script');
     s.src = meta.file;
     s.onload = function () {
@@ -626,6 +707,8 @@
       if (!data || !data.length) { cb(false); return; }
       bank = { id: meta.id, name: meta.name, words: data };
       bankId = meta.id;
+      simIndex = null;
+      simCache = {};
       cb(true);
     };
     s.onerror = function () { cb(false); };
@@ -798,9 +881,10 @@
       saveStore();
       clearConfirm.hidden = true;
       clearBtn.hidden = false;
-      schedulePush();
+      /* 清空之后立刻把新数字（0）报上去，排行榜里的数据也跟着清 */
+      pushProgress(true, booksBankId);
       renderBooks();
-      if (homeTip) homeTip.textContent = '已清空 ' + changed + ' 个词的记录。';
+      if (homeTip) homeTip.textContent = '已清空 ' + changed + ' 个词的记录（排行榜里的词数也一起更新了）。';
     });
   }
 
@@ -937,7 +1021,7 @@
     }
 
     if (rec.ex && rec.ex.length) {
-      var exBox = section('例句');
+      var exBox = section(rec.exk === 'p' ? '常用说法' : '例句');
       rec.ex.forEach(function (x) {
         var d = document.createElement('div');
         d.className = 'qc-ex';
@@ -1001,6 +1085,18 @@
       detailBody.appendChild(dvBox);
     }
 
+    /* 词源：这个词是从哪来的 */
+    if (rec.et && (rec.et.o || rec.et.h || rec.et.r)) {
+      var etBox = section('词源');
+      if (rec.et.o || rec.et.r) {
+        var l1 = '来自 ' + (rec.et.o || '不详');
+        if (rec.et.r) l1 += ' · ' + rec.et.r;
+        line(etBox, l1);
+      }
+      if (rec.et.h) line(etBox, rec.et.h, 'qc-et__history');
+      detailBody.appendChild(etBox);
+    }
+
     if (rec.rt && rec.rt.length) {
       var rtBox = section('词根词缀');
       rec.rt.forEach(function (r) {
@@ -1029,6 +1125,7 @@
     if (!rec.ex) missing.push('例句');
     if (!rec.col) missing.push('固定搭配');
     if (!rec.rt) missing.push('词根词缀');
+    if (!rec.et) missing.push('词源');
     if (missing.length) line(detailBody, '这个词暂时没有：' + missing.join('、') + '。', 'qc-sec__note');
   }
 
@@ -1065,8 +1162,12 @@
     if (rankBusy) return;
     rankBusy = true;
     rankHint.textContent = '正在读取…';
-    pushProgress(true);
-    API.qianciBoard(rankBank).then(function (r) {
+    /* 先把自己的词数报上去，报完再取榜 —— 不然刚背完的分数这趟看不到 */
+    var pushes = [pushProgress(true, rankBank)];
+    if (store.lastBank && store.lastBank !== rankBank) pushes.push(pushProgress(true, store.lastBank));
+    Promise.all(pushes).then(function () {
+      return API.qianciBoard(rankBank);
+    }).then(function (r) {
       rankBusy = false;
       if (r.status === 401) { rankHint.textContent = '登录之后就能看到好友的词数了。'; return; }
       if (r.status !== 200 || !r.data || !r.data.ok) {
@@ -1078,12 +1179,12 @@
       var friends = Math.max(0, list.length - 1);
       rankHint.textContent = (meta ? meta.name : '') + '：自己 + ' + friends + ' 位好友，按「豪到了」的词数排。';
       list.forEach(function (item) {
-        var li = document.createElement('li');
-        li.className = 'qc-item qc-rank__row' + (item.me ? ' is-me' : '');
+        var row = document.createElement('li');
+        row.className = 'qc-item qc-rank__row' + (item.me ? ' is-me' : '');
         var no = document.createElement('span');
         no.className = 'qc-rank__no';
         no.textContent = String(item.rank || '');
-        li.appendChild(no);
+        row.appendChild(no);
         var body = document.createElement('div');
         body.className = 'qc-item__body';
         var name = document.createElement('strong');
@@ -1094,13 +1195,77 @@
         metaLine.className = 'qc-item__mean';
         metaLine.textContent = '豪到了 ' + item.known + ' 词' + (item.todo ? ' · 待豪本 ' + item.todo + ' 词' : '');
         body.appendChild(metaLine);
-        li.appendChild(body);
-        rankList.appendChild(li);
+        row.appendChild(body);
+        rankList.appendChild(row);
       });
+      renderInlineRank(list, (meta ? meta.name : ''));
     });
   }
 
-  /* 把「豪到了」的词数报给服务端（给好友排行榜用），几秒合并一次 */
+  /* ---------- 背单词时下面的小榜 ---------- */
+  var inlineBusy = false;
+  function renderInlineRank(list, bankName) {
+    if (!inlineEl) return;
+    if (!list) return;
+    inlineEl.hidden = false;
+    inlineHint.textContent = (bankName || '') + ' 好友榜（按豪到了的词数）';
+    inlineList.innerHTML = '';
+    var top = list.slice(0, 5);
+    var mine = null;
+    for (var i = 0; i < list.length; i++) { if (list[i].me) mine = list[i]; }
+    if (mine && top.indexOf(mine) < 0) top.push(mine);
+    top.forEach(function (item) {
+      var row = document.createElement('li');
+      row.className = 'qc-item qc-rank__row' + (item.me ? ' is-me' : '');
+      var no = document.createElement('span');
+      no.className = 'qc-rank__no';
+      no.textContent = String(item.rank || '');
+      row.appendChild(no);
+      var body = document.createElement('div');
+      body.className = 'qc-item__body';
+      var name = document.createElement('strong');
+      name.className = 'qc-item__word';
+      name.textContent = item.name + (item.me ? '（我）' : '');
+      body.appendChild(name);
+      var line2 = document.createElement('div');
+      line2.className = 'qc-item__mean';
+      line2.textContent = '豪到了 ' + item.known + ' 词';
+      body.appendChild(line2);
+      row.appendChild(body);
+      inlineList.appendChild(row);
+    });
+  }
+
+  function refreshInlineRank() {
+    if (!inlineEl || inlineBusy) return;
+    var API = window.JHJX_API;
+    if (!API || !API.serviceReady()) { inlineEl.hidden = true; return; }
+    if (!API.token()) {
+      inlineEl.hidden = false;
+      inlineHint.textContent = '登录之后，这里会显示好友的「豪到了」排行。';
+      inlineList.innerHTML = '';
+      return;
+    }
+    inlineBusy = true;
+    Promise.all([pushProgress(true, bankId || store.lastBank)]).then(function () {
+      return API.qianciBoard(bankId || store.lastBank || 'cet4');
+    }).then(function (r) {
+      inlineBusy = false;
+      if (r.status !== 200 || !r.data || !r.data.ok) { inlineEl.hidden = true; return; }
+      var meta = bankMeta(bankId);
+      renderInlineRank(r.data.list || [], meta ? meta.name : '');
+    });
+  }
+  var inlineTimer = 0;
+  function scheduleInlineRank() {
+    if (!inlineEl) return;
+    if (inlineTimer) return;
+    inlineTimer = setTimeout(function () { inlineTimer = 0; refreshInlineRank(); }, 3000);
+  }
+
+  /* 把「豪到了」的词数报给服务端（给好友排行榜用），几秒合并一次。
+     注意：不要求词库已经加载进来 —— 只数本机记了多少个词，所以
+     一进来就打开排行榜（还没点「开始背」）也能把自己的数报上去。 */
   var pushTimer = 0;
   function schedulePush() {
     var API = window.JHJX_API;
@@ -1108,18 +1273,26 @@
     if (pushTimer) return;
     pushTimer = setTimeout(function () { pushTimer = 0; pushProgress(false); }, 4000);
   }
-  function pushProgress(force) {
+  function pushProgress(force, bank) {
     var API = window.JHJX_API;
-    if (!API || !API.serviceReady() || !API.token() || !bankId) return;
-    var known = knownCount(bankId);
-    var todo = todoCount(bankId);
-    if (!force && store.pushed[bankId] === known) return;
-    store.pushed[bankId] = known;
+    if (!API || !API.serviceReady() || !API.token()) return Promise.resolve(null);
+    var id = bank || bankId || store.lastBank || '';
+    if (!id) return Promise.resolve(null);
+    var known = knownCount(id);
+    var todo = todoCount(id);
+    if (!force && store.pushed[id] === known) return Promise.resolve(null);
+    store.pushed[id] = known;
     saveStore();
-    API.qianciProgress(bankId, known, todo);
+    return API.qianciProgress(id, known, todo).then(function (r) { return r; }, function () { return null; });
+  }
+  /* 两个词库都报一遍（清空、打开排行榜之前用） */
+  function pushAll(force) {
+    var list = [];
+    for (var i = 0; i < BANKS.length; i++) list.push(pushProgress(force, BANKS[i].id));
+    return Promise.all(list);
   }
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) pushProgress(false);
+    if (document.hidden) pushAll(false);
   });
 
   /* ---------- 事件 ---------- */
@@ -1134,6 +1307,8 @@
   if (speakBtn) speakBtn.addEventListener('click', function () { if (current) speak(current.word); });
   if (detailSpeak) detailSpeak.addEventListener('click', function () { speak(detailWordKey); });
   if (rankRefresh) rankRefresh.addEventListener('click', function () { rankBusy = false; renderRank(); });
+  if (inlineRefresh) inlineRefresh.addEventListener('click', function () { inlineBusy = false; refreshInlineRank(); });
+  if (inlineOpen) inlineOpen.addEventListener('click', function () { openRank(bankId || store.lastBank || 'cet4'); });
   bookTabsEl.addEventListener('click', function (e) {
     var btn = e.target && e.target.closest ? e.target.closest('.qc-tab') : null;
     if (!btn) return;
@@ -1225,6 +1400,24 @@
     },
     recent: function () { return recent.slice(); },
     weights: function () { return DECK_WEIGHT; },
+    /* 形近词（自检用） */
+    similarOf: function (w) {
+      if (!bank) return null;
+      var idx = -1;
+      for (var i = 0; i < bank.words.length; i++) {
+        if (bank.words[i][0].toLowerCase() === String(w).toLowerCase()) { idx = i; break; }
+      }
+      if (idx < 0) return null;
+      return similarIndices(idx).map(function (j) { return bank.words[j][0]; });
+    },
+    /* 把选项里的释义反查成单词（自检用） */
+    wordOfMean: function (mean) {
+      if (!bank) return null;
+      for (var i = 0; i < bank.words.length; i++) {
+        if (bank.words[i][2] === mean) return bank.words[i][0];
+      }
+      return null;
+    },
   };
 
   showView('home');

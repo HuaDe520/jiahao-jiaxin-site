@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=9c4e3219">
-<link rel="stylesheet" href="assets/css/qianci.css?v=e93866f9">
+<link rel="stylesheet" href="assets/css/qianci.css?v=cc83ccf6">
 </head>
 <body class="qc-page">
 
@@ -101,6 +101,18 @@
         </div>
 
         <p class="qc-hint">键盘：1 / 2 / 3 / 4 选释义，Q 模糊，W 不认识，空格下一个。单词本里点词看详细释义。</p>
+
+        <!-- 背单词时也能瞄一眼好友榜 -->
+        <section class="qc-inline" id="qcRankInline" aria-label="好友排行榜" hidden>
+          <div class="qc-inline__head">
+            <h4 id="qcRankInlineHint">好友榜</h4>
+            <span class="qc-inline__actions">
+              <button type="button" class="qc-bar__btn" id="qcRankInlineRefresh">刷新</button>
+              <button type="button" class="qc-bar__btn" id="qcRankInlineOpen">看全部</button>
+            </span>
+          </div>
+          <ol class="qc-list" id="qcRankInlineList"></ol>
+        </section>
       </div>
 
       <!-- ============ 单词本 ============ -->
@@ -209,9 +221,9 @@
 </a>
 
 <script src="assets/data/qianci-banks.js?v=1645dacc"></script>
-<script src="assets/data/qianci-detail.js?v=ed7cfde7"></script>
+<script src="assets/data/qianci-detail.js?v=30967bf3"></script>
 <script src="assets/js/api.js?v=4a9ff27f"></script>
-<script src="assets/js/qianci.js?v=782165bc"></script>
+<script src="assets/js/qianci.js?v=a6990dee"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }
