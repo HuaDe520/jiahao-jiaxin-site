@@ -1124,6 +1124,7 @@
     var missing = [];
     if (!rec.ex) missing.push('例句');
     if (!rec.col) missing.push('固定搭配');
+    if (!rec.dv) missing.push('衍生词');
     if (!rec.rt) missing.push('词根词缀');
     if (!rec.et) missing.push('词源');
     if (missing.length) line(detailBody, '这个词暂时没有：' + missing.join('、') + '。', 'qc-sec__note');
