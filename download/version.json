@@ -1,0 +1,12 @@
+{
+    "versionCode":  7,
+    "versionName":  "1.6",
+    "file":  "zhangshang-jiaxie-1.6.apk",
+    "url":  "https://xbc-zjja.com.cn/download/zhangshang-jiaxie-1.6.apk",
+    "urlBackup":  "https://huade520.github.io/jiahao-jiaxin-site/download/zhangshang-jiaxie-1.6.apk",
+    "size":  132459,
+    "sha256":  "3a9afbf76dd94bf3c17412692981260902a33ab89ff86205515c6ded34063f2d",
+    "notes":  "1.6 版：App 自己会检查更新了——打开时会问一下官网有没有新版本，有就直接在软件里下载并弹出安装，不用再去浏览器里下。另外「下载 APK」按钮在 App 里点了也有反应了（以前点了没动静）。",
+    "forceBelow":  1,
+    "releasedAt":  "2026-09-30"
+}

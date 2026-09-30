@@ -636,6 +636,15 @@ button { font: inherit; color: inherit; }
 .dl-card__meta { font-size: 14px; color: var(--ink-mute); }
 .dl-card__btn { margin-top: 20px; }
 .dl-card__note { margin-top: 14px; font-size: 13px; color: var(--ink-mute); }
+/* 在 App 里打开这一页时多出来的一行：当前版本 + 检查更新 */
+.dl-card__inapp {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  margin: 14px 0 0; padding-top: 14px; border-top: 1px dashed rgba(18, 101, 90, .18);
+  font-size: 13px; color: var(--ink-mute);
+}
+.dl-card__inapp b { color: var(--jade-800); font-size: 14px; }
+.dl-card__inapp[hidden] { display: none; }   /* display:flex 会盖掉 hidden，得显式写一条 */
+.dl-card__check { padding: 7px 16px; font-size: 13px; margin: 0; }
 
 .dl-steps { margin: 18px 0 0; padding-left: 22px; list-style: decimal; display: grid; gap: 9px; }
 .dl-steps li { font-size: 14.5px; color: var(--ink-soft); line-height: 1.7; }
