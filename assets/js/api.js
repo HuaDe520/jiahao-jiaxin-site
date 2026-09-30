@@ -174,6 +174,12 @@
     snakeScore: function (score, mode) { return call('POST', '/api/snake/score', { score: score, mode: mode || 'normal' }); },
     snakeBoard: function (mode) { return call('GET', '/api/snake/leaderboard?mode=' + encodeURIComponent(mode || 'normal')); },
 
+    /* ---- 千词奇域：把「豪到了」的词数报上去，换好友排行榜 ---- */
+    qianciProgress: function (bank, known, todo) {
+      return call('POST', '/api/qianci/progress', { bank: bank, known: known, todo: todo || 0 });
+    },
+    qianciBoard: function (bank) { return call('GET', '/api/qianci/leaderboard?bank=' + encodeURIComponent(bank || 'cet4')); },
+
     /* 把接口返回的相对路径（头像）拼成完整地址 */
     asset: function (path) {
       if (!path) return '';

@@ -1,0 +1,2 @@
+/* 自动生成，别手改：node .preview/qianci-detail-build.mjs */
+window.JHJX_DETAIL_X = {"x-ray":{"p":"'eksreɪ","cn":[["n"," X射线， X光"],["a","X射线的"],["vt","用X光检查, 照X光"]],"en":["v. examine by taking x-rays","v. take an x-ray of something or somebody"],"ex":[["The X-ray showed that her leg was not broken.","X光片显示她的腿没有骨折。"]],"col":[["x-ray diffraction","X射线衍射"],["x-ray photoelectron spectroscopy","[光谱]X射线光电子能谱学"],["x-ray machine","X光机；爱克斯光机"]],"dv":[["x-rays","复数"],["x-raying","现在分词"],["x-rayed","过去式"]]}};
