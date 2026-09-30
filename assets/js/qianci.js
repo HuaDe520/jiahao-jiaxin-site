@@ -145,21 +145,82 @@
   function knownCount(id) { return countState(id, function (r) { return inStates(r, KNOWN_STATES); }); }
   function learnedCount(id) { return countState(id, function () { return true; }); }
 
-  /* ---------- 朗读 ---------- */
-  var canSpeak = !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
-  function speak(text) {
-    if (!canSpeak || !text) return;
-    try {
-      window.speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(String(text));
-      u.lang = 'en-US';
-      u.rate = 0.92;
-      window.speechSynthesis.speak(u);
-    } catch (e) { /* 忽略 */ }
+  /* ---------- 朗读 ----------
+     以前是「浏览器没有 speechSynthesis 就把喇叭藏起来」，微信安卓（X5 内核）
+     就没有这个接口，于是手机上根本看不到朗读按钮。现在按钮一直在，
+     能用系统语音就用；真读不出来的时候给一句说明，不装作没事。 */
+  var speechOK = !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
+  var voices = [];
+  function loadVoices() {
+    if (!speechOK) return;
+    try { voices = window.speechSynthesis.getVoices() || []; } catch (e) { voices = []; }
   }
-  if (!canSpeak) {
-    if (speakBtn) speakBtn.hidden = true;
-    if (detailSpeak) detailSpeak.hidden = true;
+  function pickVoice() {
+    loadVoices();
+    var i;
+    for (i = 0; i < voices.length; i++) if (/^en[-_]?us/i.test(voices[i].lang || '')) return voices[i];
+    for (i = 0; i < voices.length; i++) if (/^en/i.test(voices[i].lang || '')) return voices[i];
+    return null;
+  }
+  loadVoices();
+  if (speechOK && window.speechSynthesis.addEventListener) {
+    window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+  }
+
+  var toastEl = null;
+  var toastTimer = 0;
+  function toast(msg) {
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.className = 'qc-toast';
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = msg;
+    toastEl.classList.add('is-on');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('is-on'); }, 2800);
+  }
+
+  /* 系统语音用不了时的退路。以后要是给词库配了离线发音，在这里接上就行。 */
+  function speakFallback(text) {
+    toast('这台手机的浏览器读不出英文，先照着上面的音标念：' + text);
+  }
+
+  function speak(text) {
+    if (!text) return;
+    var word = String(text);
+    if (!speechOK) { speakFallback(word); return; }
+    var S = window.speechSynthesis;
+    function attempt() {
+      try {
+        var u = new SpeechSynthesisUtterance(word);
+        u.lang = 'en-US';
+        u.rate = 0.9;
+        var v = pickVoice();
+        if (v) u.voice = v;
+        S.speak(u);
+        return true;
+      } catch (e) { return false; }
+    }
+    try { S.cancel(); if (S.paused) S.resume(); } catch (e) { /* 忽略 */ }
+    if (!attempt()) { speakFallback(word); return; }
+    /* 安卓上第一次常常是哑的：没动静就补一两次；一直没动静就说明这台手机
+       真读不出来，给个说法。有英文语音的多等一会儿，一个语音都没有的就别拖了。 */
+    var startedAt = Date.now();
+    var tries = 0;
+    function verify() {
+      var alive = false;
+      try { alive = S.speaking || S.pending; } catch (e) { alive = false; }
+      if (alive) return;
+      var hasVoice = !!pickVoice();
+      if (tries < 2) {
+        tries++;
+        if (attempt()) { setTimeout(verify, hasVoice ? 520 : 300); return; }
+      }
+      if (Date.now() - startedAt < (hasVoice ? 2600 : 900)) { setTimeout(verify, 350); return; }
+      speakFallback(word);
+    }
+    setTimeout(verify, 340);
   }
 
   /* ---------- 牌堆 ---------- */
@@ -725,7 +786,7 @@
     rebuildDeck(passMode === 'restart');
     bankNameEl.textContent = bank.name;
     booksBankEl.textContent = bank.name;
-    if (speakBtn) speakBtn.hidden = !canSpeak;
+    if (speakBtn) speakBtn.hidden = false;
     showView('study');
     nextCard();
     if (passMode === 'restart') showFeedback('重新过一遍', '这一轮从头开始走，两个本子里的记录都留着。', 'is-fuzzy');

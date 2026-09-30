@@ -39,7 +39,7 @@ const DOMAIN = flag('--domain', null);
 const DRY = has('--dry-run');
 /* backend 是服务端源码，里面写着邀请码校验、修改权限码等，**绝不能发布到网站上**
    （以前它是跟着一起发上去的，任何人都能打开 /backend/worker.js 看到权限码） */
-const SKIP_DIRS = new Set(['.git', '.preview', '.verify', '.screens', 'node_modules', '.vercel', '.netlify', '.wrangler', '.dev-objects', 'backend']);
+const SKIP_DIRS = new Set(['.git', '.preview', '.verify', '.screens', '.video', 'node_modules', '.vercel', '.netlify', '.wrangler', '.dev-objects', 'backend']);
 const SKIP_FILES = new Set(['token.txt', '.DS_Store', 'Thumbs.db', '.dev.vars', '.dev.sqlite', '.dev.sqlite-journal', '.dev-db.json']);
 /* 这些目录只是原始素材，留在仓库里，但不发布到线上（省 1.7MB 流量） */
 const SKIP_PATHS = new Set(['assets/img/original']);

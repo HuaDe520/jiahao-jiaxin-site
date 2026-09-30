@@ -277,6 +277,18 @@
 .qc-confirm__text { margin: 0 0 10px; font-size: 13.5px; color: #7d3a2e; line-height: 1.75; }
 .qc-confirm__actions { display: flex; gap: 10px; justify-content: flex-end; }
 
+/* 「这台手机读不出来」这类短提示 */
+.qc-toast {
+  position: fixed; left: 50%; bottom: 104px; z-index: 60;
+  max-width: 86%; padding: 11px 18px; border-radius: 16px;
+  background: rgba(11, 63, 57, .94); color: #fff;
+  font-size: 13px; line-height: 1.65; text-align: center;
+  box-shadow: 0 20px 40px -22px rgba(0, 0, 0, .7);
+  opacity: 0; transform: translate(-50%, 8px); transition: opacity .2s var(--ease), transform .2s var(--ease);
+  pointer-events: none;
+}
+.qc-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+
 /* ---------- 单词详情 ---------- */
 .qc-dcard {
   background: linear-gradient(180deg, #ffffff, #fbf7ee);
