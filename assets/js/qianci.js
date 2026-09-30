@@ -146,9 +146,14 @@
   function learnedCount(id) { return countState(id, function () { return true; }); }
 
   /* ---------- 朗读 ----------
-     以前是「浏览器没有 speechSynthesis 就把喇叭藏起来」，微信安卓（X5 内核）
-     就没有这个接口，于是手机上根本看不到朗读按钮。现在按钮一直在，
-     能用系统语音就用；真读不出来的时候给一句说明，不装作没事。 */
+     以前的逻辑是「浏览器没有 speechSynthesis 就把喇叭藏起来」，结果
+     掌上嘉协 App（安卓 WebView）和微信安卓里都看不到朗读按钮。现在按钮一直在，
+     发音按这个顺序找：App 的原生朗读桥 → 浏览器的系统语音 → 提示用户看音标。 */
+  var appTTS = (function () {
+    try {
+      return (window.JHJX_APP && typeof window.JHJX_APP.speak === 'function') ? window.JHJX_APP : null;
+    } catch (e) { return null; }
+  })();
   var speechOK = !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
   var voices = [];
   function loadVoices() {
@@ -181,14 +186,21 @@
     toastTimer = setTimeout(function () { toastEl.classList.remove('is-on'); }, 2800);
   }
 
-  /* 系统语音用不了时的退路。以后要是给词库配了离线发音，在这里接上就行。 */
+  /* 原生朗读和系统语音都用不了时的退路。以后要是给词库配了离线发音，在这里接上就行。 */
   function speakFallback(text) {
-    toast('这台手机的浏览器读不出英文，先照着上面的音标念：' + text);
+    var tip = appTTS
+      ? '这台手机的语音引擎读不出英文，可以在手机设置里装个英文语音包，或先照着上面的音标念：'
+      : '这台手机的浏览器读不出英文，先照着上面的音标念：';
+    toast(tip + text);
   }
 
   function speak(text) {
     if (!text) return;
     var word = String(text);
+    /* 掌上嘉协 App：走原生 TTS，安卓 WebView 里没有网页版语音，只有这条路能出声 */
+    if (appTTS) {
+      try { if (appTTS.speak(word) === true) return; } catch (e) { /* 交给下面的退路 */ }
+    }
     if (!speechOK) { speakFallback(word); return; }
     var S = window.speechSynthesis;
     function attempt() {

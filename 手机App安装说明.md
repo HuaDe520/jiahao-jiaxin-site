@@ -43,8 +43,8 @@ iOS 不允许安装第三方安装包，只能用 **Safari** 添加到主屏幕�
 
 | 项目 | 值 |
 | --- | --- |
-| 文件名 | `download/zhangshang-jiaxie-1.4.apk` |
-| 版本 | 1.4（versionCode 5） |
+| 文件名 | `download/zhangshang-jiaxie-1.5.apk` |
+| 版本 | 1.5（versionCode 6） |
 | 大小 | 125 KB |
 | 包名 | `com.jiahaojiaxin.assoc` |
 | 支持系统 | Android 5.0（API 21）及以上 |
@@ -52,9 +52,18 @@ iOS 不允许安装第三方安装包，只能用 **Safari** 添加到主屏幕�
 | 权限 | 仅 `INTERNET`、`ACCESS_NETWORK_STATE` |
 | 签名证书 | CN=Zhejiang Jiahao Jiaxin Association |
 | 证书 SHA-256 | `302b107e38b8da634d0d7c24691e97d88248643f6aa7f108729fa1c068ec5bec` |
-| APK SHA-256 | `bc56c3af17a11bf227c0bb9b6194ca6f788b1adebd41e3ca17185ebc76c96b93` |
+| APK SHA-256 | `862e3f575a0bd407f6d941a2473239942ee17e164c840d6fc2fa834fb622b43d` |
 
-App 本质是一个 WebView 外壳，**打开的就是官网**——所以官网内容一更新，App 里立刻就是新的，不需要重新发版。
+App 本质是一个 WebView 外壳，**打开的就是官网**——所以官网内容一更新，App 里立刻就是新的，不需要重新发版。只有用到安卓本机能力的功能才需要重新打包，1.5 就是这种情况。
+
+### 1.5 改了什么
+
+安卓 WebView 里没有网页版的 `speechSynthesis`，所以千词奇域的朗读按钮以前在 App 里是**不显示**的。1.5 加了一个原生朗读桥：
+
+- `MainActivity` 里起一个系统 `TextToSpeech`，作为 `window.JHJX_APP` 注入网页；
+- 网页点喇叭 → 先问 App 要原生朗读（`JHJX_APP.speak(word)`，返回 true 表示已经交给系统念了）；
+- App 没有或念不了 → 退回浏览器的系统语音 → 再不行才提示「照着音标念」；
+- 只接受英文字母、空格、连字符、撇号，最长 64 字符，避免这个桥被拿去做别的用途。
 
 ---
 
