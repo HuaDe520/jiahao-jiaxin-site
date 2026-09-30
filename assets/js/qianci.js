@@ -694,21 +694,23 @@
     showView('books');
   }
 
+  /* 单词本、词条详情用的词库单独放一个变量。以前这里直接改 bank / bankId，
+     于是「背四级 → 回首页 → 打开六级单词本 → 返回」之后，正在背的那张牌
+     还停在四级，bankId 却成了六级：答案会记进六级，接着按「下一张」还会
+     拿到越界的下标直接报错。 */
+  var booksBank = null;
   function ensureBankLoaded(id, cb) {
-    if (bank && bank.id === id) { cb(true); return; }
+    if (booksBank && booksBank.id === id) { cb(true); return; }
     var meta = bankMeta(id);
     if (!meta) { cb(false); return; }
     var g = globalNameOf(meta);
-    if (window[g] && window[g].length) { bank = { id: meta.id, name: meta.name, words: window[g] }; bankId = meta.id; simIndex = null; simCache = {}; cb(true); return; }
+    if (window[g] && window[g].length) { booksBank = { id: meta.id, name: meta.name, words: window[g] }; cb(true); return; }
     var s = document.createElement('script');
     s.src = meta.file;
     s.onload = function () {
       var data = window[g];
       if (!data || !data.length) { cb(false); return; }
-      bank = { id: meta.id, name: meta.name, words: data };
-      bankId = meta.id;
-      simIndex = null;
-      simCache = {};
+      booksBank = { id: meta.id, name: meta.name, words: data };
       cb(true);
     };
     s.onerror = function () { cb(false); };
@@ -718,9 +720,10 @@
   function bookRows(which) {
     var st = bankState(booksBankId);
     var rows = [];
+    if (!booksBank) return rows;
     var want = which === 'todo' ? TODO_STATES : KNOWN_STATES;
-    for (var idx = 0; idx < bank.words.length; idx++) {
-      var row = bank.words[idx];
+    for (var idx = 0; idx < booksBank.words.length; idx++) {
+      var row = booksBank.words[idx];
       var s = st.words[row[0].toLowerCase()];
       if (!s || want.indexOf(s.s) < 0) continue;
       rows.push({ word: row[0], phonetic: row[1], mean: row[2], s: s });
@@ -739,7 +742,7 @@
   function renderBooks() {
     var meta = bankMeta(booksBankId);
     booksBankEl.textContent = meta ? meta.name : '';
-    if (!bank || bank.id !== booksBankId) {
+    if (!booksBank || booksBank.id !== booksBankId) {
       booksHintEl.textContent = '正在加载词库…';
       listEl.innerHTML = '';
       ensureBankLoaded(booksBankId, function (ok) {
@@ -893,7 +896,7 @@
   var detailLoadingChunk = {};
   var detailWaiters = {};
 
-  /* 词条数据按「每桶 50 个词」切好，索引里存每桶的第一个词，二分找桶 */
+  /* 词条数据按「每桶 40 个词」切好，索引里存每桶的第一个词，二分找桶 */
   function bucketOf(word) {
     var starts = DETAIL.starts || [];
     if (!starts.length) return -1;
@@ -938,8 +941,8 @@
     var row = wordRow(id, detailWordKey);
     detailTag.textContent = row ? ((STATE_LABEL[row.s] || '') + ' · 对 ' + (row.r || 0) + ' · 未认出 ' + (row.u || 0) + ' 次') : '';
     var known = null;
-    if (bank && bank.id === id) {
-      for (var i = 0; i < bank.words.length; i++) { if (bank.words[i][0].toLowerCase() === detailWordKey) { known = bank.words[i]; break; } }
+    if (booksBank && booksBank.id === id) {
+      for (var i = 0; i < booksBank.words.length; i++) { if (booksBank.words[i][0].toLowerCase() === detailWordKey) { known = booksBank.words[i]; break; } }
     }
     detailPhonetic.textContent = known && known[1] ? '[' + known[1] + ']' : '';
     /* 网络慢的时候先把词库里已有的释义显示出来，详细资料到了再补上 */
@@ -952,9 +955,11 @@
     detailLoading.hidden = false;
     detailLoading.textContent = '正在取这个词的详细释义…';
     showView('detail');
+    var wantWord = detailWordKey;
     loadDetailChunk(detailWordKey, function (chunk) {
-      if (view !== 'detail') return;
-      renderDetail(chunk ? chunk[detailWordKey] : null, known);
+      /* 网络慢的时候连点两个词，先回来的那份可能是上一个词，别串到这一页上 */
+      if (view !== 'detail' || detailWordKey !== wantWord) return;
+      renderDetail(chunk ? chunk[wantWord] : null, known);
     });
   }
 
@@ -984,7 +989,7 @@
       var box0 = section('释义');
       if (known && known[2]) line(box0, known[2]);
       detailBody.appendChild(box0);
-      line(detailBody, '这个词暂时没有更详细的资料（例句、固定搭配、词根词缀）。', 'qc-sec__note');
+      line(detailBody, '这个词暂时没有更详细的资料（例句、固定搭配、衍生词、词根词缀、词源）。', 'qc-sec__note');
       return;
     }
     if (rec.p && (!detailPhonetic.textContent || detailPhonetic.textContent === '—')) detailPhonetic.textContent = '[' + rec.p + ']';
@@ -1163,13 +1168,17 @@
     if (rankBusy) return;
     rankBusy = true;
     rankHint.textContent = '正在读取…';
+    /* 连点词库标签时，先发出去的那份回来别把新词库的榜盖了 */
+    var wantBank = rankBank;
+    var wantName = meta ? meta.name : '';
     /* 先把自己的词数报上去，报完再取榜 —— 不然刚背完的分数这趟看不到 */
-    var pushes = [pushProgress(true, rankBank)];
-    if (store.lastBank && store.lastBank !== rankBank) pushes.push(pushProgress(true, store.lastBank));
+    var pushes = [pushProgress(true, wantBank)];
+    if (store.lastBank && store.lastBank !== wantBank) pushes.push(pushProgress(true, store.lastBank));
     Promise.all(pushes).then(function () {
-      return API.qianciBoard(rankBank);
+      return API.qianciBoard(wantBank);
     }).then(function (r) {
       rankBusy = false;
+      if (wantBank !== rankBank) { renderRank(); return; }
       if (r.status === 401) { rankHint.textContent = '登录之后就能看到好友的词数了。'; return; }
       if (r.status !== 200 || !r.data || !r.data.ok) {
         rankHint.textContent = (r.data && r.data.error) ? ('排行榜读不到：' + r.data.error) : '排行榜暂时读不到，过会儿再刷新。';
@@ -1178,7 +1187,7 @@
       var list = r.data.list || [];
       if (!list.length) { rankHint.textContent = '榜上还没有人。'; return; }
       var friends = Math.max(0, list.length - 1);
-      rankHint.textContent = (meta ? meta.name : '') + '：自己 + ' + friends + ' 位好友，按「豪到了」的词数排。';
+      rankHint.textContent = wantName + '：自己 + ' + friends + ' 位好友，按「豪到了」的词数排。';
       list.forEach(function (item) {
         var row = document.createElement('li');
         row.className = 'qc-item qc-rank__row' + (item.me ? ' is-me' : '');
@@ -1199,7 +1208,7 @@
         row.appendChild(body);
         rankList.appendChild(row);
       });
-      renderInlineRank(list, (meta ? meta.name : ''));
+      renderInlineRank(list, wantName);
     });
   }
 
@@ -1237,8 +1246,10 @@
     });
   }
 
+  function currentStudyBank() { return bankId || store.lastBank || 'cet4'; }
   function refreshInlineRank() {
     if (!inlineEl || inlineBusy) return;
+    if (view !== 'study') return;              /* 这个小榜只在背单词页面里 */
     var API = window.JHJX_API;
     if (!API || !API.serviceReady()) { inlineEl.hidden = true; return; }
     if (!API.token()) {
@@ -1247,19 +1258,23 @@
       inlineList.innerHTML = '';
       return;
     }
+    var wantBank = currentStudyBank();
     inlineBusy = true;
-    Promise.all([pushProgress(true, bankId || store.lastBank)]).then(function () {
-      return API.qianciBoard(bankId || store.lastBank || 'cet4');
+    /* 这里不强制上报：词数没变就不必再写一次服务端，只把榜读回来 */
+    Promise.all([pushProgress(false, wantBank)]).then(function () {
+      return API.qianciBoard(wantBank);
     }).then(function (r) {
       inlineBusy = false;
+      /* 中途换了词库、或者已经离开背单词页面，这一份就丢掉 */
+      if (view !== 'study' || wantBank !== currentStudyBank()) return;
       if (r.status !== 200 || !r.data || !r.data.ok) { inlineEl.hidden = true; return; }
-      var meta = bankMeta(bankId);
+      var meta = bankMeta(wantBank);
       renderInlineRank(r.data.list || [], meta ? meta.name : '');
     });
   }
   var inlineTimer = 0;
   function scheduleInlineRank() {
-    if (!inlineEl) return;
+    if (!inlineEl || view !== 'study') return;
     if (inlineTimer) return;
     inlineTimer = setTimeout(function () { inlineTimer = 0; refreshInlineRank(); }, 3000);
   }
@@ -1281,10 +1296,19 @@
     if (!id) return Promise.resolve(null);
     var known = knownCount(id);
     var todo = todoCount(id);
-    if (!force && store.pushed[id] === known) return Promise.resolve(null);
-    store.pushed[id] = known;
-    saveStore();
-    return API.qianciProgress(id, known, todo).then(function (r) { return r; }, function () { return null; });
+    /* 待豪本的数也一起比：只答错、没进「豪到了」的时候 known 没变，
+       但榜单上的「待豪本」词数应该跟着动 */
+    var sig = known + '/' + todo;
+    if (!force && store.pushed[id] === sig) return Promise.resolve(null);
+    var mark = function (r) {
+      var good = !!(r && r.status === 200 && r.data && r.data.ok);
+      /* 报成功了才记下来；没成功就忘掉，下次接着报，免得丢一份就永远不补了 */
+      if (good) store.pushed[id] = sig;
+      else if (store.pushed[id] === sig) delete store.pushed[id];
+      saveStore();
+      return r;
+    };
+    return API.qianciProgress(id, known, todo).then(mark, function () { mark(null); return null; });
   }
   /* 两个词库都报一遍（清空、打开排行榜之前用） */
   function pushAll(force) {
@@ -1386,13 +1410,14 @@
     },
     /* 当前词库里、某个本子里的词（自检用，不依赖单词本视图开没开） */
     books: function (which) {
-      if (!bank) return null;
-      var id = bankId || bank.id;
+      var src = (booksBank && booksBank.id === booksBankId) ? booksBank : bank;
+      if (!src) return null;
+      var id = src.id;
       var st = bankState(id);
       var want = (which || booksWhich) === 'todo' ? TODO_STATES : KNOWN_STATES;
       var out = [];
-      for (var i = 0; i < bank.words.length; i++) {
-        var row = bank.words[i];
+      for (var i = 0; i < src.words.length; i++) {
+        var row = src.words[i];
         var s = st.words[row[0].toLowerCase()];
         if (!s || want.indexOf(s.s) < 0) continue;
         out.push({ word: row[0], s: s.s, c: s.c || 0, u: s.u || 0, r: s.r || 0 });
