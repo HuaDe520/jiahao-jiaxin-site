@@ -863,6 +863,18 @@
     return rows;
   }
 
+  /* 单词本里点词看详情再返回，要回到刚才滑到的位置（词多了不然很难受） */
+  var booksScrollY = 0;
+  var booksScrollRestore = -1;
+  function restoreBooksScroll() {
+    if (booksScrollRestore < 0) return;
+    var y = booksScrollRestore;
+    booksScrollRestore = -1;
+    var put = function () { try { window.scrollTo(0, y); } catch (e) { /* 忽略 */ } };
+    put();
+    if (window.requestAnimationFrame) window.requestAnimationFrame(put);   /* 列表重排完再对一次 */
+  }
+
   function renderBooks() {
     var meta = bankMeta(booksBankId);
     booksBankEl.textContent = meta ? meta.name : '';
@@ -896,6 +908,7 @@
         ? '待豪本还是空的。选错的、模糊的、不认识的词都会自动进来。'
         : '豪到了还是空的。答对一个词，它就会进来。';
       listEl.appendChild(empty);
+      restoreBooksScroll();
       return;
     }
     rows.forEach(function (r) {
@@ -978,6 +991,7 @@
       li.appendChild(arrow);
       listEl.appendChild(li);
     });
+    restoreBooksScroll();
   }
 
   /* 清空（带二次确认） */
@@ -1059,6 +1073,8 @@
 
   function openDetail(word) {
     if (!word) return;
+    /* 从单词本点进来的话，先记住滑到哪儿了，返回时接着看 */
+    if (view === 'books') booksScrollY = window.pageYOffset || window.scrollY || 0;
     detailWordKey = String(word).toLowerCase();
     detailWord.textContent = word;
     var id = booksBankId || bankId;
@@ -1448,7 +1464,10 @@
   backBtn.addEventListener('click', function () { pushProgress(false); showView('home'); });
   booksBtn.addEventListener('click', function () { openBooks(bankId, 'todo'); });
   booksBackBtn.addEventListener('click', function () { if (bank) showView('study'); else showView('home'); });
-  detailBack.addEventListener('click', function () { showView('books'); });
+  detailBack.addEventListener('click', function () {
+    booksScrollRestore = booksScrollY;      /* 回到刚才滑到的位置，而不是列表顶端 */
+    showView('books');
+  });
   rankBack.addEventListener('click', function () { showView('home'); });
   nextBtn.addEventListener('click', function () { nextCard(); });
   fuzzyBtn.addEventListener('click', markFuzzy);
