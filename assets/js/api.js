@@ -369,6 +369,20 @@
     },
     qianciBoard: function (bank) { return call('GET', '/api/qianci/leaderboard?bank=' + encodeURIComponent(bank || 'cet4')); },
 
+    /* ---------------- 番咕咪 ---------------- */
+    fanguSearch: function (q) { return call('GET', '/api/fangu/search?q=' + encodeURIComponent(q || '')); },
+    fanguHome: function () { return call('GET', '/api/fangu/home'); },
+    fanguSubject: function (seasonId, jpTitle) {
+      var q = jpTitle ? '?jp=' + encodeURIComponent(jpTitle) : '';
+      return call('GET', '/api/fangu/subject/' + encodeURIComponent(seasonId) + q);
+    },
+    fanguRate: function (seasonId, score, text) {
+      return call('POST', '/api/fangu/rate', { seasonId: String(seasonId), score: score, text: text || '' });
+    },
+    fanguRecommend: function (seasonId) {
+      return call('POST', '/api/fangu/recommend', { seasonId: String(seasonId) });
+    },
+
     /* 把接口返回的相对路径（头像）拼成完整地址 */
     asset: function (path) {
       if (!path) return '';

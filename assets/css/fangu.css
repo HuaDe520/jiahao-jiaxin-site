@@ -1,0 +1,277 @@
+/* =========================================================
+   嘉番 · 番咕咪
+   页面骨架沿用 style.css，这里只管番剧卡片、评分徽章和详情抽屉。
+   动画从简：手机上一屏能放下两张卡就够，不做花哨的悬停。
+   ========================================================= */
+
+.fg-page {
+  background:
+    radial-gradient(720px 420px at 80% 6%, rgba(79, 185, 164, .18), transparent 62%),
+    radial-gradient(640px 460px at 8% 92%, rgba(223, 192, 119, .2), transparent 62%),
+    linear-gradient(180deg, var(--cream) 0%, #f5f2e9 100%);
+}
+.fg-page .section { padding-top: 44px; }
+.fg-page .section__head { margin-bottom: 22px; }
+
+/* ---------------- 搜索 ---------------- */
+.fg-search {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  max-width: 720px;
+}
+.fg-input {
+  flex: 1 1 220px;
+  min-height: 46px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(18, 101, 90, .2);
+  background: #fff;
+  padding: 0 18px;
+  font: inherit;
+  font-size: 15.5px;
+  color: var(--ink);
+  outline: none;
+}
+.fg-input:focus { border-color: var(--jade-600); }
+
+.fg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1.5px solid transparent;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform .18s, background .18s, border-color .18s;
+}
+.fg-btn--main {
+  background: linear-gradient(135deg, var(--jade-700), var(--jade-600));
+  color: #fff;
+  box-shadow: 0 16px 30px -16px rgba(18, 101, 90, .85);
+}
+.fg-btn--main:hover { transform: translateY(-2px); }
+.fg-btn--ghost {
+  background: rgba(255, 255, 255, .85);
+  border-color: rgba(18, 101, 90, .3);
+  color: var(--jade-800);
+}
+.fg-btn--ghost:hover { border-color: var(--gold-500); transform: translateY(-2px); }
+.fg-btn[disabled] { opacity: .55; cursor: not-allowed; transform: none; }
+
+.fg-msg {
+  margin: 12px 0 0;
+  min-height: 20px;
+  font-size: 13.5px;
+  color: var(--jade-700);
+  opacity: 0;
+  transition: opacity .2s;
+}
+.fg-msg.is-show { opacity: 1; }
+.fg-msg.is-error { color: #b4443c; }
+
+/* ---------------- 标签筛选 ---------------- */
+.fg-filter { margin: 18px 0 4px; }
+.fg-filter__label { font-size: 13px; color: var(--ink-mute); margin-right: 6px; }
+.fg-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.fg-tag {
+  min-height: 34px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(18, 101, 90, .18);
+  background: rgba(255, 255, 255, .85);
+  color: var(--jade-800);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .18s, border-color .18s, color .18s;
+}
+.fg-tag:hover { border-color: var(--gold-500); }
+.fg-tag.is-on { background: linear-gradient(135deg, var(--gold-400), var(--gold-500)); border-color: rgba(201, 162, 75, .7); color: #2b2109; font-weight: 700; }
+
+/* ---------------- 卡片 ---------------- */
+.fg-h { margin: 26px 0 10px; font-size: 19px; color: var(--jade-900); }
+.fg-hint { margin: 0 0 12px; font-size: 13px; color: var(--ink-mute); line-height: 1.7; }
+.fg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 14px;
+  margin: 12px 0 0;
+}
+.fg-card {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid rgba(18, 101, 90, .12);
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 16px 32px -26px rgba(11, 63, 57, .6);
+  transition: transform .18s, box-shadow .18s;
+}
+.fg-card:hover { transform: translateY(-3px); box-shadow: 0 22px 40px -24px rgba(11, 63, 57, .65); }
+.fg-card__cover {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  background: linear-gradient(135deg, #e7f1ee, #f6efe0);
+  display: block;
+}
+.fg-card__body { padding: 10px 12px 13px; display: flex; flex-direction: column; gap: 7px; }
+.fg-card__title { margin: 0; font-size: 15px; font-weight: 800; color: var(--jade-900); line-height: 1.35; }
+.fg-card__jp { margin: 0; font-size: 11.5px; color: var(--ink-mute); line-height: 1.4; }
+.fg-card__tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.fg-card__tags span {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(18, 101, 90, .09);
+  color: var(--jade-700);
+}
+.fg-card__flag {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
+  color: #2b2109;
+}
+
+/* 三档评分徽章 */
+.fg-scores { display: flex; flex-wrap: wrap; gap: 6px; }
+.fg-score {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: 11.5px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.fg-score b { font-size: 14px; font-weight: 800; }
+.fg-score--gu { background: rgba(18, 101, 90, .1); border-color: rgba(18, 101, 90, .22); color: var(--jade-800); }
+.fg-score--global { background: rgba(201, 162, 75, .14); border-color: rgba(201, 162, 75, .32); color: #7a5c12; }
+.fg-score--bili { background: rgba(251, 114, 153, .13); border-color: rgba(251, 114, 153, .3); color: #a83a63; }
+.fg-score--none { background: rgba(120, 138, 135, .1); border-color: rgba(120, 138, 135, .2); color: var(--ink-mute); }
+
+.fg-empty { margin: 22px 0 0; color: var(--ink-mute); font-size: 14.5px; }
+.fg-more { margin: 18px 0 0; text-align: center; }
+.fg-guest { margin: 20px 0; padding: 18px; border-radius: 16px; background: #fff; border: 1px dashed rgba(18, 101, 90, .3); }
+.fg-guest p { margin: 0 0 12px; color: var(--ink-soft); }
+
+/* ---------------- 详情抽屉 ---------------- */
+.fg-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(10, 34, 30, .5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+@media (min-width: 720px) { .fg-sheet { align-items: center; } }
+.fg-sheet__box {
+  width: min(680px, 100%);
+  max-height: 92vh;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #fff, #fbf9f3);
+  border-radius: 22px 22px 0 0;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -20px 50px -20px rgba(11, 63, 57, .6);
+}
+@media (min-width: 720px) { .fg-sheet__box { border-radius: 22px; padding: 22px 24px; } }
+.fg-sheet__box, .fg-sheet__box * { max-width: 100%; }
+
+.fg-detail__head { display: flex; gap: 14px; align-items: flex-start; }
+.fg-detail__cover { width: 104px; flex: none; border-radius: 14px; aspect-ratio: 3 / 4; object-fit: cover; background: #e7f1ee; }
+.fg-detail__meta { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.fg-detail__title { margin: 0; font-size: 20px; color: var(--jade-900); line-height: 1.3; }
+.fg-detail__jp { margin: 0; font-size: 12.5px; color: var(--ink-mute); }
+.fg-detail__line { margin: 0; font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; }
+.fg-detail__close {
+  margin-left: auto;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(18, 101, 90, .2);
+  background: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  flex: none;
+}
+.fg-detail__summary { margin: 14px 0 0; font-size: 14px; line-height: 1.85; color: var(--ink-soft); white-space: pre-wrap; }
+.fg-sec { margin-top: 20px; border-top: 1px solid rgba(18, 101, 90, .1); padding-top: 14px; }
+.fg-sec__label { font-size: 13.5px; font-weight: 800; color: var(--jade-900); margin-bottom: 8px; }
+.fg-score-big { display: flex; gap: 10px; flex-wrap: wrap; }
+.fg-score-big > div {
+  flex: 1 1 120px;
+  border-radius: 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(18, 101, 90, .14);
+  background: #fff;
+}
+.fg-score-big b { display: block; font-size: 23px; font-weight: 800; color: var(--jade-900); line-height: 1.2; }
+.fg-score-big span { font-size: 11.5px; color: var(--ink-mute); }
+
+.fg-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.fg-pick button {
+  min-width: 42px;
+  min-height: 42px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(18, 101, 90, .2);
+  background: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--jade-800);
+  cursor: pointer;
+}
+.fg-pick button.is-on { background: linear-gradient(135deg, var(--jade-700), var(--jade-600)); border-color: var(--jade-700); color: #fff; }
+.fg-textarea {
+  width: 100%;
+  min-height: 76px;
+  margin-top: 10px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(18, 101, 90, .2);
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--ink);
+  resize: vertical;
+  outline: none;
+}
+.fg-textarea:focus { border-color: var(--jade-600); }
+.fg-acts { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+.fg-rec {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.fg-rec.is-on { color: var(--jade-800); }
+.fg-review { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px dashed rgba(18, 101, 90, .12); }
+.fg-review__who { font-size: 13.5px; font-weight: 700; color: var(--jade-900); }
+.fg-review__when { font-size: 11.5px; color: var(--ink-mute); }
+.fg-review__text { margin: 4px 0 0; font-size: 14px; line-height: 1.75; color: var(--ink-soft); white-space: pre-wrap; word-break: break-word; }
+.fg-review__score {
+  flex: none;
+  min-width: 44px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--jade-800);
+}
+
+@media (max-width: 420px) {
+  .fg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .fg-card__title { font-size: 14px; }
+  .fg-detail__cover { width: 88px; }
+}

@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>树洞纸条 · 浙江嘉豪嘉欣协会</title>
-<meta name="description" content="浙江嘉豪嘉欣协会嘉窗「树洞纸条」：匿名写下心事，别人只能按一下抱抱你、赞、加油这类反应；每张纸条只留七天。">
+<title>番咕咪 · 浙江嘉豪嘉欣协会</title>
+<meta name="description" content="浙江嘉豪嘉欣协会嘉庭工作台·嘉番「番咕咪」：搜日番、看简介和类型标签，给分给评价；推荐够多就进豪番推荐。">
 <meta name="theme-color" content="#0f5f56">
 <link rel="icon" href="assets/img/logo-main.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=6f4eea6e">
-<link rel="stylesheet" href="assets/css/treehole.css?v=757a57af">
+<link rel="stylesheet" href="assets/css/fangu.css?v=923e921a">
 </head>
-<body class="th-page">
+<body class="fg-page">
 
 <header class="site-header">
   <div class="wrap site-header__inner">
@@ -23,7 +23,7 @@
         <small>ZHEJIANG JIAHAO JIAXIN ASSOCIATION</small>
       </span>
     </a>
-    <a class="nav-quick" href="friends.html" aria-label="好友与聊天" title="好友与聊天">
+<a class="nav-quick" href="friends.html" aria-label="好友与聊天" title="好友与聊天">
       <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M15.6 20.5v-1.7a3.7 3.7 0 0 0-3.7-3.7H7.2a3.7 3.7 0 0 0-3.7 3.7v1.7"></path>
         <circle cx="9.6" cy="7.7" r="3.5"></circle>
@@ -36,50 +36,67 @@
     </button>
     <nav class="site-nav site-nav--plain" id="siteNav" aria-label="主导航">
       <a href="index.html">首页</a>
-      <a href="workbench.html">嘉庭工作台</a>
+      <a href="index.html#departments">部门矩阵</a>
       <a href="app.html">下载 App</a>
-      <a href="account.html">我的账号</a>
-    </nav>
+      <a href="workbench.html">嘉庭工作台</a>
+          <a href="account.html">我的账号</a>
+</nav>
   </div>
 </header>
 
 <main>
-  <section class="section" style="padding-top:52px">
+  <section class="section">
     <div class="wrap">
       <header class="section__head">
-        <p class="eyebrow"><span class="eyebrow__line"></span>嘉窗 · 树洞纸条</p>
-        <h2>说给树洞听</h2>
+        <p class="eyebrow"><span class="eyebrow__line"></span>嘉番 · 番咕咪</p>
+        <h2>番咕咪</h2>
+        <p class="section__lead">搜日番、看简介和类型标签，按标签挑；每部番三个分数——咕咪评分（咱们自己打的）、大众评分、B 站评分，都是 10 分制。推荐的人够多，就进「豪番推荐」。</p>
       </header>
 
-      <div class="th-stage">
+      <!-- 登录前的样子 -->
+      <div class="fg-guest" id="fgGuest" hidden>
+        <p>番咕咪要登录才能用（评分和推荐都记在你名下）。</p>
+        <a class="fg-btn fg-btn--main" href="account.html">去登录</a>
+      </div>
 
-        <!-- 没登录 -->
-        <div class="th-card" id="thGuest" hidden>
-          <p class="th-empty" id="thGuestText">树洞只对协会成员开放：先到「我的账号」用昵称和密码进来。</p>
-          <div style="text-align:center"><a class="th-submit" href="account.html" style="text-decoration:none">去我的账号</a></div>
+      <div id="fgMain" hidden>
+        <section id="fgHallWrap" hidden>
+          <h3 class="fg-h">豪番推荐</h3>
+          <p class="fg-hint" id="fgHallHint"></p>
+          <div class="fg-grid" id="fgHall"></div>
+        </section>
+
+        <div class="fg-search">
+          <label class="sr-only" for="fgQuery">搜番剧</label>
+          <input class="fg-input" id="fgQuery" type="search" placeholder="搜番名，中文、日文都行…" autocomplete="off" enterkeyhint="search">
+          <button class="fg-btn fg-btn--main" id="fgGo" type="button">搜一下</button>
+        </div>
+        <p class="fg-msg" id="fgMsg"></p>
+
+        <div class="fg-filter" id="fgFilterWrap" hidden>
+          <span class="fg-filter__label">按标签筛：</span>
+          <div class="fg-tags" id="fgTags"></div>
         </div>
 
-        <div id="thMain" hidden>
-          <form class="th-write" id="thForm">
-            <label for="thInput" class="sr-only">写下你的纸条</label>
-            <textarea id="thInput" maxlength="500" placeholder="把心事折成纸条，投进树洞。这里不会有人知道是你。"></textarea>
-            <div class="th-write__foot">
-              <span class="th-count" id="thCount">0 / 500</span>
-              <button class="th-submit" id="thSubmit" type="submit" disabled>投进树洞</button>
-            </div>
-          </form>
-          <div class="th-msg" id="thMsg"></div>
-
-          <ul class="th-list" id="thList"></ul>
-          <p class="th-empty" id="thEmpty" hidden>树洞还是空的，做第一个说话的人吧。</p>
-
-          <p class="th-foot" id="thFoot">纸条会在这里待七天，然后自己飘走。</p>
+        <div class="fg-grid" id="fgList"></div>
+        <div class="fg-more" id="fgMoreWrap" hidden>
+          <button class="fg-btn fg-btn--ghost" id="fgMore" type="button">再看一些</button>
         </div>
+        <p class="fg-empty" id="fgEmpty">还没有结果。上面搜一个番名试试，比如「孤独摇滚」。</p>
 
+        <section id="fgHotWrap" hidden>
+          <h3 class="fg-h">当季热门</h3>
+          <div class="fg-grid" id="fgHot"></div>
+        </section>
       </div>
     </div>
   </section>
 </main>
+
+<!-- 番剧详情 -->
+<div class="fg-sheet" id="fgSheet" hidden>
+  <div class="fg-sheet__box" id="fgSheetBox" role="dialog" aria-modal="true" aria-label="番剧详情"></div>
+</div>
 
 <footer class="site-footer">
   <div class="wrap site-footer__inner">
@@ -93,13 +110,16 @@
     <nav class="site-footer__nav" aria-label="页面导航">
       <a href="index.html">首页</a>
       <a href="workbench.html">嘉庭工作台</a>
+      <a href="fangu.html">番咕咪</a>
+      <a href="xianshi.html">闲事笺</a>
+      <a href="qianci.html">千词奇域</a>
+      <a href="snake.html">贪吃蛇</a>
       <a href="comfort.html">安慰盲盒</a>
-      <a href="account.html">我的账号</a>
-      <a href="friends.html">好友</a>
       <a href="app.html">下载 App</a>
+      <a href="friends.html">好友</a>
     </nav>
     <div class="site-footer__meta">
-      <p>本页面仅用于协会对外展示，内容以群内公告为准。</p>
+      <p>番剧信息与 B 站评分来自哔哩哔哩公开接口，大众评分来自 AniList，版权归原作者所有。</p>
       <p>&copy; <span id="year">2026</span> 浙江嘉豪嘉欣协会 · 保留所有权利</p>
     </div>
   </div>
@@ -116,11 +136,11 @@
 </a>
 
 <script src="assets/js/api.js?v=7fa27886"></script>
-<script src="assets/js/treehole.js?v=cb2f2aa8"></script>
-<script src="assets/js/nav.js?v=3e4a4fc6"></script>
+<script src="assets/js/fangu.js?v=f01f0b3c"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }
 </script>
+<script src="assets/js/nav.js?v=3e4a4fc6"></script>
 </body>
 </html>

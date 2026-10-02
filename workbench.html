@@ -95,7 +95,14 @@
   /* 九个功能模块（名称取自部门名，但这里是工作台的功能模块） */
   var MODULES = [
     { key: 'shutong', name: '嘉枢', logo: 'assets/img/dept-01-shutong.png', tools: [] },
-    { key: 'fanxun',  name: '嘉番', logo: 'assets/img/dept-02-fanxun.png', tools: [] },
+    { key: 'fanxun',  name: '嘉番', logo: 'assets/img/dept-02-fanxun.png', tools: [
+        {
+          name: '番咕咪',
+          desc: '搜日番、看评分和评价，推荐好番',
+          href: 'fangu.html',
+          icon: '📺'
+        }
+      ] },
     { key: 'youlun',  name: '嘉游', logo: 'assets/img/dept-03-youlun.png', tools: [
         {
           name: '贪吃蛇',
