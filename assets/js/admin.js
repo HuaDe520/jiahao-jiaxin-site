@@ -188,6 +188,14 @@
       }
 
       var isMe = me.id === u.id;
+      /* 详情：管理员点开看这个人的全部情况 */
+      var detailBtn = document.createElement('button');
+      detailBtn.type = 'button';
+      detailBtn.className = 'ac-btn ac-btn--ghost';
+      detailBtn.textContent = '看详情';
+      detailBtn.addEventListener('click', function () { openUser(u); });
+      row.appendChild(detailBtn);
+
       if (!isMe) {
         if (u.status === 'banned') row.appendChild(act('unban', '恢复'));
         else row.appendChild(act('ban', '停用', '确定停用「' + u.name + '」吗？他会立刻掉线。', true));
@@ -203,6 +211,133 @@
 
       item.appendChild(row);
       usersEl.appendChild(item);
+    });
+  }
+
+  /* ---------------- 成员详情 ----------------
+     管理员点「看详情」：资料、在这儿的活动，一次摆清楚 */
+  var sheet = null;
+  var sheetBox = null;
+
+  function closeUser() {
+    if (!sheet) return;
+    sheet.hidden = true;
+    sheetBox.innerHTML = '';
+    document.body.style.overflow = '';
+  }
+
+  function line(label, value) {
+    var row = document.createElement('div');
+    row.className = 'ac-line';
+    var k = document.createElement('span');
+    k.className = 'ac-line__k';
+    k.textContent = label;
+    var v = document.createElement('span');
+    v.className = 'ac-line__v';
+    v.textContent = value == null || value === '' ? '—' : String(value);
+    row.appendChild(k);
+    row.appendChild(v);
+    return row;
+  }
+
+  function openUser(u) {
+    if (!sheet) {
+      sheet = $('adSheet');
+      sheetBox = $('adSheetBox');
+      sheet.addEventListener('click', function (e) { if (e.target === sheet) closeUser(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !sheet.hidden) closeUser(); });
+    }
+    sheet.hidden = false;
+    document.body.style.overflow = 'hidden';
+    sheetBox.innerHTML = '';
+    var loading = document.createElement('p');
+    loading.className = 'ac-foot';
+    loading.textContent = '正在取「' + u.name + '」的情况…';
+    sheetBox.appendChild(loading);
+
+    API.adminUser(u.id).then(function (res) {
+      if (res.status !== 200 || !res.data || !res.data.user) {
+        sheetBox.innerHTML = '';
+        sheetBox.appendChild(loading);
+        loading.textContent = (res.data && res.data.error) || '取不到这个成员的情况';
+        return;
+      }
+      var d = res.data.user;
+      var a = res.data.activity || {};
+      sheetBox.innerHTML = '';
+
+      var head = document.createElement('div');
+      head.className = 'ac-sheet__head';
+      if (d.avatar) {
+        var img = document.createElement('img');
+        img.className = 'ac-sheet__avatar';
+        img.src = API.asset(d.avatar);
+        img.alt = '';
+        head.appendChild(img);
+      }
+      var hbox = document.createElement('div');
+      var h = document.createElement('h3');
+      h.className = 'ac-sheet__name';
+      h.textContent = d.name + '（#' + d.id + '）';
+      hbox.appendChild(h);
+      var sub = document.createElement('p');
+      sub.className = 'ac-sheet__sub';
+      sub.textContent = (d.role === 'admin' ? '管理员' : '普通成员') + ' · ' + (d.status === 'banned' ? '已停用' : '正常')
+        + ' · ' + d.genderText + (d.hasPassword ? ' · 有密码' : ' · 还没设密码');
+      hbox.appendChild(sub);
+      head.appendChild(hbox);
+      var close = document.createElement('button');
+      close.type = 'button';
+      close.className = 'ac-sheet__close';
+      close.setAttribute('aria-label', '关闭');
+      close.textContent = '×';
+      close.addEventListener('click', closeUser);
+      head.appendChild(close);
+      sheetBox.appendChild(head);
+
+      var sec1 = document.createElement('div');
+      sec1.className = 'ac-sec';
+      var t1 = document.createElement('div');
+      t1.className = 'ac-sec__title';
+      t1.textContent = '资料';
+      sec1.appendChild(t1);
+      sec1.appendChild(line('昵称', d.name));
+      sec1.appendChild(line('性别', d.genderText + (d.gender === 'custom' && d.genderCustom ? '（' + d.genderCustom + '）' : '')));
+      sec1.appendChild(line('个性签名', d.signature));
+      sec1.appendChild(line('加入时间', fmtTime(d.createdAt)));
+      sec1.appendChild(line('最近出现', fmtTime(d.lastSeenAt)));
+      sheetBox.appendChild(sec1);
+
+      var sec2 = document.createElement('div');
+      sec2.className = 'ac-sec';
+      var t2 = document.createElement('div');
+      t2.className = 'ac-sec__title';
+      t2.textContent = '在这儿的活动';
+      sec2.appendChild(t2);
+      sec2.appendChild(line('好友', a.friends + ' 个'));
+      sec2.appendChild(line('好友申请', '收到 ' + a.incomingRequests + ' · 发出 ' + a.outgoingRequests));
+      sec2.appendChild(line('私聊消息', a.messagesDirect + ' 条'));
+      sec2.appendChild(line('群消息', a.messagesGroup + ' 条'));
+      sec2.appendChild(line('加的群', (a.groups || []).length
+        ? a.groups.map(function (g) { return g.name + '（' + ({ owner: '群主', admin: '管理员' }[g.role] || '成员') + (g.nickname ? '·' + g.nickname : '') + '）'; }).join('、')
+        : '还没加群'));
+      sec2.appendChild(line('番咕咪评分', a.fanguReviews + ' 条' + (a.fanguReviews ? '（' + (a.fanguScores || []).map(function (x) { return '#' + x.seasonId + ' ' + x.score; }).slice(0, 6).join('、') + '）' : '')));
+      sec2.appendChild(line('番咕咪推荐', a.fanguRecs + ' 部'));
+      var snakeText = (a.snake || []).filter(function (x) { return x.best > 0 || x.tries > 0; })
+        .map(function (x) { return x.label + ' ' + x.best + ' 分/' + x.tries + ' 次'; }).join('、');
+      sec2.appendChild(line('贪吃蛇', snakeText || '还没玩'));
+      var words4 = (a.qianciKnown || a.qianciTodo) ? ('四级 已会 ' + a.qianciKnown + ' · 待巩固 ' + a.qianciTodo) : '';
+      var words6 = (a.qianciKnown6 || a.qianciTodo6) ? ('六级 已会 ' + a.qianciKnown6 + ' · 待巩固 ' + a.qianciTodo6) : '';
+      sec2.appendChild(line('千词奇域', [words4, words6].filter(Boolean).join('；') || '还没玩'));
+      sec2.appendChild(line('飞行棋', (a.flightRooms || []).length ? (a.flightRooms.length + ' 桌（' + a.flightRooms.map(function (r) { return r.code + '/' + r.status; }).join('、') + '）') : '没开过桌'));
+      sec2.appendChild(line('被举报 / 举报别人', a.reportsAgainst + ' 次 / ' + a.reportsFiled + ' 次'));
+      sheetBox.appendChild(sec2);
+    }, function () {
+      sheetBox.innerHTML = '';
+      var err = document.createElement('p');
+      err.className = 'ac-foot';
+      err.textContent = '网络不太好，没取到这个成员的情况';
+      sheetBox.appendChild(err);
     });
   }
 

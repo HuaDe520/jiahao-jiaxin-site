@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=6f4eea6e">
-<link rel="stylesheet" href="assets/css/account.css?v=e3c64887">
+<link rel="stylesheet" href="assets/css/account.css?v=3b43df36">
 </head>
 <body class="ac-page">
 
@@ -110,6 +110,11 @@
   </section>
 </main>
 
+<!-- 成员详情：资料 + 在这儿的活动 -->
+<div class="ac-sheet" id="adSheet" hidden>
+  <div class="ac-sheet__box" id="adSheetBox" role="dialog" aria-modal="true" aria-label="成员详情"></div>
+</div>
+
 <footer class="site-footer">
   <div class="wrap site-footer__inner">
     <div class="site-footer__brand">
@@ -143,8 +148,8 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/api.js?v=d5fe53ce"></script>
-<script src="assets/js/admin.js?v=2decc1c6"></script>
+<script src="assets/js/api.js?v=e1337de1"></script>
+<script src="assets/js/admin.js?v=584acd7a"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }
