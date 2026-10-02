@@ -43,18 +43,33 @@ iOS 不允许安装第三方安装包，只能用 **Safari** 添加到主屏幕�
 
 | 项目 | 值 |
 | --- | --- |
-| 文件名 | `download/zhangshang-jiaxie-1.10.apk` |
-| 版本 | 1.10（versionCode 11） |
-| 大小 | 133 KB |
+| 文件名 | `download/zhangshang-jiaxie-1.11.apk` |
+| 版本 | 1.11（versionCode 12） |
+| 大小 | 137 KB |
 | 包名 | `com.jiahaojiaxin.assoc` |
 | 支持系统 | Android 5.0（API 21）及以上 |
 | 目标版本 | Android 14（API 34） |
-| 权限 | `INTERNET`、`ACCESS_NETWORK_STATE`、`REQUEST_INSTALL_PACKAGES`（自己装更新用）|
+| 权限 | `INTERNET`、`ACCESS_NETWORK_STATE`、`RECORD_AUDIO`（发语音）、`REQUEST_INSTALL_PACKAGES`（自己装更新用）|
 | 签名证书 | CN=Zhejiang Jiahao Jiaxin Association |
 | 证书 SHA-256 | `302b107e38b8da634d0d7c24691e97d88248643f6aa7f108729fa1c068ec5bec` |
-| APK SHA-256 | `a33632fd5f560f0ae117b1bdcae749569a2f5d0b63bba1f370f7667372fc82b9` |
+| APK SHA-256 | `836f4301282803e85f3864ca838b52511d308e9fcfa7eb948db77fe528b6dfaf` |
 
 App 本质是一个 WebView 外壳，**打开的就是官网**——所以官网内容一更新，App 里立刻就是新的，不需要重新发版。只有用到安卓本机能力的功能（朗读、更新）才需要重新打包。
+
+### 1.11 改了什么：语音改由 App 自己录
+
+以前网页在 App 里发语音，是网页自己去跟 WebView 要麦克风（`getUserMedia`）。有些机型上系统权限明明给了，WebView 那一层还是打不开话筒——用户看到的就是「点了语音没反应」或者「麦克风打不开」，怎么重试都没用。
+
+1.11 换了个思路：**录音这一步交给 App 自己做**。网页点「语音」时先问 `JHJX_APP.nativeRecSupported()`，有原生录音就直接调：
+
+- `nativeRecStart()` 开始录（MPEG_4 + AAC，单声道 32 kbps，最长 60 秒，65 秒兜底自动停）；
+- `nativeRecStop()` 停下并把录好的字节用 Base64 交回网页，网页再照旧上传；
+- `nativeRecCancel()` 取消，临时文件直接删掉；
+- `micProbe()` 探一下「系统这一层到底让不让录」，网页据此分清是系统拦的还是网页层拦的，并在录不了时给一个「自检」按钮。
+
+权限那边也修了两处老毛病：以前 `micDeniedOnce` 在**还没问用户**就被置成 true，于是全新安装也会被报成「已拒绝」；现在只有用户真的拒了才算。另外 WebView 那次被拒的授权请求以前会挂在 `pendingPermission` 上不清理，现在拒绝时也会清掉。
+
+网页那边同样做了加固：不再靠轮询权限状态开录，而是**先试着开话筒、失败了再去要权限**；录音条一定会出现，失败一定会给一句人话，还有一个「自检」按钮能一眼看出卡在哪一层。
 
 ### 1.6 改了什么：App 自己能更新了
 

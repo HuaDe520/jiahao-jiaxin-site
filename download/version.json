@@ -1,12 +1,12 @@
 {
-    "versionCode":  11,
-    "versionName":  "1.10",
-    "file":  "zhangshang-jiaxie-1.10.apk",
-    "url":  "https://xbc-zjja.com.cn/download/zhangshang-jiaxie-1.10.apk",
-    "urlBackup":  "https://huade520.github.io/jiahao-jiaxin-site/download/zhangshang-jiaxie-1.10.apk",
-    "size":  136555,
-    "sha256":  "a33632fd5f560f0ae117b1bdcae749569a2f5d0b63bba1f370f7667372fc82b9",
-    "notes":  "1.10 版重点修语音：启动时就把麦克风权限要到手（以前常见「系统里明明开了权限、网页那次授权早被拒」，于是怎么点都发不出语音）；App 里点「语音」会先确认权限再开录。另外更新流程每一步（检查/下载/安装）都会在下载页的「更新面板」里显示出来，卡在哪一步一眼就能看到，还多了「用浏览器下载」这条保底路径。",
-    "forceBelow":  1,
-    "releasedAt":  "2026-10-02"
+  "versionCode": 12,
+  "versionName": "1.11",
+  "file": "zhangshang-jiaxie-1.11.apk",
+  "url": "https://xbc-zjja.com.cn/download/zhangshang-jiaxie-1.11.apk",
+  "urlBackup": "https://huade520.github.io/jiahao-jiaxin-site/download/zhangshang-jiaxie-1.11.apk",
+  "size": 140651,
+  "sha256": "836f4301282803e85f3864ca838b52511d308e9fcfa7eb948db77fe528b6dfaf",
+  "notes": "1.11 版把语音消息真正修好了：录音改由 App 自己完成（网页不再依赖 WebView 的麦克风授权，有些机型明明给了系统权限，WebView 里还是打不开话筒），另外加了麦克风自检，能分清是系统不让录还是网页层不让录。",
+  "forceBelow": 1,
+  "releasedAt": "2026-10-02"
 }

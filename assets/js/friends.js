@@ -53,7 +53,12 @@
     el.textContent = text;
     el.className = 'fr-msg is-show is-' + (kind || 'ok');
   }
-  function hideMsg(el) { el.className = 'fr-msg'; }
+  /* 收起来的时候顺手把内容和按钮清掉：留着旧按钮在 DOM 里，
+     之后新提示出来时可能点到上一个「自检 / 打开设置」 */
+  function hideMsg(el) {
+    el.className = 'fr-msg';
+    el.textContent = '';
+  }
 
   function empty(text) {
     var d = document.createElement('div');
@@ -1294,7 +1299,24 @@
     navigator.mediaDevices.getUserMedia &&
     typeof window.MediaRecorder !== 'undefined'
   );
-  var rec = { recorder: null, stream: null, chunks: [], name: '', startedAt: 0, timer: null, wantCancel: false, mime: '' };
+
+  /* 手机 App 1.11 起自带原生录音：App 里优先用它，绕开 WebView 的 getUserMedia。
+     踩过的坑：有些机型系统权限明明给了，WebView 里 getUserMedia 还是
+     NotReadableError，网页这边怎么重试都没用——所以干脆让 App 自己录。 */
+  function nativeRecAvailable() {
+    try {
+      return !!(window.JHJX_APP
+        && typeof window.JHJX_APP.nativeRecStart === 'function'
+        && typeof window.JHJX_APP.nativeRecStop === 'function'
+        && (typeof window.JHJX_APP.nativeRecSupported !== 'function'
+            || window.JHJX_APP.nativeRecSupported() === true));
+    } catch (e) { return false; }
+  }
+
+  /* mode: '' 没在录 / 'app' 原生录音 / 'web' 网页录音
+     gen 是「这一轮录音」的编号：过期的回调（上一轮录音的 onstop 迟到）会被它挡掉，
+     免得空录一段又发出去，用户看到「这段语音没录上」 */
+  var rec = { recorder: null, stream: null, chunks: [], name: '', startedAt: 0, timer: null, wantCancel: false, mime: '', mode: '', gen: 0 };
 
   function pickRecMime() {
     var list = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
@@ -1309,6 +1331,12 @@
     var sec = (Date.now() - rec.startedAt) / 1000;
     var el = $('frRecTime');
     if (el) el.textContent = fmtDur(sec);
+    /* recorder 自己挂了（有些机型会直接 inactive），录音条要收掉、话筒要还回去，
+       否则下一次点「语音」会被「已经有一个 recorder」挡住，表现就是点了没反应 */
+    if (rec.mode === 'web' && rec.recorder && rec.recorder.state === 'inactive') {
+      finishWebRec(false, rec.gen);
+      return;
+    }
     if (sec >= 60) stopRecording(false);
   }
 
@@ -1326,26 +1354,156 @@
     if (bar) bar.hidden = true;
   }
 
+  function clearRecTimer() {
+    if (rec.timer) { clearInterval(rec.timer); rec.timer = null; }
+  }
+
+  function showRecBar() {
+    var bar = $('frRecBar');
+    if (bar) bar.hidden = false;
+    var t = $('frRecTime');
+    if (t) t.textContent = '0:00';
+    clearRecTimer();
+    rec.timer = setInterval(recTicks, 250);
+  }
+
+  /* 把状态整个清干净：任何一条失败路径都要走到这里，
+     不然留下的半个 recorder / 话筒会让后面每次点「语音」都毫无反应 */
+  function resetRecState() {
+    clearRecTimer();
+    rec.gen += 1;
+    rec.mode = '';
+    rec.recorder = null;
+    rec.chunks = [];
+    rec.mime = '';
+    rec.name = '';
+    rec.startedAt = 0;
+    rec.wantCancel = false;
+    releaseMic();
+    hideRecBar();
+  }
+
+  /* 网页录音的收尾（onstop / 超时 / recorder 自己死了 都汇到这里）。
+     gen 对不上就说明这是上一轮录音的迟到回调，直接丢掉。 */
+  var webFinishing = false;
+  function finishWebRec(giveUp, gen) {
+    if (gen !== undefined && gen !== rec.gen) return;
+    if (webFinishing) return;
+    webFinishing = true;
+    var type = rec.mime || 'audio/webm';
+    var chunks = rec.chunks;
+    var name = rec.name || 'voice.webm';
+    var blob = null;
+    try { blob = new Blob(chunks, { type: type }); } catch (e) { blob = null; }
+    resetRecState();
+    webFinishing = false;
+    if (!giveUp) {
+      try { sendRecording(blob, name); } catch (e) { chatMsg('语音发不出去，稍后再试', 'error'); }
+    }
+  }
+
   /* wantCancel = true 表示用户点了「取消」，录到的东西直接丢掉 */
   function stopRecording(wantCancel) {
     rec.wantCancel = !!wantCancel;
-    if (rec.timer) { clearInterval(rec.timer); rec.timer = null; }
+    clearRecTimer();
+    if (rec.mode === 'app') {
+      stopNativeRec(!!wantCancel);
+      return;
+    }
+    var gen = rec.gen;
+    var canc = !!wantCancel;
     if (rec.recorder && rec.recorder.state !== 'inactive') {
       /* 先把已有的数据要出来再停：某些机型上 stop() 之后最后一段数据来不及进 chunks，
          结果 blob 是空的，用户看到的就是「发不了语音」 */
       try { if (rec.recorder.requestData) rec.recorder.requestData(); } catch (e) { /* 忽略 */ }
       try { rec.recorder.stop(); } catch (e) { /* 忽略 */ }
-    } else {
-      releaseMic();
-      hideRecBar();
+      /* onstop 里会 finishWebRec；万一这个机型压根不回调，1.5 秒后兜底 */
+      setTimeout(function () {
+        if (gen === rec.gen && rec.mode === 'web' && rec.recorder && rec.recorder.state === 'inactive') {
+          finishWebRec(canc, gen);
+        }
+      }, 1500);
+      return;
     }
+    /* 没在录（或者 recorder 已经 inactive 却没人收尾）：直接清干净 */
+    finishWebRec(canc, gen);
   }
 
-  function sendRecording(blob) {
+  /* ---------------- App 原生录音 ---------------- */
+  function b64ToBlob(b64, mime) {
+    var bin = atob(b64);
+    var len = bin.length;
+    var bytes = new Uint8Array(len);
+    for (var i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: mime || 'audio/mp4' });
+  }
+
+  function stopNativeRec(wantCancel) {
+    var raw = '';
+    try {
+      if (wantCancel && typeof window.JHJX_APP.nativeRecCancel === 'function') {
+        window.JHJX_APP.nativeRecCancel();
+        resetRecState();
+        return;
+      }
+      raw = String(window.JHJX_APP.nativeRecStop() || '');
+    } catch (e) {
+      raw = '';
+    }
+    var out = null;
+    try { out = JSON.parse(raw); } catch (e) { out = null; }
+    var name = (out && out.name) || 'voice.m4a';
+    var mime = (out && out.mime) || 'audio/mp4';
+    resetRecState();
+    if (!out || !out.ok) {
+      var why = (out && out.error) || 'App 录音没成功';
+      chatMsg(why + '：再点一次「语音」试试；也可以先发文字。', 'error');
+      return;
+    }
+    var blob = null;
+    try { blob = b64ToBlob(out.b64, mime); } catch (e) { blob = null; }
+    sendRecording(blob, name);
+  }
+
+  /* ---------------- 麦克风自检（录不了音时给个准话） ---------------- */
+  function micSelfCheck() {
+    var lines = [];
+    lines.push('App 版本 ' + (window.JHJX_APP && window.JHJX_APP.version ? String(window.JHJX_APP.version()) : '（不在 App 里）'));
+    lines.push('系统权限 ' + (appMicState() || '读不到'));
+    var probe = '';
+    try {
+      if (window.JHJX_APP && typeof window.JHJX_APP.micProbe === 'function') probe = String(window.JHJX_APP.micProbe() || '');
+    } catch (e) { probe = ''; }
+    var pj = null;
+    try { pj = JSON.parse(probe); } catch (e) { pj = null; }
+    if (pj) lines.push('App 直接开话筒 ' + (pj.capture ? '可以' : '不行（' + (pj.error || '未知原因') + '）'));
+    if (!micSupported) {
+      chatMsg(lines.join('；') + '；网页这边不支持录音。把你的手机型号和这句话发给管理员就行。', 'error');
+      return;
+    }
+    chatMsg(lines.join('；') + '；正在试网页录音…', 'ok');
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      releaseStream(stream);
+      chatMsg(lines.join('；') + '；网页录音也可以。再点一次「语音」就能录了。', 'ok');
+    }, function (err) {
+      noteMicDiag(err);
+      lines.push('网页开话筒失败：' + ((err && err.name) || '未知'));
+      chatMsg(lines.join('；') + '。把你手机型号和这句话发给管理员就行。', 'error');
+    });
+  }
+
+  function releaseStream(stream) {
+    try {
+      var tracks = stream.getTracks();
+      for (var i = 0; i < tracks.length; i++) tracks[i].stop();
+    } catch (e) { /* 忽略 */ }
+  }
+
+  function sendRecording(blob, name) {
     if (!blob || !blob.size) {
       chatMsg('这段语音没录上：多半是点得太快了。点「语音」之后说一两秒，再点「发送」。', 'error', '再试一次', function () {
         hideMsg($('frChatMsg'));
-        startRecordingTry(0);
+        startRecording();
       });
       return;
     }
@@ -1353,18 +1511,18 @@
     if (blob.size < 800) {
       chatMsg('录得太短了（不到一秒），点「语音」后多讲两句再发。', 'error', '再试一次', function () {
         hideMsg($('frChatMsg'));
-        startRecordingTry(0);
+        startRecording();
       });
       return;
     }
-    API.uploadMedia('voice', blob, rec.name || 'voice.webm').then(function (res) {
+    API.uploadMedia('voice', blob, name || 'voice.webm').then(function (res) {
       if (res.status === 200 && res.data && res.data.media) {
         var media = res.data.media;
         sendMedia('voice', media, media.name || '');
       } else {
         chatMsg((res.data && res.data.error) || '语音发不出去，稍后再试', 'error');
       }
-    });
+    }, function () { chatMsg('网络不太好，语音没传上去，再试一次', 'error'); });
   }
 
   /* 聊天区里的一行提示（比 alert 友好，手机上尤其明显），9 秒后自己收起来。
@@ -1373,6 +1531,9 @@
   function chatMsg(text, kind, actionLabel, action) {
     var el = $('frChatMsg');
     if (!el) { alert(text); return; }
+    /* 上一次的按钮先摘掉，别让「自检 / 打开设置」叠在一起点错 */
+    var stale = el.querySelectorAll('.fr-msg__act');
+    for (var i = 0; i < stale.length; i++) el.removeChild(stale[i]);
     el.textContent = text;
     el.className = 'fr-msg is-show is-' + (kind || 'ok');
     if (actionLabel && action) {
@@ -1394,6 +1555,22 @@
       var v = String(window.JHJX_APP.version() || '');
       return !!v && parseFloat(v) < 1.7;
     } catch (e) { return false; }
+  }
+
+  /* App 版本比 v 老吗（读不到版本时当作不老，别乱劝人更新） */
+  function appOlderThan(v) {
+    if (!window.JHJX_APP || typeof window.JHJX_APP.version !== 'function') return false;
+    try {
+      var cur = String(window.JHJX_APP.version() || '');
+      return !!cur && cur !== v && parseFloat(cur) < parseFloat(v);
+    } catch (e) { return false; }
+  }
+
+  /* App 里有原生录音时就不用再劝更新了 */
+  function nativeUpgradeHint() {
+    if (nativeRecAvailable()) return '';
+    if (!window.JHJX_APP || !appOlderThan('1.11')) return '';
+    return '装 1.11 版之后，App 里改用手机自带的录音，这种毛病就不会再出现了（在「下载」页点「检查更新」）。';
   }
 
   /* App 自己知不知道麦克风权限的状态（1.9 起提供）：granted / denied / prompt */
@@ -1444,7 +1621,8 @@
     }
     if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'PermissionDeniedError') {
       if (inApp) {
-        return '麦克风权限还没给：到手机「设置 → 应用 → 掌上嘉协 → 权限」里打开「麦克风」，回来再点一次「语音」。' + tag;
+        return '麦克风权限还没给：到手机「设置 → 应用 → 掌上嘉协 → 权限」里打开「麦克风」，回来再点一次「语音」。'
+          + nativeUpgradeHint() + tag;
       }
       return '麦克风权限被拒了：点浏览器地址栏左边的锁图标 → 把「麦克风」改成「允许」，再点一次「语音」。' + tag;
     }
@@ -1452,10 +1630,12 @@
       return '这台设备上没找到麦克风；也可以先发文字。' + tag;
     }
     if (name === 'NotReadableError' || name === 'TrackStartError' || name === 'AbortError') {
+      var up = nativeUpgradeHint();
       if (inApp) {
         var extra = appMicState() === 'denied' ? '（现在设置里是「已拒绝」）' : '';
         return '麦克风打不开，多半是权限或隐私开关没放开' + extra
-          + '：到「设置 → 应用 → 掌上嘉协 → 权限」打开麦克风（有「隐私保护 / 麦克风」开关的机型也一并打开），再点一次「语音」。' + tag;
+          + '：到「设置 → 应用 → 掌上嘉协 → 权限」打开麦克风（有「隐私保护 / 麦克风」开关的机型也一并打开），再点一次「语音」。'
+          + (up ? up : '') + tag;
       }
       return '浏览器打不开麦克风：先看系统隐私设置里有没有允许浏览器用麦克风'
         + '（Windows：设置 → 隐私 → 麦克风；手机：应用权限），再看有没有别的通话 / 录音 / 会议软件正占着。' + tag;
@@ -1466,12 +1646,43 @@
     return '录音没起来' + (err && err.message ? '（' + err.message + '）' : '') + '；也可以先发文字。';
   }
 
+  /* 菜单里点「语音」：先看能不能录，再开始录。
+     顺序很重要——先把话筒拿到手，再问系统权限。
+     以前是反过来（先问权限、再轮询 20 秒），权限状态读不准时就变成
+     「点了没反应，录音条也不出来」。 */
   function startRecording() {
-    /* 在手机 App 里：先让 App 把系统麦克风权限拿到手，再开录音。
-       否则经常出现「用户在系统设置里给了权限，但 WebView 那次授权早就被拒了」，
-       表现为「明明给了权限还是录不了」。 */
-    if (window.JHJX_APP && typeof window.JHJX_APP.askMic === 'function'
-        && typeof window.JHJX_APP.micState === 'function' && appMicState() !== 'granted') {
+    if (rec.mode) {
+      /* 已经在录了：当没事发生，别把录音条弄乱 */
+      return;
+    }
+    /* 上一轮的提示（含「自检 / 打开设置」按钮）先收掉，免得点错 */
+    hideMsg($('frChatMsg'));
+    /* 上一轮留下的残骸先清干净，否则会被挡住 */
+    if (rec.recorder || rec.stream) resetRecState();
+    if (nativeRecAvailable()) {
+      startNativeRec(0);
+      return;
+    }
+    if (!micSupported) {
+      chatMsg(micFailHint(null), 'error', '自检', micSelfCheck);
+      return;
+    }
+    startRecordingTry(0);
+  }
+
+  /* App 原生录音：录到哪个文件、怎么编码都由 App 管，网页只管开关 */
+  function startNativeRec(attempt) {
+    var out = '';
+    try { out = String(window.JHJX_APP.nativeRecStart() || ''); } catch (e) { out = ''; }
+    if (out === 'ok') {
+      hideMsg($('frChatMsg'));
+      rec.mode = 'app';
+      rec.startedAt = Date.now();
+      showRecBar();
+      return;
+    }
+    /* 权限没给：去要一次，拿到再录（最多等 8 秒，绝不干等 20 秒） */
+    if (attempt === 0 && appMicState() !== 'granted' && typeof window.JHJX_APP.askMic === 'function') {
       chatMsg('正在申请麦克风权限，请在系统弹窗里点「允许」…', 'ok');
       try { window.JHJX_APP.askMic(); } catch (e) { /* 忽略 */ }
       var waited = 0;
@@ -1479,20 +1690,31 @@
         waited += 500;
         if (appMicState() === 'granted') {
           clearInterval(timer);
-          hideMsg($('frChatMsg'));
-          startRecordingTry(0);
+          startNativeRec(1);
           return;
         }
-        if (waited >= 20000) {
+        if (waited >= 8000) {
           clearInterval(timer);
-          chatMsg(micFailHint({ name: 'NotAllowedError' }), 'error', '打开设置', function () {
-            try { window.JHJX_APP.openMicSettings(); } catch (e) { /* 忽略 */ }
-          });
+          micDeniedChat();
         }
       }, 500);
       return;
     }
-    startRecordingTry(0);
+    micDeniedChat(out);
+  }
+
+  function micDeniedChat(what) {
+    var openable = window.JHJX_APP && typeof window.JHJX_APP.openMicSettings === 'function';
+    var text = what && what !== 'ok' && what !== '还没有麦克风权限'
+      ? '语音没录起来（' + what + '）：再点一次「语音」试试，或者先发文字。'
+      : micFailHint({ name: 'NotAllowedError' });
+    chatMsg(text, 'error', openable ? '打开设置' : '自检', function () {
+      if (openable) {
+        try { window.JHJX_APP.openMicSettings(); } catch (e) { /* 忽略 */ }
+      } else {
+        micSelfCheck();
+      }
+    });
   }
 
   /* 第一次打不开麦克风时先悄悄重试一次：
@@ -1500,11 +1722,15 @@
      直接弹提示会吓人，也常常第二次就好了。 */
   function startRecordingTry(attempt) {
     if (!micSupported) {
-      chatMsg(micFailHint(null), 'error');
+      chatMsg(micFailHint(null), 'error', '自检', micSelfCheck);
       return;
     }
-    if (rec.recorder) return;
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+    if (rec.mode) return;
+    /* 约束条件也分两档试：少数机型不认默认的音频处理开关，
+       换成最朴素的 {audio:true} 反而能开 */
+    var constraints = attempt >= 2 ? { audio: true } : { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } };
+    navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
+      if (rec.mode) { releaseStream(stream); return; }
       rec.stream = stream;
       rec.chunks = [];
       rec.wantCancel = false;
@@ -1520,52 +1746,72 @@
         chatMsg(micFailHint(e), 'error');
         return;
       }
+      rec.mode = 'web';
+      var myGen = rec.gen;
       rec.recorder.ondataavailable = function (e) {
+        if (myGen !== rec.gen) return;
         if (e.data && e.data.size) rec.chunks.push(e.data);
       };
-      rec.recorder.onstop = function () {
-        var type = rec.mime || 'audio/webm';
-        var blob = null;
-        try { blob = new Blob(rec.chunks, { type: type }); } catch (e) { blob = null; }
-        var giveUp = rec.wantCancel;
-        rec.recorder = null;
-        rec.chunks = [];
-        releaseMic();
-        hideRecBar();
-        if (!giveUp) {
-          try { sendRecording(blob); } catch (e) { chatMsg('语音发不出去，稍后再试', 'error'); }
-        }
+      rec.recorder.onstop = function () { finishWebRec(!!rec.wantCancel, myGen); };
+      /* 录音过程中出错（话筒被抢走之类）：不能不出声，否则用户以为「点了没反应」 */
+      rec.recorder.onerror = function (e) {
+        if (myGen !== rec.gen) return;
+        var why = (e && e.error && e.error.name) || '录音中断';
+        try { rec.recorder.stop(); } catch (e2) { /* 忽略 */ }
+        micSelfCheckHint(why);
       };
       rec.startedAt = Date.now();
       try { rec.recorder.start(); } catch (e) {
         rec.recorder = null;
+        rec.mode = '';
         releaseMic();
         chatMsg('开始录音失败：' + micFailHint(e), 'error');
         return;
       }
-      var bar = $('frRecBar');
-      if (bar) bar.hidden = false;
-      var t = $('frRecTime');
-      if (t) t.textContent = '0:00';
-      if (rec.timer) clearInterval(rec.timer);
-      rec.timer = setInterval(recTicks, 250);
+      showRecBar();
     }, function (err) {
       noteMicDiag(err);
       var transient = err && (err.name === 'NotReadableError' || err.name === 'TrackStartError' || err.name === 'AbortError');
-      if (transient && attempt === 0) {
-        /* 瞬时占用/刚释放，先自己重试一次，别急着报错 */
-        setTimeout(function () { startRecordingTry(1); }, 700);
+      var denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError' || err.name === 'PermissionDeniedError');
+      /* 权限被拒：先去 App 那边要一次系统权限（App 里常见「设置里开了、WebView 那次授权早被拒」） */
+      if (denied && attempt === 0 && window.JHJX_APP && typeof window.JHJX_APP.askMic === 'function'
+          && typeof window.JHJX_APP.micState === 'function' && appMicState() !== 'granted') {
+        chatMsg('正在申请麦克风权限，请在系统弹窗里点「允许」…', 'ok');
+        try { window.JHJX_APP.askMic(); } catch (e) { /* 忽略 */ }
+        var waited = 0;
+        var timer = setInterval(function () {
+          waited += 500;
+          if (appMicState() === 'granted') {
+            clearInterval(timer);
+            startRecordingTry(1);
+            return;
+          }
+          if (waited >= 8000) {
+            clearInterval(timer);
+            micDeniedChat('');
+          }
+        }, 500);
         return;
       }
-      /* 在 App 里再给一个「打开设置」的按钮，省得用户自己找菜单 */
-      if (window.JHJX_APP && typeof window.JHJX_APP.openMicSettings === 'function') {
+      if (transient && attempt < 2) {
+        /* 瞬时占用 / 约束不认，换个档再试，别急着报错 */
+        setTimeout(function () { startRecordingTry(attempt + 1); }, attempt === 0 ? 700 : 300);
+        return;
+      }
+      var openable = window.JHJX_APP && typeof window.JHJX_APP.openMicSettings === 'function';
+      if (openable && (denied || err.name === 'NotReadableError' || err.name === 'TrackStartError')) {
         chatMsg(micFailHint(err), 'error', '打开设置', function () {
           try { window.JHJX_APP.openMicSettings(); } catch (e) { /* 忽略 */ }
         });
         return;
       }
-      chatMsg(micFailHint(err), 'error');
+      /* 剩下那些说不清的失败，给个「自检」把真正的原因抓出来 */
+      chatMsg(micFailHint(err), 'error', '自检', micSelfCheck);
     });
+  }
+
+  function micSelfCheckHint(why) {
+    chatMsg('录音中断了（' + why + '）：再点一次「语音」试试。', 'error', '自检', micSelfCheck);
   }
 
   /* ---- 群聊列表 ---- */
