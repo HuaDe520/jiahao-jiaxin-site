@@ -1073,7 +1073,10 @@
     }
     var line = document.createElement('p');
     line.className = 'fg-detail__line';
-    line.textContent = [sub.area, sub.eps, sub.publish, sub.status].filter(Boolean).join(' · ');
+    /* 只接字符串：数据源里偶尔有对象字段，别在页面上印出 [object Object] */
+    line.textContent = [sub.area, sub.eps, sub.publish, sub.status]
+      .filter(function (x) { return x && typeof x === 'string'; })
+      .join(' · ');
     meta.appendChild(line);
     var rec = document.createElement('p');
     rec.className = 'fg-detail__line';
