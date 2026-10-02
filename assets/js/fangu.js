@@ -890,13 +890,16 @@
     var kw = String(q == null ? queryEl.value : q).trim();
     if (!kw) { msg('想找什么番？写个名字', true); queryEl.focus(); return; }
     var p = Math.max(1, Math.floor(Number(page) || 1));
+    var mySeq = ++listSeq;      /* 搜完之后要是又点了筛选，这份结果就别往回盖了 */
     state.keyword = kw;
     goBtn.disabled = true;
     msg('正在找…');
     renderLoading('正在找「' + kw + '」…', 'B 站那边没有的，会顺手去 AniList 片库再找一遍。');
     window.JHJX_API.fanguSearch(kw, p).then(function (res) {
       goBtn.disabled = false;
+      if (mySeq !== listSeq) return;
       if (res.status !== 200) {
+        renderList();
         msg((res.data && res.data.error) || '没搜出来，过一会儿再试', true);
         return;
       }
@@ -912,6 +915,8 @@
       msg(state.results.length ? '' : '没找到这部番，换个写法试试（日文原名也行）');
     }, function () {
       goBtn.disabled = false;
+      if (mySeq !== listSeq) return;
+      renderList();
       msg('网络不太好，没搜出来', true);
     });
   }
