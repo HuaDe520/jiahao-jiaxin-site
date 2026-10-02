@@ -1,12 +1,12 @@
 {
-    "versionCode":  8,
-    "versionName":  "1.7",
-    "file":  "zhangshang-jiaxie-1.7.apk",
-    "url":  "https://xbc-zjja.com.cn/download/zhangshang-jiaxie-1.7.apk",
-    "urlBackup":  "https://huade520.github.io/jiahao-jiaxin-site/download/zhangshang-jiaxie-1.7.apk",
+    "versionCode":  9,
+    "versionName":  "1.8",
+    "file":  "zhangshang-jiaxie-1.8.apk",
+    "url":  "https://xbc-zjja.com.cn/download/zhangshang-jiaxie-1.8.apk",
+    "urlBackup":  "https://huade520.github.io/jiahao-jiaxin-site/download/zhangshang-jiaxie-1.8.apk",
     "size":  136555,
-    "sha256":  "64bb91b78259bc4bc86ffc1a5fedab03843a0162418468debbca6392e565ddf9",
-    "notes":  "1.7 版：聊天里可以发语音了（第一次用会问一次麦克风权限）；群聊、图片、文件也都在这一版里。App 会自己提示更新，点「立即更新」就能装。",
+    "sha256":  "29df7077a1877894118cabb471b55b8b47626743d5ef05a0750e1ea8b0815570",
+    "notes":  "1.8 版修好了「检查更新」：以前查一次失败也要等 6 小时才会再查（网络一抖就整天不提示），现在查到了一小时一次、没查到 3 分钟就重试，回到前台也会顺便看一眼。下载也换了更稳的做法：每次用新文件名（旧文件会让系统下载器直接失败）、下载失败或卡住 90 秒会自动改用浏览器下载，不会让你干等。",
     "forceBelow":  1,
     "releasedAt":  "2026-10-02"
 }
