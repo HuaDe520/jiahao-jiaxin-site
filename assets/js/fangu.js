@@ -239,15 +239,18 @@
       b.className = 'fg-tag' + (String(state.tag) === String(id) ? ' is-on' : '');
       b.textContent = name;
       b.addEventListener('click', function () {
-        if (String(state.tag) === String(id) && state.mode === 'browse') return;
+        /* 先把自己点亮（手一按就有反应），再去拉列表 */
         state.tag = String(id);
         state.keyword = '';
         queryEl.value = '';
+        renderTags();
+        msg('正在挑…');
         if (state.src === 'anilist') loadMore(1);
         else loadBrowse(1);
       });
       tagsEl.appendChild(b);
     }
+    /* 标签这一栏的「全部」就是「不挑标签」，不用另加一枚「不限」 */
     chip('', '全部');
     tags.forEach(function (t) { chip(t.id, t.name); });
   }
@@ -348,16 +351,40 @@
       box.className = 'fg-score-scroll';
       box.setAttribute('role', 'group');
       box.setAttribute('aria-label', row.label + '分数段');
+      /* 每一行最前面都是「不限」：这一档不挑分。点一下手就有反应，
+         紧接着一句「正在挑…」，不用干等着看它转 */
+      function onNow(key, min, max) {
+        return String(state.score) === key && Number(state.min) === min && Number(state.max) === max;
+      }
+      function go(min, max) {
+        state.keyword = '';
+        queryEl.value = '';
+        renderScoreFilters();      /* 立刻点亮，不等服务器 */
+        msg('正在挑…');
+        loadBrowse(1);
+      }
+      var any = document.createElement('button');
+      any.type = 'button';
+      any.className = 'fg-tag fg-tag--score fg-tag--any' + (state.score ? '' : ' is-on');
+      any.setAttribute('data-score-key', row.key);
+      any.setAttribute('data-min', '0');
+      any.textContent = '不限';
+      any.addEventListener('click', function () {
+        state.score = '';
+        state.min = 0;
+        state.max = 10;
+        go(0, 10);
+      });
+      box.appendChild(any);
       scoreBands(row.floor).forEach(function (b) {
-        var on = String(state.score) === row.key && Number(state.min) === b.min && Number(state.max) === b.max;
         var el = document.createElement('button');
         el.type = 'button';
-        el.className = 'fg-tag fg-tag--score' + (on ? ' is-on' : '');
+        el.className = 'fg-tag fg-tag--score' + (onNow(row.key, b.min, b.max) ? ' is-on' : '');
         el.setAttribute('data-score-key', row.key);
         el.setAttribute('data-min', String(b.min));
         el.textContent = b.text;
         el.addEventListener('click', function () {
-          if (String(state.score) === row.key && Number(state.min) === b.min && Number(state.max) === b.max) {
+          if (onNow(row.key, b.min, b.max)) {
             /* 再点一下就是取消这一段 */
             state.score = '';
             state.min = 0;
@@ -367,9 +394,7 @@
             state.min = b.min;
             state.max = b.max;
           }
-          state.keyword = '';
-          queryEl.value = '';
-          loadBrowse(1);
+          go(b.min, b.max);
         });
         box.appendChild(el);
       });
@@ -390,19 +415,26 @@
 
   /* ---------------- 列表与翻页 ---------------- */
   /* 卡片上的「大众」本来是空的：服务器把这一页算好后补上来。
-     一页 20 部，服务器边算边记，翻过一次的番下次就现成了 */
+     一页 20 部，服务器边算边记，翻过一次的番下次就现成了。
+     同一部番别重复问（页面上换筛选、自动核对都会再渲染几遍），
+     也给它两次机会就够了 —— 问不出来是数据源那边没有，不是网络问题 */
+  var scoreTries = {};
+  var scoreBusy = {};
   function fillScores() {
     var need = [];
     var byId = {};
     (state.results || []).forEach(function (r) {
       if (!r || !r.seasonId) return;
       byId[String(r.seasonId)] = r;
-      if (r.scorePending) need.push(r);
+      var sid = String(r.seasonId);
+      if (!r.scorePending || scoreBusy[sid] || (scoreTries[sid] || 0) >= 2) return;
+      need.push(r);
     });
     if (!need.length) return;
     var groups = [];
     for (var i = 0; i < need.length; i += 20) groups.push(need.slice(i, i + 20));
     groups.forEach(function (g) {
+      g.forEach(function (r) { scoreBusy[String(r.seasonId)] = true; scoreTries[String(r.seasonId)] = (scoreTries[String(r.seasonId)] || 0) + 1; });
       window.JHJX_API.fanguScores(g).then(function (res) {
         if (res.status !== 200 || !res.data || !res.data.scores) return;
         var got = res.data.scores;
@@ -419,7 +451,9 @@
           item.scorePending = !!row.pending;
           patchCard(sid, item);
         });
-      }, function () { /* 补不上就算了，卡片上先写着「暂无」 */ });
+      }, function () { /* 补不上就算了，卡片上先写着「暂无」 */ }).then(function () {
+        g.forEach(function (r) { delete scoreBusy[String(r.seasonId)]; });
+      });
     });
   }
 
@@ -622,6 +656,24 @@
   var queued = null;       /* 手快又点了一下：把「想要什么」记下来，忙完按它来 */
   var inFlight = 0;        /* 手上还有几趟列表请求没回来 */
   var listSeq = 0;         /* 第几趟：只认最后发出去的那一趟 */
+  /* 大众评分是服务器一部一部核出来的：一轮只核得完一小批。
+     所以挑完先给你看有的，剩下的自己接着核几轮（不用你干等），核完就停。 */
+  var verifySig = '';
+  var verifyRounds = 0;
+  var VERIFY_ROUNDS = 3;
+  function keepVerifying() {
+    if (String(state.score) !== 'global' || !(state.pending > 0)) return;
+    var sig = [state.page, state.tag, state.min, state.max, state.score, state.mode].join('|');
+    if (sig !== verifySig) { verifySig = sig; verifyRounds = 0; }
+    if (verifyRounds >= VERIFY_ROUNDS) return;
+    verifyRounds++;
+    window.setTimeout(function () {
+      /* 这中间要是有人点了别的、或者翻页了，就别接着核了 */
+      if (String(state.score) !== 'global' || state.mode !== 'browse') return;
+      if ([state.page, state.tag, state.min, state.max, state.score, state.mode].join('|') !== sig) return;
+      loadBrowse(state.page);
+    }, 500);
+  }
   function settleList() {
     inFlight = Math.max(0, inFlight - 1);
     if (inFlight > 0) return;
@@ -729,22 +781,38 @@
       renderPager();
       renderCrumb();
       /* 咕咪评分只有咱们自己打过分（点开过）的番才有：这一份是从哪儿来的要说清楚。
-         大众评分每部番都有，服务器边挑边算，没算完的会告诉我们还差几部 */
+         大众评分每部番都有，服务器边挑边算：算好的先给你看，
+         还差几部就写在下面，并且自己接着往下算（点一下也能立刻催） */
       if (libHint) {
+        libHint.innerHTML = '';
         var parts = [];
         if (lib) parts.push('咕咪评分只有本站点开过的番才有，所以这一份是从「本站看过的番」里挑的（一共 ' + state.total + ' 部）。');
-        if (state.pending > 0) parts.push('这一档还有 ' + state.pending + ' 部的大众评分正在核对，翻下一页或者过会儿再看就会补齐。');
+        if (state.pending > 0) parts.push('这一档还有 ' + state.pending + ' 部在核对，算好了会自动补上来。');
         libHint.hidden = !parts.length;
-        libHint.textContent = parts.join(' ');
+        if (parts.length) libHint.appendChild(document.createTextNode(parts.join(' ')));
+        if (state.pending > 0 && String(state.score) === 'global') {
+          var more = document.createElement('button');
+          more.type = 'button';
+          more.className = 'fg-btn fg-btn--ghost fg-hint__more';
+          more.id = 'fgVerifyMore';
+          more.textContent = '再核对一批';
+          more.addEventListener('click', function () {
+            verifyRounds = 0;      /* 手动催一下就重新给几轮机会 */
+            msg('正在核对…');
+            loadBrowse(state.page);
+          });
+          libHint.appendChild(more);
+        }
       }
       emptyEl.hidden = state.results.length > 0;
       if (!state.results.length) {
         emptyEl.textContent = lib
           ? '本站看过的番里，这一档还挑不出东西来。去「全部番剧」点开几部番，点开过的番就有咕咪评分了。'
-          : '这一档没挑出番来，换个分数段试试。';
+          : (state.pending > 0 ? '这一档还没核出来，正在接着核对…' : '这一档没挑出番来，换个分数段试试。');
       }
       msg('');
       settleList();
+      keepVerifying();
     }, function () {
       settleList();
       msg('网络不太好，列表没取回来', true);

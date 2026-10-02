@@ -14,7 +14,7 @@
  *   · 后端接口（另一个域名）不拦，直接放行。
  */
 
-const CACHE = 'jhjx-site-v202610021212';
+const CACHE = 'jhjx-site-v202610021242';
 
 /* 首屏必需的东西，装完 SW 就悄悄缓存好；注意别放 512 图标这类大文件 */
 const SHELL = [
@@ -106,6 +106,11 @@ async function navigationFirst(req) {
   return res || cached;
 }
 
+/* 管理台这种「一改就得多看到东西」的页面不能吃缓存：
+   缓存里那份旧的（没有成员名单）会一直摆在那儿，看着就像功能没上。
+   这几页一律现取，取不到才退回缓存。 */
+const ALWAYS_FRESH = ['/admin.html'];
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
@@ -115,6 +120,12 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;   /* 接口在别的域名，不拦 */
 
   if (req.mode === 'navigate') {
+    if (ALWAYS_FRESH.indexOf(url.pathname) >= 0) {
+      event.respondWith(
+        fetch(req).catch(() => caches.match(req, { ignoreSearch: true }).then((c) => c || Response.error()))
+      );
+      return;
+    }
     event.respondWith(navigationFirst(req));
     return;
   }

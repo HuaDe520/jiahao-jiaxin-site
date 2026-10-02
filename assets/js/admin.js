@@ -142,7 +142,7 @@
     if (countEl) {
       countEl.textContent = userQuery
         ? ('搜「' + userQuery + '」找到 ' + list.length + ' 位；协会一共 ' + (data.total || 0) + ' 位')
-        : ('协会一共 ' + (data.total || list.length) + ' 位成员，这儿全部列出来了');
+        : ('协会一共 ' + (data.total || list.length) + ' 位成员，这儿全部列出来了（新的在前）');
     }
     var clearBtn = $('adUserClear');
     if (clearBtn) clearBtn.hidden = !userQuery;
@@ -159,7 +159,8 @@
       top.className = 'ac-item__top';
       var who = document.createElement('span');
       who.className = 'ac-item__who';
-      who.textContent = u.name + (me.id === u.id ? '（我）' : '');
+      /* 编号也摆出来：管理员找人、对账都要靠它 */
+      who.textContent = '#' + u.id + ' ' + u.name + (me.id === u.id ? '（我）' : '');
       top.appendChild(who);
       if (u.role === 'admin') top.appendChild(chip('管理员', 'ac-chip--gold'));
       if (u.status === 'banned') top.appendChild(chip('已停用', 'ac-chip--warn'));
@@ -169,6 +170,15 @@
       time.textContent = '加入于 ' + fmtTime(u.createdAt);
       top.appendChild(time);
       item.appendChild(top);
+
+      /* 性别和个性签名：不点开也能一眼看全 */
+      var info = document.createElement('div');
+      info.className = 'ac-item__note';
+      var bits = ['性别 ' + (u.genderText || '未知')];
+      if (u.signature) bits.push('签名：' + u.signature);
+      if (!u.hasPassword) bits.push('还没设密码（得用邀请码重新进来）');
+      info.textContent = bits.join(' · ');
+      item.appendChild(info);
 
       var seen = document.createElement('div');
       seen.className = 'ac-item__note';
@@ -400,20 +410,20 @@
     });
   }
 
-  /* ---------------- 交互 ---------------- */
-  tabReports.addEventListener('click', function () {
-    tabReports.classList.add('is-active');
-    tabUsers.classList.remove('is-active');
-    reportsCard.hidden = false;
-    usersCard.hidden = true;
-  });
+  /* ---------------- 交互 ----------------
+     两块都在同一页上（成员名单不用先点标签才看得见），
+     这两个标签就当「跳到哪一块」用 */
+  function jumpTo(card, tab) {
+    tabReports.classList.toggle('is-active', tab === tabReports);
+    tabUsers.classList.toggle('is-active', tab === tabUsers);
+    if (card && card.scrollIntoView) {
+      try { card.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { card.scrollIntoView(); }
+    }
+  }
 
-  tabUsers.addEventListener('click', function () {
-    tabUsers.classList.add('is-active');
-    tabReports.classList.remove('is-active');
-    usersCard.hidden = false;
-    reportsCard.hidden = true;
-  });
+  tabReports.addEventListener('click', function () { jumpTo(reportsCard, tabReports); });
+
+  tabUsers.addEventListener('click', function () { jumpTo(usersCard, tabUsers); });
 
   $('adRefresh').addEventListener('click', function () { showMsg('正在刷新…', 'info'); load(); });
   $('adLogout').addEventListener('click', function () {

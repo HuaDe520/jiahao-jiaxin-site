@@ -344,6 +344,18 @@
 .fg-score-scroll::-webkit-scrollbar-thumb:hover { background: rgba(18, 101, 90, .5); }
 .fg-tag--score { flex: none; font-size: 12px; padding: 4px 9px; scroll-snap-align: start; }
 .fg-tag--score:active { transform: scale(.97); }
+/* 「不限」：每一档最前面那个「不挑分」。它是常驻的，点亮时别抢戏，
+   用描边而不是实心，免得三行一起亮把人看花 */
+.fg-tag--any { color: var(--ink-mute); border-style: dashed; }
+.fg-tag--any.is-on {
+  background: none;
+  border-color: var(--gold-500);
+  border-style: solid;
+  color: var(--gold-700, #8a6a1f);
+  font-weight: 700;
+}
+/* 核对没核完时那句提示后面的「再核对一批」 */
+.fg-hint__more { margin-left: 8px; font-size: 12px; padding: 3px 10px; }
 .fg-guest { margin: 20px 0; padding: 18px; border-radius: 16px; background: #fff; border: 1px dashed rgba(18, 101, 90, .3); }
 .fg-guest p { margin: 0 0 12px; color: var(--ink-soft); }
 

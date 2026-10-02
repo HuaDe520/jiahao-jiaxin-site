@@ -90,6 +90,7 @@
             <div class="ac-msg" id="adMsg"></div>
           </div>
 
+          <!-- 举报和成员都直接摆出来：成员名单不用先点一下标签才看得到 -->
           <div class="ac-tabs" style="margin-top:20px">
             <button class="ac-tab is-active" id="adTabReports" type="button">举报</button>
             <button class="ac-tab" id="adTabUsers" type="button">成员</button>
@@ -99,7 +100,7 @@
             <div class="ac-list" id="adReports"></div>
           </div>
 
-          <div class="ac-card" id="adUsersCard" hidden>
+          <div class="ac-card" id="adUsersCard">
             <div class="ac-card__head" style="margin-bottom:10px">
               <span>
                 <h2 style="font-size:16px">协会成员</h2>
@@ -162,7 +163,7 @@
 </a>
 
 <script src="assets/js/api.js?v=34a63fe5"></script>
-<script src="assets/js/admin.js?v=90c27996"></script>
+<script src="assets/js/admin.js?v=53c3c32c"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }
