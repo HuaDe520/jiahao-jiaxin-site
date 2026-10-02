@@ -3,20 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>用户主页 · 浙江嘉豪嘉欣协会</title>
-<meta name="description" content="浙江嘉豪嘉欣协会成员主页">
+<title>闲事笺 · 浙江嘉豪嘉欣协会</title>
+<meta name="description" content="浙江嘉豪嘉欣协会嘉庭工作台·嘉闲「闲事笺」：随手记点闲事的小便签本，只存在自己的设备上。">
 <meta name="theme-color" content="#0f5f56">
 <link rel="icon" href="assets/img/logo-main.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=6f4eea6e">
-<link rel="stylesheet" href="assets/css/account.css?v=e3c64887">
-<link rel="stylesheet" href="assets/css/profile.css?v=dc91220a">
-<!-- 主页上的按钮、空状态复用了好友页那套样式（.fr-btn / .fr-empty） -->
-<link rel="stylesheet" href="assets/css/friends.css?v=2a94e595">
+<link rel="stylesheet" href="assets/css/xianshi.css?v=e37fc481">
 </head>
-<body class="ac-page">
+<body class="xs-page">
 
-<!-- ============ 页头 ============ -->
 <header class="site-header">
   <div class="wrap site-header__inner">
     <a class="brand" href="index.html" aria-label="返回首页">
@@ -39,70 +36,55 @@
     </button>
     <nav class="site-nav site-nav--plain" id="siteNav" aria-label="主导航">
       <a href="index.html">首页</a>
-      <a href="workbench.html">嘉庭工作台</a>
+      <a href="index.html#departments">部门矩阵</a>
       <a href="app.html">下载 App</a>
-      <a href="account.html">我的账号</a>
-    </nav>
+      <a href="workbench.html">嘉庭工作台</a>
+          <a href="account.html">我的账号</a>
+</nav>
   </div>
 </header>
 
 <main>
-  <section class="section" style="padding-top:52px">
+  <section class="section">
     <div class="wrap">
       <header class="section__head">
-        <p class="eyebrow"><span class="eyebrow__line"></span>成员主页</p>
-        <h2 id="pfTitle">看看这位成员</h2>
+        <p class="eyebrow"><span class="eyebrow__line"></span>嘉闲 · 闲事笺</p>
+        <h2>闲事笺</h2>
+        <p class="section__lead">随手记点闲事：待办、灵感、想说的话。不必工整，写完就搁着，想起来再看。</p>
       </header>
 
-      <div class="pf-stage">
-
-        <!-- 没登录 -->
-        <div class="pf-card" id="pfGuest" hidden>
-          <div class="fr-empty">先到「我的账号」用昵称 + 密码进来，才能看别人的主页。</div>
-          <div style="text-align:center"><a class="fr-btn" href="account.html">去我的账号</a></div>
-        </div>
-
-        <!-- 加载中 -->
-        <div class="pf-card" id="pfLoading">
-          <div class="fr-empty">正在打开主页…</div>
-        </div>
-
-        <!-- 出错 -->
-        <div class="pf-card" id="pfError" hidden>
-          <div class="fr-empty" id="pfErrorText">没找到这个人。</div>
-          <div style="text-align:center"><a class="fr-btn fr-btn--ghost" href="friends.html">回好友页</a></div>
-        </div>
-
-        <!-- 主页内容 -->
-        <div class="pf-card" id="pfMain" hidden>
-          <div class="pf-head">
-            <button class="pf-avatar" id="pfAvatarBtn" type="button" title="看大头像">
-              <img id="pfAvatar" alt="">
-            </button>
-            <div class="pf-head__text">
-              <h3 class="pf-name" id="pfName">—</h3>
-              <div class="pf-tags" id="pfTags"></div>
-              <p class="pf-since" id="pfSince"></p>
-            </div>
+      <div class="xs-composer">
+        <label class="sr-only" for="xsInput">便签内容</label>
+        <textarea class="xs-input" id="xsInput" rows="3" maxlength="1000" placeholder="随手记点什么…（按 Ctrl / ⌘ + Enter 也能记下来）"></textarea>
+        <div class="xs-composer__foot">
+          <div class="xs-colors" id="xsColors" role="radiogroup" aria-label="便签颜色">
+            <button type="button" class="xs-color xs-color--cream is-on" data-color="cream" role="radio" aria-checked="true" aria-label="米白"></button>
+            <button type="button" class="xs-color xs-color--jade" data-color="jade" role="radio" aria-checked="false" aria-label="青绿"></button>
+            <button type="button" class="xs-color xs-color--gold" data-color="gold" role="radio" aria-checked="false" aria-label="浅金"></button>
+            <button type="button" class="xs-color xs-color--rose" data-color="rose" role="radio" aria-checked="false" aria-label="浅绯"></button>
           </div>
-
-          <div class="pf-field">
-            <span class="pf-field__label">个人签名</span>
-            <p class="pf-sign" id="pfSign">这个人很神秘，什么都没写。</p>
+          <div class="xs-composer__acts">
+            <span class="xs-count" id="xsCount">还可以写 1000 字</span>
+            <button type="button" class="xs-btn xs-btn--main" id="xsSave">记下来</button>
           </div>
-
-          <div class="pf-actions" id="pfActions"></div>
-          <div class="pf-msg" id="pfMsg"></div>
-
-          <p class="pf-foot" id="pfFoot"></p>
         </div>
-
       </div>
+
+      <p class="xs-hint" id="xsHint" role="status" aria-live="polite"></p>
+
+      <div class="xs-tools" id="xsTools" hidden>
+        <label class="sr-only" for="xsSearch">找便签</label>
+        <input class="xs-search" id="xsSearch" type="search" placeholder="找一找…" autocomplete="off">
+        <span class="xs-total" id="xsTotal"></span>
+      </div>
+
+      <div class="xs-grid" id="xsGrid"></div>
+      <p class="xs-empty" id="xsEmpty">还没有便签。在上面写点什么，点「记下来」就行。</p>
+      <p class="xs-note-tip">便签只存在这台设备上（换手机或清缓存会丢），不会上传。</p>
     </div>
   </section>
 </main>
 
-<!-- ============ 页脚 ============ -->
 <footer class="site-footer">
   <div class="wrap site-footer__inner">
     <div class="site-footer__brand">
@@ -115,10 +97,14 @@
     <nav class="site-footer__nav" aria-label="页面导航">
       <a href="index.html">首页</a>
       <a href="workbench.html">嘉庭工作台</a>
+      <a href="xianshi.html">闲事笺</a>
+      <a href="tenseconds.html">就十秒</a>
+      <a href="snake.html">贪吃蛇</a>
+      <a href="comfort.html">安慰盲盒</a>
+      <a href="index.html#departments">部门矩阵</a>
+      <a href="app.html">下载 App</a>
       <a href="account.html">我的账号</a>
       <a href="friends.html">好友</a>
-      <a href="comfort.html">安慰盲盒</a>
-      <a href="app.html">下载 App</a>
     </nav>
     <div class="site-footer__meta">
       <p>本页面仅用于协会对外展示，内容以群内公告为准。</p>
@@ -137,8 +123,7 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/api.js?v=38ca985b"></script>
-<script src="assets/js/profile.js?v=f0e79c94"></script>
+<script src="assets/js/xianshi.js?v=e77b384b"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }

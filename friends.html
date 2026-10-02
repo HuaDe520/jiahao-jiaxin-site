@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=6f4eea6e">
-<link rel="stylesheet" href="assets/css/friends.css?v=f66467b8">
+<link rel="stylesheet" href="assets/css/friends.css?v=2a94e595">
 </head>
 <body class="fr-page">
 
@@ -86,7 +86,8 @@
           <div class="fr-card" id="frPaneGroups" hidden>
             <div class="fr-groups__head">
               <button class="fr-btn" id="frGroupCreate" type="button">创建群聊</button>
-              <span class="fr-groups__hint">拉几个好友一起聊</span>
+              <button class="fr-btn fr-btn--ghost" id="frGroupJoin" type="button">加入群聊</button>
+              <span class="fr-groups__hint">拉几个好友一起聊，知道群号也能加</span>
             </div>
             <div class="fr-msg" id="frGroupMsg"></div>
             <div id="frGroups"></div>
@@ -102,11 +103,14 @@
                   <span class="fr-chat__meta" id="frChatMeta" hidden></span>
                 </span>
                 <span class="fr-chat__tools">
+                  <button class="fr-btn fr-btn--ghost" id="frChatMore" type="button" hidden>群设置</button>
                   <button class="fr-btn fr-btn--ghost" id="frChatMembers" type="button" hidden>成员</button>
                   <button class="fr-btn fr-btn--ghost" id="frChatRefresh" type="button">刷新</button>
                   <button class="fr-btn fr-btn--ghost" id="frChatBack" type="button">返回</button>
                 </span>
               </div>
+              <!-- 群公告：长公告折起来，点一下展开（群里每个人都看得到） -->
+              <div class="fr-notice" id="frChatNotice" hidden></div>
               <div class="fr-members" id="frMemberPanel" hidden></div>
               <div class="fr-chat__wrap">
                 <div class="fr-chat__list" id="frChatList"></div>
@@ -126,6 +130,8 @@
               </div>
               <!-- 录音失败、附件太大这类提示显示在这里（比 alert 友好，手机上也能看清） -->
               <div class="fr-msg" id="frChatMsg"></div>
+              <!-- 全员禁言：普通成员在这里看到为什么发不出去 -->
+              <div class="fr-mute" id="frChatMute" hidden>群主开了全员禁言，这会儿只有群主和管理员能发言</div>
               <div class="fr-chat__foot">
                 <div class="fr-media-bar" role="group" aria-label="发送图片、语音或文件">
                   <button class="fr-media-btn" id="frChatImage" type="button" title="发图片" aria-label="发图片">图片</button>
@@ -163,10 +169,22 @@
           <!-- 发送图片 / 文件用的隐藏选择框 -->
           <input type="file" id="frImageInput" accept="image/*" hidden>
           <input type="file" id="frFileInput" hidden>
+          <!-- 换群头像用的隐藏选择框 -->
+          <input type="file" id="frGroupAvatarInput" accept="image/*" hidden>
 
           <!-- 建群 / 拉人时用的选择框（内容由脚本填，不写死） -->
           <div class="fr-modal" id="frPickWrap" hidden>
             <div class="fr-picker" id="frPicker" role="dialog" aria-modal="true" aria-label="选择好友"></div>
+          </div>
+
+          <!-- 按群号加群：内容由脚本填 -->
+          <div class="fr-modal" id="frJoinWrap" hidden>
+            <div class="fr-picker" id="frJoinBox" role="dialog" aria-modal="true" aria-label="加入群聊"></div>
+          </div>
+
+          <!-- 群设置：整屏抽屉，内容由脚本填（群里人人都能看，管理项按身份出现） -->
+          <div class="fr-sheet" id="frGroupSheet" hidden>
+            <div class="fr-sheet__box" id="frGroupSheetBox" role="dialog" aria-modal="true" aria-label="群设置"></div>
           </div>
 
           <!-- 看大图的全屏浮层 -->
@@ -214,8 +232,8 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/api.js?v=9c80afb0"></script>
-<script src="assets/js/friends.js?v=5fe6ed64"></script>
+<script src="assets/js/api.js?v=38ca985b"></script>
+<script src="assets/js/friends.js?v=0f06dbd3"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }

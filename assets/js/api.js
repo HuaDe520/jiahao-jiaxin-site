@@ -83,6 +83,11 @@
   var mediaKeys = [];
   var MEDIA_CACHE_MAX = 60;
 
+  /* 群头像单独一份缓存（键是接口地址，地址里带版本号，换了头像自然就重新取） */
+  var groupAvatars = {};
+  var groupAvatarKeys = [];
+  var GROUP_AVATAR_MAX = 24;
+
   function mediaAbort(ms) {
     try { return typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(ms) : undefined; }
     catch (e) { return undefined; }
@@ -218,6 +223,48 @@
         media: p.media || null
       });
     },
+    /* 按群号搜群：格式不对、搜不到都由服务端给中文提示，前端照原样显示 */
+    groupSearch: function (number) {
+      return call('GET', '/api/groups/search?number=' + encodeURIComponent(number == null ? '' : number));
+    },
+    groupJoin: function (id) { return call('POST', '/api/groups/' + encodeURIComponent(id) + '/join'); },
+    /* 群设置：只把真要改的字段发出去，没传的字段服务端不动 */
+    groupSettings: function (id, patch) {
+      var p = patch || {};
+      var body = {};
+      if (p.name != null) body.name = p.name;
+      if (p.notice != null) body.notice = p.notice;
+      if (p.avatar != null) body.avatar = p.avatar;
+      if (p.joinMode != null) body.joinMode = p.joinMode;
+      if (p.mutedAll != null) body.mutedAll = !!p.mutedAll;
+      return call('POST', '/api/groups/' + encodeURIComponent(id) + '/settings', body);
+    },
+    groupTransfer: function (id, targetId) {
+      return call('POST', '/api/groups/' + encodeURIComponent(id) + '/transfer', { targetId: targetId });
+    },
+    /* action: 'add' 设为管理员 / 'remove' 取消管理员（只有群主能调） */
+    groupAdmins: function (id, userId, action) {
+      return call('POST', '/api/groups/' + encodeURIComponent(id) + '/admins', {
+        userId: userId,
+        action: action || 'add'
+      });
+    },
+    /* 群昵称只能改自己的：接口不收别人的 userId，前端也不该有那个入口 */
+    groupNickname: function (id, nickname) {
+      return call('POST', '/api/groups/' + encodeURIComponent(id) + '/nickname', { nickname: nickname });
+    },
+    groupFiles: function (id) { return call('GET', '/api/groups/' + encodeURIComponent(id) + '/files'); },
+    groupRequests: function (id) { return call('GET', '/api/groups/' + encodeURIComponent(id) + '/requests'); },
+    groupResolveRequest: function (id, requestId, action) {
+      return call('POST', '/api/groups/' + encodeURIComponent(id) + '/requests', {
+        id: requestId,
+        action: action || 'accept'
+      });
+    },
+    /* 群消息撤回：自己的 2 分钟内；群主 / 管理员撤群成员的没有时间限制 */
+    groupRecall: function (id, messageId) {
+      return call('POST', '/api/groups/' + encodeURIComponent(id) + '/messages/' + encodeURIComponent(messageId) + '/recall');
+    },
 
     /* ---- 上传 / 下载聊天里的图片、语音、文件（走二进制，不走 JSON） ---- */
     uploadMedia: function (kind, blob, name) {
@@ -258,6 +305,37 @@
       });
     },
     mediaBlob: mediaBlob,
+
+    /* 群头像：接口也是「只有群里的人能看」，所以 <img src> 直接写 /api/group/avatar/1
+       拿到的是 401。这里用带凭证的请求取回来换成本地 blob 地址。
+       万一哪天接口改成公开可读，取不到时退回原地址，图照样显示。 */
+    groupAvatarObjectUrl: function (url) {
+      if (!url) return Promise.resolve('');
+      if (groupAvatars[url]) return Promise.resolve(groupAvatars[url]);
+      var full = /^https?:\/\//.test(url) ? url : base() + url;
+      return fetch(full, {
+        headers: token() ? { Authorization: 'Bearer ' + token() } : {},
+        signal: mediaAbort(30000),
+      }).then(function (res) {
+        if (!res.ok) return url;
+        return res.blob().then(function (blob) {
+          if (!blob || !blob.size) return url;
+          var local = '';
+          try { local = URL.createObjectURL(blob); } catch (e) { local = ''; }
+          if (!local) return url;
+          groupAvatars[url] = local;
+          groupAvatarKeys.push(url);
+          /* 群列表里很多群：只留最近用到的那些，别把 blob 攒爆 */
+          while (groupAvatarKeys.length > GROUP_AVATAR_MAX) {
+            var old = groupAvatarKeys.shift();
+            var dead = groupAvatars[old];
+            delete groupAvatars[old];
+            try { URL.revokeObjectURL(dead); } catch (e) { /* 忽略 */ }
+          }
+          return local;
+        });
+      }).catch(function () { return url; });
+    },
 
     /* ---- 头像 ---- */
     uploadAvatar: function (dataUrl) { return call('POST', '/api/avatar', { dataUrl: dataUrl }); },

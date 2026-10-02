@@ -1,0 +1,249 @@
+/* =========================================================
+   嘉闲 · 闲事笺
+   页面骨架来自 style.css，这里只管便签本自己那点样子。
+   便签是「纸」，所以配色走米白 / 青绿 / 浅金 / 浅绯四张纸，
+   圆角大一点、阴影软一点，别弄得太像后台表单。
+   ========================================================= */
+
+.xs-page {
+  background:
+    radial-gradient(720px 420px at 82% 6%, rgba(223, 192, 119, .22), transparent 62%),
+    radial-gradient(640px 460px at 8% 88%, rgba(79, 185, 164, .18), transparent 62%),
+    linear-gradient(180deg, var(--cream) 0%, #f6f1e6 100%);
+}
+
+.xs-page .section { padding-top: 44px; }
+.xs-page .section__head { margin-bottom: 26px; }
+
+/* ---------------- 写便签的地方 ---------------- */
+.xs-composer {
+  background: linear-gradient(180deg, #ffffff, #fdfaf3);
+  border: 1.5px dashed rgba(201, 162, 75, .5);
+  border-radius: 24px;
+  padding: 20px 20px 16px;
+  box-shadow: 0 26px 54px -32px rgba(11, 63, 57, .45), 0 2px 8px rgba(11, 63, 57, .05);
+  max-width: 760px;
+}
+
+.xs-input {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.8;
+}
+.xs-input::placeholder { color: rgba(120, 138, 135, .9); }
+
+.xs-composer__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-top: 1px solid rgba(18, 101, 90, .1);
+  padding-top: 12px;
+}
+
+.xs-colors { display: flex; gap: 10px; }
+.xs-color {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(18, 101, 90, .18);
+  cursor: pointer;
+  padding: 0;
+  transition: transform .18s, border-color .18s, box-shadow .18s;
+}
+.xs-color:hover { transform: translateY(-2px); }
+.xs-color.is-on {
+  border-color: var(--jade-600);
+  box-shadow: 0 0 0 3px rgba(18, 101, 90, .16);
+}
+.xs-color--cream { background: #fdf6e3; }
+.xs-color--jade { background: #e4f2ee; }
+.xs-color--gold { background: #faeed2; }
+.xs-color--rose { background: #fbe6e6; }
+
+.xs-composer__acts { display: flex; align-items: center; gap: 12px; }
+.xs-count { color: var(--ink-mute); font-size: 13px; }
+
+.xs-btn {
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  min-height: 42px;
+  padding: 0 22px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .18s, background .18s, border-color .18s;
+}
+.xs-btn--main {
+  background: linear-gradient(135deg, var(--jade-700), var(--jade-600));
+  color: #fff;
+  box-shadow: 0 16px 30px -16px rgba(18, 101, 90, .8);
+}
+.xs-btn--main:hover { transform: translateY(-2px); }
+.xs-btn--ghost {
+  background: rgba(255, 255, 255, .8);
+  border-color: rgba(18, 101, 90, .35);
+  color: var(--jade-800);
+}
+.xs-btn--ghost:hover { border-color: var(--gold-500); transform: translateY(-2px); }
+
+/* 一行提示：写没写进去、有没有复制成功，都在这儿说 */
+.xs-hint {
+  margin: 14px 0 0;
+  font-size: 14px;
+  color: var(--jade-700);
+  min-height: 20px;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.xs-hint.is-show { opacity: 1; }
+.xs-hint.is-error { color: #b4443c; }
+
+/* ---------------- 找便签 ---------------- */
+.xs-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 26px 0 14px;
+}
+.xs-search {
+  flex: 1 1 220px;
+  min-height: 42px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(18, 101, 90, .18);
+  background: rgba(255, 255, 255, .9);
+  padding: 0 18px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  outline: none;
+}
+.xs-search:focus { border-color: var(--jade-600); }
+.xs-total { color: var(--ink-mute); font-size: 13.5px; }
+
+/* ---------------- 便签墙 ---------------- */
+.xs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(236px, 1fr));
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.xs-note {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(18, 101, 90, .12);
+  padding: 18px 16px 12px;
+  box-shadow: 0 18px 36px -26px rgba(11, 63, 57, .55);
+  transition: transform .18s, box-shadow .18s;
+}
+.xs-note:hover { transform: translateY(-2px); box-shadow: 0 22px 42px -24px rgba(11, 63, 57, .6); }
+.xs-note--cream { background: linear-gradient(180deg, #fefaf0, #fdf4e0); }
+.xs-note--jade { background: linear-gradient(180deg, #f0f8f5, #e3f1ec); }
+.xs-note--gold { background: linear-gradient(180deg, #fdf6e6, #f9ecd2); }
+.xs-note--rose { background: linear-gradient(180deg, #fdf0f0, #fae4e4); }
+
+/* 置顶的那张：左上角一枚小小的金色别针 */
+.xs-note.is-pinned { border-color: rgba(201, 162, 75, .55); }
+.xs-note.is-pinned::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: -6px;
+  width: 30px;
+  height: 10px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
+  box-shadow: 0 3px 8px -3px rgba(201, 162, 75, .9);
+  transform: rotate(-4deg);
+}
+
+.xs-note__text {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15.5px;
+  line-height: 1.85;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.xs-note.is-pinned .xs-note__text { padding-top: 4px; }
+
+.xs-note__edit {
+  width: 100%;
+  min-height: 96px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(18, 101, 90, .25);
+  background: rgba(255, 255, 255, .92);
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 15.5px;
+  line-height: 1.8;
+  color: var(--ink);
+  resize: vertical;
+  outline: none;
+}
+.xs-note__edit:focus { border-color: var(--jade-600); }
+
+.xs-note__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+.xs-note__time { color: var(--ink-mute); font-size: 12.5px; }
+.xs-note__acts { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+
+.xs-note__act {
+  border: 0;
+  background: transparent;
+  color: var(--jade-700);
+  font: inherit;
+  font-size: 13px;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .18s, color .18s;
+}
+.xs-note__act:hover { background: rgba(18, 101, 90, .1); }
+.xs-note__act.is-on { color: var(--gold-600); font-weight: 700; }
+.xs-note__act.is-danger { color: #b4443c; }
+.xs-note__act.is-danger:hover { background: rgba(180, 68, 60, .12); }
+
+.xs-empty {
+  margin: 26px 0 0;
+  color: var(--ink-mute);
+  font-size: 15px;
+  text-align: center;
+}
+.xs-note-tip {
+  margin: 22px 0 0;
+  color: var(--ink-mute);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .xs-composer { padding: 16px 14px 12px; border-radius: 20px; }
+  .xs-composer__foot { justify-content: flex-start; }
+  .xs-composer__acts { width: 100%; justify-content: space-between; }
+  .xs-grid { grid-template-columns: 1fr; gap: 14px; }
+  .xs-note { padding: 16px 14px 10px; }
+  .xs-note__act { font-size: 13.5px; }
+}
