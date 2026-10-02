@@ -131,21 +131,33 @@
     board.innerHTML = '';
     S.pieces = {};
 
-    /* 四角的机场底盘：红左上、黄右上、蓝右下、绿左下，各占 6×6 */
-    var corners = [[1, 1, 0], [1, 10, 1], [10, 10, 2], [10, 1, 3]];
-    corners.forEach(function (c) {
+    /* 四角的机场底盘：位置由服务器给的停机位推出来（别写死，换盘面就错位了）。
+       每个角 6×6：停机位在 (1,1)(1,3)(3,1)(3,3) 这种排布上，往外各扩一格就是那块底 */
+    b.hangars.forEach(function (slots, color) {
+      var rs = slots.map(function (s) { return s[0]; });
+      var cs = slots.map(function (s) { return s[1]; });
+      var r0 = Math.min.apply(null, rs) - 1;
+      var c0 = Math.min.apply(null, cs) - 1;
       var bg = document.createElement('div');
       bg.className = 'fx-hangar-bg';
-      bg.setAttribute('data-c', String(c[2]));
-      bg.style.gridRow = (c[0] + 1) + ' / span 6';
-      bg.style.gridColumn = (c[1] + 1) + ' / span 6';
+      bg.setAttribute('data-c', String(color));
+      bg.style.gridRow = (r0 + 1) + ' / span 6';
+      bg.style.gridColumn = (c0 + 1) + ' / span 6';
       board.appendChild(bg);
     });
 
-    /* 外圈 52 格，按服务器给的颜色上色，四家的起点格加粗 */
+    /* 外圈 52 格，按服务器给的颜色上色；四家的起点格加粗，并标出「往哪边走」 */
     b.ring.forEach(function (rc, i) {
       var cell = document.createElement('div');
-      cell.className = 'fx-cell fx-cell--track' + (b.startIndex.indexOf(i) >= 0 ? ' is-start' : '');
+      cell.className = 'fx-cell fx-cell--track';
+      var isStart = b.startIndex.indexOf(i) >= 0;
+      if (isStart) {
+        cell.classList.add('is-start');
+        var nx = b.ring[(i + 1) % b.ring.length];
+        var dr = nx[0] - rc[0];
+        var dc = nx[1] - rc[1];
+        cell.setAttribute('data-dir', dr > 0 ? 'down' : (dr < 0 ? 'up' : (dc > 0 ? 'right' : 'left')));
+      }
       cell.setAttribute('data-c', String(b.ringColor[i]));
       putCell(cell, rc);
       board.appendChild(cell);
@@ -177,6 +189,12 @@
     goal.className = 'fx-cell fx-cell--goal';
     putCell(goal, b.center);
     board.appendChild(goal);
+
+    /* 中心终点：四个颜色拼成的方块（照常见盘面那样画），摆在正中间 */
+    var center = document.createElement('div');
+    center.className = 'fx-center';
+    center.setAttribute('aria-hidden', 'true');
+    board.appendChild(center);
 
     var layer = document.createElement('div');
     layer.className = 'fx-pieces';

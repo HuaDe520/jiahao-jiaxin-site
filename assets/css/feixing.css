@@ -227,40 +227,112 @@
   display: grid;
   grid-template-columns: repeat(15, minmax(0, 1fr));
   grid-template-rows: repeat(15, minmax(0, 1fr));
-  background: linear-gradient(180deg, #fff, #f7f4ec);
-  border: 1px solid rgba(18, 101, 90, .18);
-  border-radius: 14px;
+  background: #fff;
+  border: 7px solid #f6ead2;
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(11, 63, 57, .18), 0 12px 26px -20px rgba(11, 63, 57, .9);
   overflow: hidden;
 }
 /* 四家的颜色：红 黄 蓝 绿。全页只在这里定义一次 */
-.fx-dot[data-c="0"], .fx-hangar-bg[data-c="0"], .fx-cell[data-c="0"], .fx-plane[data-c="0"] { --c: #d94a4a; }
-.fx-dot[data-c="1"], .fx-hangar-bg[data-c="1"], .fx-cell[data-c="1"], .fx-plane[data-c="1"] { --c: #dfa32b; }
-.fx-dot[data-c="2"], .fx-hangar-bg[data-c="2"], .fx-cell[data-c="2"], .fx-plane[data-c="2"] { --c: #3b7dd8; }
-.fx-dot[data-c="3"], .fx-hangar-bg[data-c="3"], .fx-cell[data-c="3"], .fx-plane[data-c="3"] { --c: #3f9d63; }
+.fx-dot[data-c="0"], .fx-hangar-bg[data-c="0"], .fx-cell[data-c="0"], .fx-plane[data-c="0"] { --c: #e0342f; }
+.fx-dot[data-c="1"], .fx-hangar-bg[data-c="1"], .fx-cell[data-c="1"], .fx-plane[data-c="1"] { --c: #f2c327; }
+.fx-dot[data-c="2"], .fx-hangar-bg[data-c="2"], .fx-cell[data-c="2"], .fx-plane[data-c="2"] { --c: #2f6fd0; }
+.fx-dot[data-c="3"], .fx-hangar-bg[data-c="3"], .fx-cell[data-c="3"], .fx-plane[data-c="3"] { --c: #34a05a; }
 
-/* 机场：四角各一块浅色底，飞机停在上面看得出是「自家的院子」。
-   老浏览器不认 color-mix 时，就用下面那层灰绿底色兜着 */
-.fx-hangar-bg { margin: 2px; border-radius: 10px; background: rgba(18, 101, 90, .05); border: 1px solid rgba(18, 101, 90, .1); }
+/* 机场：四角一整块实色底板（照着飞行棋的院子画），里面四个白圈停机位 */
+.fx-hangar-bg {
+  margin: 2px;
+  border-radius: 8px;
+  background: #eceff0;
+  border: 3px solid #fff;
+  box-shadow: inset 0 0 0 1px rgba(11, 63, 57, .14);
+}
 .fx-hangar-bg[data-c] {
-  background: color-mix(in srgb, var(--c) 13%, #fff);
-  border-color: color-mix(in srgb, var(--c) 32%, #fff);
+  background: var(--c);
+  border-color: #fff;
 }
 
-.fx-cell { margin: 1px; border-radius: 4px; background: rgba(18, 101, 90, .06); }
-.fx-cell[data-c] { background: color-mix(in srgb, var(--c) 24%, #fff); }
-.fx-cell--home[data-c] { background: color-mix(in srgb, var(--c) 42%, #fff); }
-.fx-cell--home.is-last { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 65%, #fff); }
-.fx-cell--track.is-start {
+/* 外圈格子：实色块 + 中间一个白点，一眼看得出颜色和格子 */
+.fx-cell { position: relative; margin: 1px; border-radius: 3px; background: #e6ecea; }
+.fx-cell[data-c] {
   background: var(--c);
-  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .8);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35);
 }
+.fx-cell--track[data-c]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44%;
+  aspect-ratio: 1 / 1;
+  min-height: 4px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .93);
+}
+/* 起点格：白圈更大，里面一个箭头指著该往哪边走 */
+.fx-cell--track.is-start { box-shadow: inset 0 0 0 2px #fff; }
+.fx-cell--track.is-start::after { width: 62%; }
+.fx-cell--track.is-start::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border: 3.5px solid transparent;
+  border-left-color: #333;
+  transform: translate(-50%, -50%) rotate(var(--rot, 0deg));
+  z-index: 1;
+}
+.fx-cell--track.is-start[data-dir="right"] { --rot: 0deg; }
+.fx-cell--track.is-start[data-dir="down"] { --rot: 90deg; }
+.fx-cell--track.is-start[data-dir="left"] { --rot: 180deg; }
+.fx-cell--track.is-start[data-dir="up"] { --rot: 270deg; }
+
+/* 跑道：自己那 6 格，颜色更实，最后一格顶到中心 */
+.fx-cell--home[data-c] { background: var(--c); box-shadow: inset 0 0 0 1.5px #fff; }
+.fx-cell--home.is-last { box-shadow: inset 0 0 0 2px #fff; }
 .fx-cell--hangar { background: transparent; }
-.fx-cell--hangar[data-c] { background: color-mix(in srgb, var(--c) 32%, #fff); border-radius: 50%; }
-.fx-cell--goal {
-  margin: 1px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .7) inset;
+.fx-cell--hangar[data-c] { background: #fff; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(11, 63, 57, .12); }
+.fx-cell--goal { margin: 1px; border-radius: 4px; background: #fff; }
+
+/* 中心：四个颜色的三角形拼成一块（就是终点） */
+.fx-center {
+  position: absolute;
+  left: 40%;
+  top: 40%;
+  width: 20%;
+  height: 20%;
+  border-radius: 4px;
+  background: conic-gradient(#2f6fd0 0 25%, #e0342f 0 50%, #34a05a 0 75%, #f2c327 0);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(11, 63, 57, .18);
+  pointer-events: none;
+  z-index: 2;
+}
+.fx-center::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44%;
+  height: 44%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: #fff;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(11, 63, 57, .12);
+}
+.fx-center::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16%;
+  height: 16%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: var(--gold-500);
+  border-radius: 1px;
+  z-index: 3;
 }
 
 /* ---------------- 飞机 ---------------- */
