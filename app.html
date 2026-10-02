@@ -9,7 +9,7 @@
 <link rel="icon" href="assets/img/logo-main.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="assets/css/style.css?v=0f2362a9">
+<link rel="stylesheet" href="assets/css/style.css?v=6f4eea6e">
 </head>
 <body>
 
@@ -59,13 +59,19 @@
         <article class="dl-card">
           <span class="dl-card__os">Android</span>
           <h3>安卓版</h3>
-          <p class="dl-card__meta">掌上嘉协 1.9 · 133 KB · 支持 Android 5.0 及以上</p>
-          <a class="btn btn--primary dl-card__btn" href="download/zhangshang-jiaxie-1.9.apk" download>下载 APK</a>
-          <p class="dl-card__note">安装时若提示「未知来源应用」，选择允许即可。<strong>装过 1.6 之后就不用再手动下载了</strong>：App 打开时会自己问一下官网有没有新版本，有就直接在软件里下载并弹出安装。1.9 修好了录音失败时的误报（不再说「被别的应用占着」，而是指引你去开权限/隐私开关，并给一个「打开设置」按钮）；1.8 修好了「检查更新」不会自己检查、下载装不上的问题；1.7 让聊天里的语音、群聊、图片、文件都能用（第一次发语音会问一次麦克风权限）；1.5 给千词奇域接上了手机自带的朗读；1.4 修好了「换头像点了没反应」。加载超过 10 秒会自动重试、主站连不上会自动换备用线路，看过的页面存在手机里，第二次打开基本是秒开。</p>
-          <p class="dl-card__inapp" id="apkInApp" hidden>
-            当前 App 版本 <b id="apkVersion">—</b>
-            <button type="button" class="btn btn--ghost dl-card__check" id="apkCheck">检查更新</button>
-          </p>
+          <p class="dl-card__meta">掌上嘉协 1.10 · 133 KB · 支持 Android 5.0 及以上</p>
+          <a class="btn btn--primary dl-card__btn" href="download/zhangshang-jiaxie-1.10.apk" download>下载 APK</a>
+          <p class="dl-card__note">安装时若提示「未知来源应用」，选择允许即可。<strong>装过 1.6 之后就不用再手动下载了</strong>：App 打开时会自己问一下官网有没有新版本，有就直接在软件里下载并弹出安装。1.10 重点修语音（启动时先把麦克风权限拿到手，不再出现「明明给了权限还是录不了」）；1.9 修好了录音失败的误报；1.8 修好了「检查更新」不会自己检查、下载装不上；1.7 让聊天里的语音、群聊、图片、文件都能用；1.5 给千词奇域接上了手机自带的朗读。加载超过 10 秒会自动重试、主站连不上会自动换备用线路，看过的页面存在手机里，第二次打开基本是秒开。</p>
+          <div class="dl-card__inapp" id="apkInApp" hidden>
+            <p>当前 App 版本 <b id="apkVersion">—</b></p>
+            <p class="dl-card__stage" id="apkStage">更新状态：—</p>
+            <div class="dl-card__acts">
+              <button type="button" class="btn btn--ghost dl-card__check" id="apkCheck">检查更新</button>
+              <button type="button" class="btn btn--ghost dl-card__check" id="apkDownload">下载并安装</button>
+              <button type="button" class="btn btn--ghost dl-card__check" id="apkBrowser">用浏览器下载</button>
+              <button type="button" class="btn btn--ghost dl-card__check" id="apkGrant">允许安装权限</button>
+            </div>
+          </div>
         </article>
 
         <article class="dl-card">
@@ -130,25 +136,52 @@
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }
 
-  /* 在「掌上嘉协」App 里打开这一页时，多给一个「检查更新」的入口：
-     App 会暴露 window.JHJX_APP，网页这边只是把它调起来，逻辑都在 App 里。 */
+  /* 在「掌上嘉协」App 里打开这一页时，多给一个「更新面板」：
+     当前版本 + 更新走到哪一步 + 四个按钮。卡住了截个图就能定位。 */
   (function () {
     var bridge = window.JHJX_APP;
     if (!bridge || typeof bridge.version !== 'function') return;
     var box = document.getElementById('apkInApp');
     var ver = document.getElementById('apkVersion');
+    var stageEl = document.getElementById('apkStage');
     var btn = document.getElementById('apkCheck');
+    var btnDown = document.getElementById('apkDownload');
+    var btnBrowse = document.getElementById('apkBrowser');
+    var btnGrant = document.getElementById('apkGrant');
     var now = '';
     try { now = String(bridge.version() || ''); } catch (e) { now = ''; }
     if (ver) ver.textContent = now || '—';
     if (box) box.hidden = false;
-    if (btn && typeof bridge.checkUpdate === 'function') {
-      btn.addEventListener('click', function () {
-        try { bridge.checkUpdate(); } catch (e) { /* 忽略 */ }
-      });
-    } else if (btn) {
-      btn.hidden = true;
+
+    function call(name) {
+      return function () {
+        try { if (typeof bridge[name] === 'function') bridge[name](); } catch (e) { /* 忽略 */ }
+        setTimeout(refresh, 900);
+      };
     }
+    if (btn) btn.addEventListener('click', call('checkUpdate'));
+    if (btnDown) btnDown.addEventListener('click', call('downloadLatest'));
+    if (btnBrowse) btnBrowse.addEventListener('click', call('downloadInBrowser'));
+    if (btnGrant) btnGrant.addEventListener('click', call('openInstallSettings'));
+
+    /* 状态轮询：App 每走一步都会更新，页面这边显示出来 */
+    function refresh() {
+      if (!stageEl) return;
+      var s = null;
+      try { s = typeof bridge.updateStatus === 'function' ? JSON.parse(bridge.updateStatus()) : null; } catch (e) { s = null; }
+      if (!s) {
+        stageEl.textContent = '更新状态：这个版本还没有状态面板（装 1.10 以上就能看到）';
+        return;
+      }
+      var can = s.canInstall === 'yes' ? '已允许' : (s.canInstall === 'no' ? '未允许（点「允许安装权限」）' : '未知');
+      stageEl.textContent = '更新状态：' + s.stage
+        + '（' + (s.detail || '') + '）'
+        + '　最新版 ' + (s.latestVersion || '未知')
+        + '　安装权限 ' + can
+        + (s.lastCheck ? '　上次检查 ' + s.lastCheck : '');
+    }
+    refresh();
+    setInterval(refresh, 2000);
   })();
 </script>
 

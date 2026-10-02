@@ -1,12 +1,12 @@
 {
-    "versionCode":  10,
-    "versionName":  "1.9",
-    "file":  "zhangshang-jiaxie-1.9.apk",
-    "url":  "https://xbc-zjja.com.cn/download/zhangshang-jiaxie-1.9.apk",
-    "urlBackup":  "https://huade520.github.io/jiahao-jiaxin-site/download/zhangshang-jiaxie-1.9.apk",
+    "versionCode":  11,
+    "versionName":  "1.10",
+    "file":  "zhangshang-jiaxie-1.10.apk",
+    "url":  "https://xbc-zjja.com.cn/download/zhangshang-jiaxie-1.10.apk",
+    "urlBackup":  "https://huade520.github.io/jiahao-jiaxin-site/download/zhangshang-jiaxie-1.10.apk",
     "size":  136555,
-    "sha256":  "161dd4465c5cccd1f073734ddd8cf74c628674078c5ab40b79577055ca996d35",
-    "notes":  "1.9 版：录音失败不再乱说是「被别的应用占着」了——现在手机上打不开麦克风，多半是权限或系统隐私开关没放开；录音失败时页面会直接给一个「打开设置」按钮，一点就跳到本应用的权限页。另外第一次打不开会先自己重试一次（很多是刚被别的应用放出来的瞬时状态）。",
+    "sha256":  "a33632fd5f560f0ae117b1bdcae749569a2f5d0b63bba1f370f7667372fc82b9",
+    "notes":  "1.10 版重点修语音：启动时就把麦克风权限要到手（以前常见「系统里明明开了权限、网页那次授权早被拒」，于是怎么点都发不出语音）；App 里点「语音」会先确认权限再开录。另外更新流程每一步（检查/下载/安装）都会在下载页的「更新面板」里显示出来，卡在哪一步一眼就能看到，还多了「用浏览器下载」这条保底路径。",
     "forceBelow":  1,
     "releasedAt":  "2026-10-02"
 }

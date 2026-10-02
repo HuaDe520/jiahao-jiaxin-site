@@ -810,3 +810,10 @@ button { font: inherit; color: inherit; }
 .install__hint {
   flex: 1 1 100%; font-size: 13px; color: var(--gold-400); line-height: 1.7;
 }
+
+/* App 里的「更新面板」：状态 + 四个按钮 */
+.dl-card__inapp { display: block; }
+.dl-card__inapp p { margin: 0 0 6px; }
+.dl-card__stage { font-size: 12.5px; color: var(--ink-soft); line-height: 1.7; }
+.dl-card__acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.dl-card__acts .dl-card__check { min-height: 40px; }

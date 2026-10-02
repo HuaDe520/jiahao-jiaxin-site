@@ -1331,6 +1331,9 @@
     rec.wantCancel = !!wantCancel;
     if (rec.timer) { clearInterval(rec.timer); rec.timer = null; }
     if (rec.recorder && rec.recorder.state !== 'inactive') {
+      /* 先把已有的数据要出来再停：某些机型上 stop() 之后最后一段数据来不及进 chunks，
+         结果 blob 是空的，用户看到的就是「发不了语音」 */
+      try { if (rec.recorder.requestData) rec.recorder.requestData(); } catch (e) { /* 忽略 */ }
       try { rec.recorder.stop(); } catch (e) { /* 忽略 */ }
     } else {
       releaseMic();
@@ -1339,7 +1342,21 @@
   }
 
   function sendRecording(blob) {
-    if (!blob || !blob.size) { chatMsg('这段语音没录上，再试一次吧', 'error'); return; }
+    if (!blob || !blob.size) {
+      chatMsg('这段语音没录上：多半是点得太快了。点「语音」之后说一两秒，再点「发送」。', 'error', '再试一次', function () {
+        hideMsg($('frChatMsg'));
+        startRecordingTry(0);
+      });
+      return;
+    }
+    /* 太短的录音在一些机型上会是空壳（有字节但没声音），提示一下别以为是坏了 */
+    if (blob.size < 800) {
+      chatMsg('录得太短了（不到一秒），点「语音」后多讲两句再发。', 'error', '再试一次', function () {
+        hideMsg($('frChatMsg'));
+        startRecordingTry(0);
+      });
+      return;
+    }
     API.uploadMedia('voice', blob, rec.name || 'voice.webm').then(function (res) {
       if (res.status === 200 && res.data && res.data.media) {
         var media = res.data.media;
@@ -1450,6 +1467,31 @@
   }
 
   function startRecording() {
+    /* 在手机 App 里：先让 App 把系统麦克风权限拿到手，再开录音。
+       否则经常出现「用户在系统设置里给了权限，但 WebView 那次授权早就被拒了」，
+       表现为「明明给了权限还是录不了」。 */
+    if (window.JHJX_APP && typeof window.JHJX_APP.askMic === 'function'
+        && typeof window.JHJX_APP.micState === 'function' && appMicState() !== 'granted') {
+      chatMsg('正在申请麦克风权限，请在系统弹窗里点「允许」…', 'ok');
+      try { window.JHJX_APP.askMic(); } catch (e) { /* 忽略 */ }
+      var waited = 0;
+      var timer = setInterval(function () {
+        waited += 500;
+        if (appMicState() === 'granted') {
+          clearInterval(timer);
+          hideMsg($('frChatMsg'));
+          startRecordingTry(0);
+          return;
+        }
+        if (waited >= 20000) {
+          clearInterval(timer);
+          chatMsg(micFailHint({ name: 'NotAllowedError' }), 'error', '打开设置', function () {
+            try { window.JHJX_APP.openMicSettings(); } catch (e) { /* 忽略 */ }
+          });
+        }
+      }, 500);
+      return;
+    }
     startRecordingTry(0);
   }
 
