@@ -373,9 +373,9 @@
     fanguSearch: function (q, page) {
       return call('GET', '/api/fangu/search?q=' + encodeURIComponent(q || '') + '&page=' + encodeURIComponent(page || 1));
     },
-    fanguBrowse: function (page, tag, score, min) {
+    fanguBrowse: function (page, tag, score, min, max) {
       var q = '/api/fangu/browse?page=' + encodeURIComponent(page || 1) + '&tag=' + encodeURIComponent(tag || '');
-      if (score) q += '&score=' + encodeURIComponent(score) + '&min=' + encodeURIComponent(min || 0);
+      if (score) q += '&score=' + encodeURIComponent(score) + '&min=' + encodeURIComponent(min || 0) + '&max=' + encodeURIComponent(max == null ? 10 : max);
       return call('GET', q);
     },
     fanguHome: function () { return call('GET', '/api/fangu/home'); },

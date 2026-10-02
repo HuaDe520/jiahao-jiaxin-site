@@ -63,6 +63,9 @@
   color: var(--jade-800);
 }
 .fg-btn--ghost:hover { border-color: var(--gold-500); transform: translateY(-2px); }
+/* 「B 站上没有这部番」：是个按钮，但不是能点出去的那种 */
+.fg-btn--ghost.is-off { color: var(--ink-mute); border-style: dashed; }
+.fg-btn--ghost.is-off:hover { border-color: rgba(18, 101, 90, .22); transform: none; }
 .fg-btn[disabled] { opacity: .55; cursor: not-allowed; transform: none; }
 
 .fg-msg {
@@ -252,17 +255,32 @@
 .fg-page-gap { color: var(--ink-mute); padding: 0 2px; }
 .fg-page-info { flex-basis: 100%; text-align: center; font-size: 12.5px; color: var(--ink-mute); margin-top: 4px; }
 
-/* ---------------- 按评分找番：一行一档评分 ---------------- */
+/* ---------------- 按评分找番：一行一档评分，一行里往右划 ---------------- */
 .fg-score-filters { display: flex; flex-direction: column; gap: 8px; }
-.fg-score-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fg-score-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .fg-score-line__label {
   flex: none;
-  min-width: 62px;
+  width: 62px;
   font-size: 12.5px;
   color: var(--jade-800);
   font-weight: 700;
 }
-.fg-tag--score { font-size: 12px; padding: 4px 9px; }
+/* 分数段是横向排的：一屏摆不下就往右划，别把页面堆得老长 */
+.fg-score-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 2px 6px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.fg-score-scroll::-webkit-scrollbar { display: none; }
+.fg-tag--score { flex: none; font-size: 12px; padding: 4px 9px; scroll-snap-align: start; }
 .fg-guest { margin: 20px 0; padding: 18px; border-radius: 16px; background: #fff; border: 1px dashed rgba(18, 101, 90, .3); }
 .fg-guest p { margin: 0 0 12px; color: var(--ink-soft); }
 

@@ -42,11 +42,13 @@
     total: 0,
     tag: '',           /* 当前选中的标签 id（空 = 全部） */
     tags: [],          /* 标签表：后端按 B 站番剧索引的「风格」给的 */
-    score: '',         /* 评分档：bili / gu / global（空 = 不限） */
-    min: 0,            /* 评分下限 */
+    score: '',         /* 评分区间用哪一档：bili / gu / global（空 = 不限） */
+    min: 0,            /* 区间下限（含） */
+    max: 10,           /* 区间上限（不含；到 10 就是「X 分以上」） */
     scope: 'all',      /* all = 全站番剧；lib = 本站看过的番（咕咪 / 大众评分只有这些才有） */
     keyword: '',
     results: [],
+    span: 2,           /* 页码中间那一坨先显示多少页（点省略号会变多） */
     need: 0,
     totalUsers: 0,
     open: null,        /* 当前打开的番 */
@@ -236,15 +238,24 @@
     tags.forEach(function (t) { chip(t.id, t.name); });
   }
 
-  /* ---------------- 评分档 ---------------- */
-  /* 三档评分各给几个分数段：点一下就找「这个分数以上」的番。
-     B 站评分全站的番都有，咕咪 / 大众评分只有本站点开过的番才有，
-     所以后两档挑出来的是「本站看过的番」那一小份，界面上会说明。 */
+  /* ---------------- 评分区间 ---------------- */
+  /* 一行一档评分，分的是一段一段的分数：9.5 以上、9.0–9.5、8.5–9.0……
+     高的在最左边（先看到的都是好番），往右划才看到低分区间。
+     B 站评分最低也就 2 分出头，所以那几段不摆出来占地方。 */
   var SCORE_ROWS = [
-    { key: 'bili', label: 'B 站评分', opts: [['9.5', '9.5 以上'], ['9', '9.0 以上'], ['8.5', '8.5 以上'], ['8', '8.0 以上']] },
-    { key: 'gu', label: '咕咪评分', opts: [['9', '9.0 以上'], ['8', '8.0 以上'], ['7', '7.0 以上']] },
-    { key: 'global', label: '大众评分', opts: [['9', '9.0 以上'], ['8', '8.0 以上'], ['7', '7.0 以上']] },
+    { key: 'bili', label: 'B 站评分', floor: 2 },
+    { key: 'gu', label: '咕咪评分', floor: 1 },
+    { key: 'global', label: '大众评分', floor: 1 },
   ];
+
+  function scoreBands(floor) {
+    var out = [{ min: 9.5, max: 10, text: '9.5 以上' }];
+    for (var top = 9.5; top - 0.5 >= floor - 0.001; top -= 0.5) {
+      var lo = Math.round((top - 0.5) * 10) / 10;
+      out.push({ min: lo, max: top, text: fmtScore(lo) + '–' + fmtScore(top) });
+    }
+    return out;
+  }
 
   function renderScoreFilters() {
     if (!scoreFiltersEl) return;
@@ -256,32 +267,36 @@
       lab.className = 'fg-score-line__label';
       lab.textContent = row.label;
       line.appendChild(lab);
+      /* 一行摆不下就往右划，别把屏幕堆满 */
       var box = document.createElement('div');
-      box.className = 'fg-tags';
-      var chip = function (key, min, text) {
-        var on = String(state.score) === key && String(state.min) === String(min);
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'fg-tag fg-tag--score' + (on ? ' is-on' : '');
-        if (key) b.setAttribute('data-score-key', key);
-        b.textContent = text;
-        b.addEventListener('click', function () {
-          if (String(state.score) === key && String(state.min) === String(min)) {
-            /* 再点一下就是取消这一档 */
+      box.className = 'fg-score-scroll';
+      box.setAttribute('role', 'group');
+      box.setAttribute('aria-label', row.label + '分数段');
+      scoreBands(row.floor).forEach(function (b) {
+        var on = String(state.score) === row.key && Number(state.min) === b.min && Number(state.max) === b.max;
+        var el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'fg-tag fg-tag--score' + (on ? ' is-on' : '');
+        el.setAttribute('data-score-key', row.key);
+        el.setAttribute('data-min', String(b.min));
+        el.textContent = b.text;
+        el.addEventListener('click', function () {
+          if (String(state.score) === row.key && Number(state.min) === b.min && Number(state.max) === b.max) {
+            /* 再点一下就是取消这一段 */
             state.score = '';
             state.min = 0;
+            state.max = 10;
           } else {
-            state.score = key;
-            state.min = Number(min) || 0;
+            state.score = row.key;
+            state.min = b.min;
+            state.max = b.max;
           }
           state.keyword = '';
           queryEl.value = '';
           loadBrowse(1);
         });
-        box.appendChild(b);
-      };
-      chip('', 0, '不限');
-      row.opts.forEach(function (o) { chip(row.key, o[0], o[1]); });
+        box.appendChild(el);
+      });
       line.appendChild(box);
       scoreFiltersEl.appendChild(line);
     });
@@ -292,7 +307,8 @@
     if (!state.score) return '';
     var row = SCORE_ROWS.filter(function (r) { return r.key === state.score; })[0];
     var name = row ? row.label : state.score;
-    return name + ' ' + fmtScore(state.min) + ' 以上';
+    if (Number(state.max) >= 10) return name + ' ' + fmtScore(state.min) + ' 以上';
+    return name + ' ' + fmtScore(state.min) + '–' + fmtScore(state.max);
   }
 
   /* ---------------- 列表与翻页 ---------------- */
@@ -307,18 +323,19 @@
     }
   }
 
-  /* 页码：两头固定，中间跟着当前页走，中间断档用省略号 */
-  function pageNumbers(cur, pages) {
+  /* 页码：两头固定，中间跟着当前页走；中间断档给个省略号，
+     点省略号能多展开一些页；旁边还能直接写「跳到第几页」 */
+  function pageNumbers(cur, pages, span) {
     var keep = [];
     var add = function (n) { if (n >= 1 && n <= pages && keep.indexOf(n) < 0) keep.push(n); };
     add(1);
-    for (var i = cur - 2; i <= cur + 2; i++) add(i);
+    for (var i = cur - span; i <= cur + span; i++) add(i);
     add(pages);
     keep.sort(function (a, b) { return a - b; });
     var out = [];
     for (var k = 0; k < keep.length; k++) {
-      if (k && keep[k] - keep[k - 1] > 1) out.push('gap');
-      out.push(keep[k]);
+      if (k && keep[k] - keep[k - 1] > 1) out.push({ gap: true, from: keep[k - 1] + 1, to: keep[k] - 1 });
+      out.push({ page: keep[k] });
     }
     return out;
   }
@@ -339,17 +356,62 @@
       pagerEl.appendChild(b);
     }
     btn('上一页', state.page - 1, 'fg-page-btn--nav', state.page <= 1);
-    pageNumbers(state.page, pages).forEach(function (p) {
-      if (p === 'gap') {
-        var s = document.createElement('span');
-        s.className = 'fg-page-gap';
-        s.textContent = '…';
-        pagerEl.appendChild(s);
+    pageNumbers(state.page, pages, state.span).forEach(function (it) {
+      if (it.gap) {
+        var g = document.createElement('button');
+        g.type = 'button';
+        g.className = 'fg-page-btn fg-page-btn--gap';
+        g.textContent = '…';
+        g.setAttribute('aria-label', '展开更多页码');
+        g.title = '这里还有 ' + (it.to - it.from + 1) + ' 页没摆出来（点一下多显示一些）';
+        g.addEventListener('click', function () {
+          state.span = Math.min(40, state.span + 10);
+          renderPager();
+        });
+        pagerEl.appendChild(g);
         return;
       }
-      btn(String(p), p, p === state.page ? 'is-on' : '', false);
+      btn(String(it.page), it.page, it.page === state.page ? 'is-on' : '', false);
     });
     btn('下一页', state.page + 1, 'fg-page-btn--nav', state.page >= pages);
+    /* 想直接去哪一页就写数字 */
+    var jump = document.createElement('span');
+    jump.className = 'fg-jump';
+    var lab = document.createElement('span');
+    lab.className = 'fg-jump__label';
+    lab.textContent = '跳到第';
+    var inp = document.createElement('input');
+    inp.type = 'number';
+    inp.className = 'fg-jump__input';
+    inp.id = 'fgJumpInput';
+    inp.min = '1';
+    inp.max = String(pages);
+    inp.placeholder = String(state.page);
+    inp.setAttribute('aria-label', '要跳到第几页');
+    var unit = document.createElement('span');
+    unit.className = 'fg-jump__label';
+    unit.textContent = '页';
+    var goBtn = document.createElement('button');
+    goBtn.type = 'button';
+    goBtn.className = 'fg-btn fg-btn--ghost fg-jump__go';
+    goBtn.id = 'fgJumpGo';
+    goBtn.textContent = '跳过去';
+    function submitJump() {
+      var n = Math.floor(Number(inp.value));
+      if (!n || n < 1 || n > pages) {
+        msg('页码写 ' + 1 + ' 到 ' + pages + ' 之间', true);
+        inp.focus();
+        return;
+      }
+      goPage(n);
+    }
+    goBtn.addEventListener('click', submitJump);
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); submitJump(); } });
+    jump.appendChild(lab);
+    jump.appendChild(inp);
+    jump.appendChild(unit);
+    jump.appendChild(goBtn);
+    pagerEl.appendChild(jump);
     var info = document.createElement('span');
     info.className = 'fg-page-info';
     info.textContent = '第 ' + state.page + ' / ' + pages + ' 页 · 共 ' + (state.total || 0) + ' 部';
@@ -380,6 +442,7 @@
         state.tag = '';
         state.score = '';
         state.min = 0;
+        state.max = 10;
         state.keyword = '';
         queryEl.value = '';
         loadBrowse(1);
@@ -402,10 +465,10 @@
 
   /* 翻着看：一页 20 部，带标签 / 评分筛选 */
   function loadBrowse(page) {
-    if (state.busy) return;
+    if (state.busy) return null;
     state.busy = true;
     msg('正在翻…');
-    window.JHJX_API.fanguBrowse(page || 1, state.tag, state.score, state.min).then(function (res) {
+    var pending = window.JHJX_API.fanguBrowse(page || 1, state.tag, state.score, state.min, state.max).then(function (res) {
       state.busy = false;
       if (res.status !== 200) {
         msg((res.data && res.data.error) || '列表没取回来，过一会儿再试', true);
@@ -420,7 +483,9 @@
       state.tag = String(d.tag || '');
       state.score = String(d.score || '');
       state.min = Number(d.min) || 0;
+      state.max = d.max == null ? 10 : Number(d.max);
       state.scope = String(d.scope || 'all');
+      state.span = 2;      /* 换了一批番，页码重新收拢 */
       if (d.tags && d.tags.length) state.tags = d.tags;
       state.keyword = '';
       queryEl.value = '';
@@ -450,6 +515,7 @@
       state.busy = false;
       msg('网络不太好，列表没取回来', true);
     });
+    return pending;
   }
 
   function doSearch(q, page) {
@@ -510,10 +576,10 @@
       state.mode = 'hall';
       renderPager();
       loadHall();
-    } else {
-      state.mode = state.keyword ? 'search' : 'browse';
-      loadBrowse(state.page || 1);
+      return null;
     }
+    state.mode = state.keyword ? 'search' : 'browse';
+    return loadBrowse(state.page || 1);
   }
 
   /* ---------------- 详情抽屉 ---------------- */
@@ -529,17 +595,21 @@
   function goTag(name) {
     var hit = (state.tags || []).filter(function (t) { return String(t.name) === String(name); })[0];
     closeSheet();
-    setTab(false);
+    /* 先把筛选条件摆好，再切回「全部番剧」——
+       不然切栏目时先拉一次、设完条件又拉一次，第二次会被「正在忙」挡掉，标签就没生效 */
+    state.score = '';
+    state.min = 0;
+    state.max = 10;
+    state.keyword = '';
     if (hit) {
       state.tag = String(hit.id);
-      state.keyword = '';
       queryEl.value = '';
-      loadBrowse(1);
-    } else {
-      state.tag = '';
-      queryEl.value = name;
-      doSearch(name, 1);
+      setTab(false);
+      return;
     }
+    state.tag = '';
+    var pend = setTab(false);
+    if (pend && pend.then) pend.then(function () { queryEl.value = name; doSearch(name, 1); });
   }
 
   function tagChips(sub) {
@@ -787,14 +857,26 @@
     recWrap.appendChild(recBtn);
     acts.appendChild(recWrap);
 
-    if (sub.link) {
+    if (sub.link && sub.linkOk !== false) {
       var out = document.createElement('a');
       out.className = 'fg-btn fg-btn--ghost';
+      out.id = 'fgBiliLink';
       out.href = sub.link;
       out.target = '_blank';
       out.rel = 'noopener noreferrer';
       out.textContent = '去 B 站看';
       acts.appendChild(out);
+    } else {
+      /* B 站那边没有（或者已经下架）：不给外链，点了就说清，别让人白跳一趟 */
+      var off = document.createElement('button');
+      off.type = 'button';
+      off.className = 'fg-btn fg-btn--ghost is-off';
+      off.id = 'fgNoLink';
+      off.textContent = 'B 站上没有这部番';
+      off.addEventListener('click', function () {
+        msg('这部番 B 站那边没有（或者已经下架了），点过去也只会被兜回首页，先在这儿看看评价吧。', true);
+      });
+      acts.appendChild(off);
     }
     secMine.appendChild(acts);
     sheetBox.appendChild(secMine);
