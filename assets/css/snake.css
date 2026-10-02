@@ -276,3 +276,9 @@
   .sn-page .quick-home span { display: none; }
   .sn-page .site-footer { padding-bottom: 92px; }
 }
+
+/* ---------- 手机上更好点：速度 / 榜单模式按钮的命中区撑到 40px ---------- */
+@media (max-width: 820px) {
+  .sn-speed { min-height: 40px; padding-top: 9px; padding-bottom: 9px; }
+  .sn-rank__mode { min-height: 40px; padding-top: 9px; padding-bottom: 9px; }
+}

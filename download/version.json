@@ -1,12 +1,12 @@
 {
-    "versionCode":  7,
-    "versionName":  "1.6",
-    "file":  "zhangshang-jiaxie-1.6.apk",
-    "url":  "https://xbc-zjja.com.cn/download/zhangshang-jiaxie-1.6.apk",
-    "urlBackup":  "https://huade520.github.io/jiahao-jiaxin-site/download/zhangshang-jiaxie-1.6.apk",
-    "size":  132459,
-    "sha256":  "3a9afbf76dd94bf3c17412692981260902a33ab89ff86205515c6ded34063f2d",
-    "notes":  "1.6 版：App 自己会检查更新了——打开时会问一下官网有没有新版本，有就直接在软件里下载并弹出安装，不用再去浏览器里下。另外「下载 APK」按钮在 App 里点了也有反应了（以前点了没动静）。",
+    "versionCode":  8,
+    "versionName":  "1.7",
+    "file":  "zhangshang-jiaxie-1.7.apk",
+    "url":  "https://xbc-zjja.com.cn/download/zhangshang-jiaxie-1.7.apk",
+    "urlBackup":  "https://huade520.github.io/jiahao-jiaxin-site/download/zhangshang-jiaxie-1.7.apk",
+    "size":  136555,
+    "sha256":  "64bb91b78259bc4bc86ffc1a5fedab03843a0162418468debbca6392e565ddf9",
+    "notes":  "1.7 版：聊天里可以发语音了（第一次用会问一次麦克风权限）；群聊、图片、文件也都在这一版里。App 会自己提示更新，点「立即更新」就能装。",
     "forceBelow":  1,
-    "releasedAt":  "2026-09-30"
+    "releasedAt":  "2026-10-02"
 }

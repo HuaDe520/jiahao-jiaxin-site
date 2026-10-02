@@ -304,15 +304,8 @@
   /* https 才注册；本机 127.0.0.1 / localhost 也算安全来源，方便本地调试离线缓存 */
   var swHost = location.hostname;
   var swSecure = location.protocol === 'https:' || swHost === '127.0.0.1' || swHost === 'localhost';
-  if ('serviceWorker' in navigator && swSecure) {
-    window.addEventListener('load', function () {
-      /* updateViaCache: 'none' —— 每次打开都去服务器核对 sw.js，
-         否则浏览器可能拿出缓存里的旧版本，站内更新会迟一步生效 */
-      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
-        .then(function (reg) { if (reg && reg.update) reg.update(); })
-        .catch(function () { /* 注册失败不影响使用 */ });
-    });
-  }
+  /* Service Worker 的注册挪到 assets/js/nav.js 了（那才是每页都加载的脚本），
+     不然从分享链接直接进内页的同学装不上离线缓存 */
 
   /* ---------- 9. 页脚年份 ---------- */
   var yearEl = document.getElementById('year');

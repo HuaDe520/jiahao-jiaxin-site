@@ -17,7 +17,7 @@
  * 需要的权限：classic token 勾选 repo + workflow
  */
 
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, relative, sep, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,7 +40,9 @@ const DRY = has('--dry-run');
 /* backend 是服务端源码，里面写着邀请码校验、修改权限码等，**绝不能发布到网站上**
    （以前它是跟着一起发上去的，任何人都能打开 /backend/worker.js 看到权限码） */
 const SKIP_DIRS = new Set(['.git', '.preview', '.verify', '.screens', '.video', 'node_modules', '.vercel', '.netlify', '.wrangler', '.dev-objects', 'backend']);
-const SKIP_FILES = new Set(['token.txt', '.DS_Store', 'Thumbs.db', '.dev.vars', '.dev.sqlite', '.dev.sqlite-journal', '.dev-db.json']);
+const SKIP_FILES = new Set(['token.txt', '.DS_Store', 'Thumbs.db', '.dev.vars', '.dev.sqlite', '.dev.sqlite-journal', '.dev-db.json',
+  /* 账号系统上线前的「整站单文件」老副本：留在本地做参考，不发到线上被搜索引擎当成另一个版本收录 */
+  '协会官网-单文件版.html']);
 /* 这些目录只是原始素材，留在仓库里，但不发布到线上（省 1.7MB 流量） */
 const SKIP_PATHS = new Set(['assets/img/original']);
 
@@ -141,6 +143,21 @@ try {
   if (stamped) console.log(`已刷新 ${stamped} 处样式/脚本版本号`);
 } catch (err) {
   console.warn('版本号刷新失败（不影响发布）：', err.message);
+}
+
+/* Service Worker 的缓存名也跟着每次发布换一个：
+   它只删「名字不一样」的旧缓存，名字不变就会一直只增不减（审计发现的问题） */
+try {
+  const swPath = join(SITE_ROOT, 'sw.js');
+  const sw = readFileSync(swPath, 'utf8');
+  const tag = 'v' + new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 12);
+  const next = sw.replace(/const CACHE = 'jhjx-site-v[^']*';/, `const CACHE = 'jhjx-site-${tag}';`);
+  if (next !== sw) {
+    writeFileSync(swPath, next);
+    console.log(`已更新 Service Worker 缓存名：jhjx-site-${tag}`);
+  }
+} catch (err) {
+  console.warn('缓存名更新失败（不影响发布）：', err.message);
 }
 
 const files = collectFiles(SITE_ROOT).sort((a, b) => a.path.localeCompare(b.path));

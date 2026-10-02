@@ -358,6 +358,14 @@
   }
 
   /* ================= 3. 高级功能（符号计算） ================= */
+  /* 面板上会把用户填的原始输入拼进 HTML（「当 x = … 时」「lim(x→…)」），
+     所以先转义一遍。虽然只影响本页自己，但拼字符串进 innerHTML 就是隐患。 */
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
   function resultBox(el, label, mainHtml, extra, isError) {
     if (!el) return;
     el.hidden = false;
@@ -543,7 +551,7 @@
         if (at) {
           var val = E.derivative(f, 'x', diffOrder, false);
           var num = E.evaluate(val, { x: E.evaluate(at, {}, false) }, false);
-          extra = '当 x = ' + at + ' 时，' + label + ' = ' + E.formatNumber(num);
+          extra = '当 x = ' + esc(at) + ' 时，' + label + ' = ' + E.formatNumber(num);
         }
         resultBox($('diffResult'), '求导结果', label + ' = ' + fmt(d), extra);
       } catch (err) {
@@ -615,7 +623,7 @@
       try {
         var r = E.limit(f, 'x', to, false);
         var toText = /^-?\s*(inf|infinity)$/i.test(to) ? (to.charAt(0) === '-' ? '-∞' : '∞') : to;
-        var label = 'lim(x→' + toText + ') ' + fmt(f);
+        var label = 'lim(x→' + esc(toText) + ') ' + fmt(f);
         var proc = processHtml(r.sides, to);
 
         if (r.exact !== null && r.exact !== undefined) {

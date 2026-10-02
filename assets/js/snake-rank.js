@@ -19,6 +19,7 @@
   if (!listEl || !hintEl) return;
 
   var busy = false;
+var pendingRefresh = false;   /* 读取途中又切了模式：回包后补刷一次 */
   var lastAt = 0;
   var pushedLocal = false;   /* 本机最高分只补交一次，免得和刷新互相触发 */
   var lastData = null;       /* 最近一次拿到的榜单：交分数失败时还能把它显示出来 */
@@ -137,7 +138,9 @@
   }
 
   function refresh(note) {
-    if (busy) return;
+    /* 正在读取时又切了模式：不能直接把这次点击丢掉（列表已经被清空、
+       提示也停在「正在读取…」，丢掉就永远卡在那儿），记下来等回包再补一次 */
+    if (busy) { pendingRefresh = true; return; }
     if (!API) { notice('排行榜加载失败，刷新页面再试试。'); return; }
     if (!API.serviceReady()) { notice('账号服务还没开通，先玩着，分数存在本机。'); return; }
     mode = currentMode();
@@ -150,8 +153,12 @@
     var want = mode;
     API.snakeBoard(want).then(function (r) {
       busy = false;
-      /* 请求发出去的这段时间里用户可能又换了模式，那这份数据就作废 */
-      if (want !== currentMode()) return;
+      /* 请求发出去的这段时间里用户可能又换了模式：这份作废，按新模式重来一次 */
+      if (want !== currentMode() || pendingRefresh) {
+        pendingRefresh = false;
+        refresh();
+        return;
+      }
       if (r.status === 401) { guest(); return; }
       if (r.status !== 200 || !r.data || !r.data.ok) {
         /* 403 之类是有话要说的（比如账号被停用），别一律当成「没登录」 */

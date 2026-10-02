@@ -13,7 +13,15 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="嘉豪嘉欣">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="stylesheet" href="assets/css/style.css?v=567dff4a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="嘉豪嘉欣">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="assets/css/style.css?v=0f2362a9">
+  <!-- 没开 JS 或者弱网下 main.js 还没落地时，.reveal 的内容不能一直藏着 -->
+  <noscript><style>.reveal{opacity:1 !important;transform:none !important}</style></noscript>
 </head>
 <body>
 
@@ -421,10 +429,6 @@
           <p class="contact__hint">活动联办、作品投稿、部门共建，都欢迎来聊。</p>
         </article>
       </div>
-
-      <p class="contact__note reveal">
-        提示：本页联系方式为占位内容，请将 <code>#join</code> 区块中的文本替换为真实群号或二维码后发布。
-      </p>
     </div>
   </section>
 
@@ -447,6 +451,15 @@
           <button class="btn club__copy" id="copyWechat" type="button">复制微信号</button>
         </div>
       </article>
+
+      <div class="install reveal">
+        <div class="install__text">
+          <strong>把官网装到手机桌面</strong>
+          <span>点开后像 App 一样全屏打开，图标就是协会会徽。</span>
+        </div>
+        <button class="btn club__copy" id="installApp" type="button" hidden>一键安装</button>
+        <span class="install__hint" id="installHint" hidden></span>
+      </div>
 
       <p class="club__tip reveal">各部门部长信息：点击上方「部门矩阵」中的任一部门，即可在部门简介里看到。</p>
     </div>
@@ -527,7 +540,7 @@
   </div>
 </div>
 
-<script src="assets/js/main.js?v=64dff374"></script>
-<script src="assets/js/nav.js?v=873330b1"></script>
+<script src="assets/js/main.js?v=dd8ff8e2"></script>
+<script src="assets/js/nav.js?v=3e4a4fc6"></script>
 </body>
 </html>

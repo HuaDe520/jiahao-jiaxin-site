@@ -113,3 +113,20 @@
   window.addEventListener('resize', function () { last = window.scrollY || window.pageYOffset || 0; }, { passive: true });
   update();
 })();
+
+/* ---------- 注册 Service Worker ----------
+   以前这段在 main.js 里，只有首页会加载 main.js，从分享链接直接进
+   friends / account / snake 这些页面的同学就永远装不上离线缓存。
+   nav.js 每页都引，放这儿最稳。 */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  var host = location.hostname;
+  var secure = location.protocol === 'https:' || host === '127.0.0.1' || host === 'localhost';
+  if (!secure) return;
+  window.addEventListener('load', function () {
+    /* updateViaCache: 'none'：每次都去服务器核对 sw.js，别拿缓存里的旧版本 */
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+      .then(function (reg) { if (reg && reg.update) reg.update(); })
+      .catch(function () { /* 注册失败不影响使用 */ });
+  });
+})();

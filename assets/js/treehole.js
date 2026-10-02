@@ -92,13 +92,20 @@
           note.reactions = res.data.note.reactions;
           note.my = res.data.note.my;
           var nowMine = (note.my || []).indexOf(kind.key) >= 0;
-          btn.classList.toggle('is-mine', nowMine);
-          btn.setAttribute('aria-pressed', nowMine ? 'true' : 'false');
           var c = note.reactions[kind.key] || 0;
-          num.textContent = c > 0 ? String(c) : '';
-          btn.classList.remove('is-pop');
-          void btn.offsetWidth;
-          btn.classList.add('is-pop');
+          /* 20 秒一次的轮询会把整个列表重建，手里这个 btn 可能已经不在页面上。
+             按 id + 反应类型重新找一遍当前节点，找不到就跳过视觉更新
+             （note 已经更新过，下一轮渲染自然是对的）。 */
+          var live = document.querySelector('.th-note[data-id="' + note.id + '"] .th-react[data-kind="' + kind.key + '"]');
+          if (live) {
+            live.classList.toggle('is-mine', nowMine);
+            live.setAttribute('aria-pressed', nowMine ? 'true' : 'false');
+            var liveNum = live.querySelector('.th-react__count');
+            if (liveNum) liveNum.textContent = c > 0 ? String(c) : '';
+            live.classList.remove('is-pop');
+            void live.offsetWidth;
+            live.classList.add('is-pop');
+          }
         } else if (res.status === 404) {
           showMsg('这张纸条已经飘走了，刷新看看', 'error');
         } else {

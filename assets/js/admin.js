@@ -219,12 +219,26 @@
   var showAll = false;
 
   function load() {
+    /* 30 秒一次的自动刷新会把列表整段重建（备注框里正在打的字就没了），
+       所以正在某个备注框里打字时，这一轮先不乱动列表 */
+    var typing = document.activeElement && document.activeElement.classList
+      && document.activeElement.classList.contains('ac-input');
     return Promise.all([
       API.adminSummary(),
-      API.adminReports(showAll ? 'all' : 'open'),
+      typing ? Promise.resolve({ status: 0, data: {} }) : API.adminReports(showAll ? 'all' : 'open'),
       API.adminUsers(),
     ]).then(function (res) {
       var s = res[0], reps = res[1], us = res[2];
+      /* 401（凭证过期/被挤下线）和 403（不是管理员）都要有交代，
+         不然页面就是一片空白，只有「最后更新」在跳 */
+      if (s.status === 401 || reps.status === 401 || us.status === 401) {
+        guard.hidden = false;
+        main.hidden = true;
+        $('adFoot').hidden = true;
+        var g = $('adGuardMsg');
+        if (g) g.textContent = '登录已过期，重新登录一下再看管理台。';
+        return;
+      }
       if (s.status === 403 || reps.status === 403 || us.status === 403) {
         guard.hidden = false;
         main.hidden = true;

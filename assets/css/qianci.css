@@ -396,3 +396,9 @@
   .qc-page .quick-home span { display: none; }
   .qc-page .site-footer { padding-bottom: 92px; }
 }
+
+/* ---------- 手机上更好点：朗读按钮 44px、词条里的小喇叭 40px ---------- */
+@media (max-width: 820px) {
+  .qc-speak { width: 44px; height: 44px; }
+  .qc-item__speak { min-width: 40px; min-height: 40px; }
+}

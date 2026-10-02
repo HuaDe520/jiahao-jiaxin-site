@@ -74,6 +74,40 @@
     } catch (e) { /* 忽略 */ }
   }
 
+  /* ---------------- 聊天里的图片 / 语音 / 文件 ----------------
+     媒体不走 JSON 接口：上传要发原始二进制，下载要带 Authorization 头拿回二进制。
+     这两个函数自己用 fetch，但返回值仍然和 call() 一样是 { status, data }。 */
+
+  /* 已经取回来的媒体：key → 本地 blob 地址，免得同一张图反复下载 */
+  var mediaUrls = {};
+  var mediaKeys = [];
+  var MEDIA_CACHE_MAX = 60;
+
+  function mediaAbort(ms) {
+    try { return typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(ms) : undefined; }
+    catch (e) { return undefined; }
+  }
+
+  function dropMediaUrl(key) {
+    var url = mediaUrls[key];
+    if (!url) return;
+    delete mediaUrls[key];
+    try { URL.revokeObjectURL(url); } catch (e) { /* 忽略 */ }
+  }
+
+  /* 只把二进制取回来，调用方自己决定是播还是下载 */
+  async function mediaBlob(key) {
+    if (!key) return null;
+    try {
+      var res = await fetch(base() + '/api/media?key=' + encodeURIComponent(key), {
+        headers: token() ? { Authorization: 'Bearer ' + token() } : {},
+        signal: mediaAbort(60000),
+      });
+      if (!res.ok) return null;
+      return await res.blob();
+    } catch (e) { return null; }
+  }
+
   async function call(method, path, body) {
     if (!serviceReady()) {
       return { status: 0, data: { ok: false, error: '账号服务还没开通，先别急' } };
@@ -146,7 +180,84 @@
     thread: function (friendId, since) {
       return call('GET', '/api/messages/' + friendId + (since ? '?since=' + since : ''));
     },
-    sendMessage: function (to, body) { return call('POST', '/api/messages', { to: to, body: body }); },
+    /* 1:1 发消息：可以直接给一段文字（老写法），也可以给
+       { body, kind:'text'|'image'|'voice'|'file', media:{key,name,size,mime} } */
+    sendMessage: function (to, payload) {
+      var p = payload;
+      if (typeof p === 'string' || p == null) p = { body: p, kind: 'text' };
+      return call('POST', '/api/messages', {
+        to: to,
+        body: p.body == null ? '' : p.body,
+        kind: p.kind || 'text',
+        media: p.media || null
+      });
+    },
+
+    /* ---- 群聊 ---- */
+    groups: function () { return call('GET', '/api/groups'); },
+    createGroup: function (name, memberIds) {
+      return call('POST', '/api/groups', { name: name, memberIds: memberIds || [] });
+    },
+    group: function (id) { return call('GET', '/api/groups/' + encodeURIComponent(id)); },
+    groupInvite: function (id, memberIds) {
+      return call('POST', '/api/groups/' + encodeURIComponent(id) + '/members', { memberIds: memberIds || [] });
+    },
+    groupLeave: function (id) { return call('POST', '/api/groups/' + encodeURIComponent(id) + '/leave'); },
+    groupRename: function (id, name) {
+      return call('POST', '/api/groups/' + encodeURIComponent(id) + '/rename', { name: name });
+    },
+    groupMessages: function (id, since) {
+      return call('GET', '/api/groups/' + encodeURIComponent(id) + '/messages' + (since ? '?since=' + since : ''));
+    },
+    sendGroupMessage: function (id, payload) {
+      var p = payload;
+      if (typeof p === 'string' || p == null) p = { body: p, kind: 'text' };
+      return call('POST', '/api/groups/' + encodeURIComponent(id) + '/messages', {
+        body: p.body == null ? '' : p.body,
+        kind: p.kind || 'text',
+        media: p.media || null
+      });
+    },
+
+    /* ---- 上传 / 下载聊天里的图片、语音、文件（走二进制，不走 JSON） ---- */
+    uploadMedia: function (kind, blob, name) {
+      if (!serviceReady()) {
+        return Promise.resolve({ status: 0, data: { ok: false, error: '账号服务还没开通，先别急' } });
+      }
+      var q = '/api/upload?kind=' + encodeURIComponent(kind || 'file')
+            + '&name=' + encodeURIComponent(name || '');
+      var headers = { 'Content-Type': 'application/octet-stream' };
+      var tok = token();
+      if (tok) headers.Authorization = 'Bearer ' + tok;
+      return fetch(base() + q, { method: 'POST', headers: headers, body: blob, signal: mediaAbort(60000) })
+        .then(function (res) {
+          return res.json().catch(function () { return null; }).then(function (data) {
+            return { status: res.status, data: data || {} };
+          });
+        })
+        .catch(function () {
+          return { status: 0, data: { ok: false, error: '连不上服务器，检查一下网络' } };
+        });
+    },
+
+    /* 把媒体取回来变成一个本地 blob 地址（带 token，所以 <img src> 直接用接口地址是不行的） */
+    mediaObjectUrl: function (key) {
+      if (!key) return Promise.resolve('');
+      if (mediaUrls[key]) return Promise.resolve(mediaUrls[key]);
+      return mediaBlob(key).then(function (blob) {
+        if (!blob) return '';
+        if (mediaUrls[key]) return mediaUrls[key];
+        var url = '';
+        try { url = URL.createObjectURL(blob); } catch (e) { url = ''; }
+        if (!url) return '';
+        mediaUrls[key] = url;
+        mediaKeys.push(key);
+        /* 页面上待着的时候不主动释放，只把最老的挤出去，免得越攒越多 */
+        while (mediaKeys.length > MEDIA_CACHE_MAX) dropMediaUrl(mediaKeys.shift());
+        return url;
+      });
+    },
+    mediaBlob: mediaBlob,
 
     /* ---- 头像 ---- */
     uploadAvatar: function (dataUrl) { return call('POST', '/api/avatar', { dataUrl: dataUrl }); },

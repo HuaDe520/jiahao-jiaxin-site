@@ -10,8 +10,8 @@
 <link rel="icon" href="assets/img/logo-main.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="assets/css/style.css?v=567dff4a">
-<link rel="stylesheet" href="assets/css/friends.css?v=12f93c8b">
+<link rel="stylesheet" href="assets/css/style.css?v=0f2362a9">
+<link rel="stylesheet" href="assets/css/friends.css?v=68c223a7">
 </head>
 <body class="fr-page">
 
@@ -72,6 +72,7 @@
 
           <div class="fr-tabs">
             <button class="fr-tab is-active" id="frTabFriends" type="button">好友</button>
+            <button class="fr-tab" id="frTabGroups" type="button">群聊 <em id="frGroupBadge" hidden>0</em></button>
             <button class="fr-tab" id="frTabRequests" type="button">好友请求 <em id="frReqBadge" hidden>0</em></button>
             <button class="fr-tab" id="frTabSearch" type="button">找人</button>
           </div>
@@ -79,6 +80,16 @@
           <!-- 好友 / 会话 -->
           <div class="fr-card" id="frPaneFriends">
             <div id="frFriends"></div>
+          </div>
+
+          <!-- 群聊 -->
+          <div class="fr-card" id="frPaneGroups" hidden>
+            <div class="fr-groups__head">
+              <button class="fr-btn" id="frGroupCreate" type="button">创建群聊</button>
+              <span class="fr-groups__hint">拉几个好友一起聊</span>
+            </div>
+            <div class="fr-msg" id="frGroupMsg"></div>
+            <div id="frGroups"></div>
           </div>
 
           <!-- 聊天 -->
@@ -91,10 +102,12 @@
                   <span class="fr-chat__meta" id="frChatMeta" hidden></span>
                 </span>
                 <span class="fr-chat__tools">
+                  <button class="fr-btn fr-btn--ghost" id="frChatMembers" type="button" hidden>成员</button>
                   <button class="fr-btn fr-btn--ghost" id="frChatRefresh" type="button">刷新</button>
                   <button class="fr-btn fr-btn--ghost" id="frChatBack" type="button">返回</button>
                 </span>
               </div>
+              <div class="fr-members" id="frMemberPanel" hidden></div>
               <div class="fr-chat__wrap">
                 <div class="fr-chat__list" id="frChatList"></div>
                 <button class="fr-chat__tobottom" id="frChatToBottom" type="button" hidden>有新消息 ↓</button>
@@ -112,8 +125,21 @@
                 </span>
               </div>
               <div class="fr-chat__foot">
-                <textarea class="fr-input fr-chat__input" id="frChatInput" rows="1" maxlength="500" placeholder="说点什么…（回车发送，Shift+回车换行）"></textarea>
-                <button class="fr-btn fr-btn--send" id="frChatSend" type="button">发送</button>              </div>
+                <div class="fr-media-bar" role="group" aria-label="发送图片、语音或文件">
+                  <button class="fr-media-btn" id="frChatImage" type="button" title="发图片" aria-label="发图片">图片</button>
+                  <button class="fr-media-btn" id="frChatVoice" type="button" title="录语音" aria-label="录语音">语音</button>
+                  <button class="fr-media-btn" id="frChatFile" type="button" title="发文件" aria-label="发文件">文件</button>
+                </div>
+                <textarea class="fr-input fr-chat__input" id="frChatInput" rows="1" maxlength="500" placeholder="说点什么…" title="回车发送，Shift+回车换行" aria-label="输入消息，回车发送，Shift+回车换行"></textarea>
+                <button class="fr-btn fr-btn--send" id="frChatSend" type="button">发送</button>
+              </div>
+              <div class="fr-rec" id="frRecBar" hidden>
+                <span class="fr-rec__dot" aria-hidden="true"></span>
+                <span class="fr-rec__label">正在录音</span>
+                <span class="fr-rec__time" id="frRecTime">0:00</span>
+                <button class="fr-btn fr-btn--ghost" id="frRecCancel" type="button">取消</button>
+                <button class="fr-btn" id="frRecSend" type="button">发送</button>
+              </div>
             </div>
           </div>
 
@@ -130,6 +156,21 @@
             </div>
             <div class="fr-msg" id="frSearchMsg"></div>
             <div id="frResults"></div>
+          </div>
+
+          <!-- 发送图片 / 文件用的隐藏选择框 -->
+          <input type="file" id="frImageInput" accept="image/*" hidden>
+          <input type="file" id="frFileInput" hidden>
+
+          <!-- 建群 / 拉人时用的选择框（内容由脚本填，不写死） -->
+          <div class="fr-modal" id="frPickWrap" hidden>
+            <div class="fr-picker" id="frPicker" role="dialog" aria-modal="true" aria-label="选择好友"></div>
+          </div>
+
+          <!-- 看大图的全屏浮层 -->
+          <div class="fr-lightbox" id="frLightbox" hidden role="dialog" aria-modal="true" aria-label="查看大图">
+            <img id="frLightboxImg" alt="图片消息">
+            <button class="fr-lightbox__close" id="frLightboxClose" type="button" aria-label="关闭">关闭</button>
           </div>
         </div>
 
@@ -171,12 +212,12 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/api.js?v=4a9ff27f"></script>
-<script src="assets/js/friends.js?v=adb17ef3"></script>
+<script src="assets/js/api.js?v=9c80afb0"></script>
+<script src="assets/js/friends.js?v=5e346356"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }
 </script>
-<script src="assets/js/nav.js?v=873330b1"></script>
+<script src="assets/js/nav.js?v=3e4a4fc6"></script>
 </body>
 </html>
