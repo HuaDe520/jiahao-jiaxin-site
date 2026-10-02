@@ -44,6 +44,13 @@
 .fr-row__side { display: flex; align-items: center; gap: 8px; flex: none; }
 .fr-row__badge { background: #a3372f; color: #fff; border-radius: 999px; font-size: 11.5px; font-weight: 700; padding: 2px 7px; }
 
+/* 整行可点：给一点「按得下去」的反馈，手机上点哪都能进 */
+.fr-group { cursor: pointer; border-radius: 12px; transition: background .16s var(--ease); }
+.fr-group:hover { background: rgba(18, 101, 90, .04); }
+.fr-group:active { background: rgba(18, 101, 90, .08); }
+.fr-row.is-row-open { cursor: pointer; border-radius: 12px; transition: background .16s var(--ease); }
+.fr-row.is-row-open:hover { background: rgba(18, 101, 90, .04); }
+
 .fr-btn {
   border: 0; border-radius: 999px; cursor: pointer; font-family: inherit;
   padding: 9px 16px; font-size: 13.5px; font-weight: 700;

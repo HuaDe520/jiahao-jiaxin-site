@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=0f2362a9">
-<link rel="stylesheet" href="assets/css/friends.css?v=68c223a7">
+<link rel="stylesheet" href="assets/css/friends.css?v=d2aeee3d">
 </head>
 <body class="fr-page">
 
@@ -124,6 +124,8 @@
                   <button class="fr-style-dot" type="button" data-theme="supreme" title="至尊" aria-label="至尊"></button>
                 </span>
               </div>
+              <!-- 录音失败、附件太大这类提示显示在这里（比 alert 友好，手机上也能看清） -->
+              <div class="fr-msg" id="frChatMsg"></div>
               <div class="fr-chat__foot">
                 <div class="fr-media-bar" role="group" aria-label="发送图片、语音或文件">
                   <button class="fr-media-btn" id="frChatImage" type="button" title="发图片" aria-label="发图片">图片</button>
@@ -213,7 +215,7 @@
 </a>
 
 <script src="assets/js/api.js?v=9c80afb0"></script>
-<script src="assets/js/friends.js?v=5e346356"></script>
+<script src="assets/js/friends.js?v=b513bab1"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }

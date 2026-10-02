@@ -80,12 +80,22 @@
     return (size / 1048576).toFixed(1) + ' MB';
   }
 
-  /* 会话列表里的最后一条预览：媒体消息给一个中文标记 */
+  /* 会话列表里的最后一条预览：媒体消息给一个中文标记。
+     接口有时只回正文（文件名 / 语音文件名），所以再按扩展名兜一层判断 */
+  function mediaMark(text) {
+    var t = String(text == null ? '' : text);
+    if (/\.(png|jpe?g|gif|webp|bmp|heic)$/i.test(t)) return '[图片]';
+    if (/\.(webm|m4a|ogg|opus|mp3|wav|aac|amr)$/i.test(t)) return '[语音]';
+    return '';
+  }
+
   function previewOf(last, kind) {
     if (kind === 'image') return '[图片]';
     if (kind === 'voice') return '[语音]';
     if (kind === 'file') return '[文件]';
     var t = last ? String(last) : '';
+    var mark = mediaMark(t);
+    if (mark) return mark + ' ' + t;
     return t.length > 24 ? t.slice(0, 24) + '…' : t;
   }
 
@@ -292,12 +302,12 @@
 
   /* 下载走接口的二进制（带登录凭证），点不动就给个提示 */
   function downloadFile(key, name) {
-    if (!key) { alert('这个文件暂时拿不到'); return; }
+    if (!key) { chatMsg('这个文件暂时拿不到', 'error'); return; }
     API.mediaBlob(key).then(function (blob) {
-      if (!blob) { alert('文件下载失败，网络或登录状态可能有问题'); return; }
+      if (!blob) { chatMsg('文件下载失败，网络或登录状态可能有问题', 'error'); return; }
       var url = '';
       try { url = URL.createObjectURL(blob); } catch (e) { url = ''; }
-      if (!url) { alert('这台设备的浏览器不支持直接下载'); return; }
+      if (!url) { chatMsg('这台设备的浏览器不支持直接下载', 'error'); return; }
       var a = document.createElement('a');
       a.href = url;
       a.download = name || '文件';
@@ -367,9 +377,22 @@
       chat.type = 'button';
       chat.className = 'fr-btn';
       chat.textContent = '聊天';
-      chat.addEventListener('click', function () { openChat(f); });
+      chat.addEventListener('click', function (e) {
+        /* 别冒泡到整行，不然会开两次 */
+        e.stopPropagation();
+        openChat(f);
+      });
       side.appendChild(chat);
       row.appendChild(side);
+
+      /* 整行也能开聊天（跟群聊列表一致）。头像和昵称仍然是「看主页」，
+         点它们不在这里处理，别抢 */
+      row.classList.add('is-row-open');
+      row.addEventListener('click', function (e) {
+        var el = e.target;
+        if (el && el.closest && el.closest('.is-clickable, button, a')) return;
+        openChat(f);
+      });
 
       box.appendChild(row);
     });
@@ -574,7 +597,7 @@
       if (res.status === 200) {
         markRecalled(rowEl, true);
       } else {
-        alert((res.data && res.data.error) || '撤回失败');
+        chatMsg((res.data && res.data.error) || '撤回失败', 'error');
       }
     });
   }
@@ -1110,7 +1133,7 @@
         showNewMsgHint(false);
         sweepRecall();
       } else if (res.status !== 200) {
-        alert((res.data && res.data.error) || '发送失败');
+        chatMsg((res.data && res.data.error) || '发送失败', 'error');
       }
       return res;
     });
@@ -1231,7 +1254,7 @@
   /* 上传成功之后就发一条对应的消息 */
   function handleImageFile(file) {
     if (!file) return;
-    if (!/^image\//.test(file.type || '')) { alert('这个文件看起来不是图片'); return; }
+    if (!/^image\//.test(file.type || '')) { chatMsg('这个文件看起来不是图片', 'error'); return; }
     setComposerBusy(true);
     prepareImage(file).then(function (out) {
       return API.uploadMedia('image', out.blob, out.name);
@@ -1241,7 +1264,7 @@
         var media = res.data.media;
         sendMedia('image', media, media.name || '');
       } else {
-        alert((res.data && res.data.error) || '图片发不出去，换一张试试');
+        chatMsg((res.data && res.data.error) || '图片发不出去，换一张试试', 'error');
       }
     }, function () { setComposerBusy(false); });
   }
@@ -1249,7 +1272,7 @@
   function handleChatFile(file) {
     if (!file) return;
     if (file.size > 4 * 1024 * 1024) {
-      alert('文件请控制在 4MB 以内，大文件先压一压再发');
+      chatMsg('文件请控制在 4MB 以内，大文件先压一压再发', 'error');
       return;
     }
     setComposerBusy(true);
@@ -1259,7 +1282,7 @@
         var media = res.data.media;
         sendMedia('file', media, media.name || file.name || '文件');
       } else {
-        alert((res.data && res.data.error) || '文件发不出去，稍后再试');
+        chatMsg((res.data && res.data.error) || '文件发不出去，稍后再试', 'error');
       }
     }, function () { setComposerBusy(false); });
   }
@@ -1316,20 +1339,74 @@
   }
 
   function sendRecording(blob) {
-    if (!blob || !blob.size) { alert('这段语音没录上，再试一次吧'); return; }
+    if (!blob || !blob.size) { chatMsg('这段语音没录上，再试一次吧', 'error'); return; }
     API.uploadMedia('voice', blob, rec.name || 'voice.webm').then(function (res) {
       if (res.status === 200 && res.data && res.data.media) {
         var media = res.data.media;
         sendMedia('voice', media, media.name || '');
       } else {
-        alert((res.data && res.data.error) || '语音发不出去，稍后再试');
+        chatMsg((res.data && res.data.error) || '语音发不出去，稍后再试', 'error');
       }
     });
   }
 
+  /* 聊天区里的一行提示（比 alert 友好，手机上尤其明显），9 秒后自己收起来 */
+  var chatMsgTimer = 0;
+  function chatMsg(text, kind) {
+    var el = $('frChatMsg');
+    if (!el) { alert(text); return; }
+    showMsg(el, text, kind);
+    if (chatMsgTimer) clearTimeout(chatMsgTimer);
+    chatMsgTimer = setTimeout(function () { hideMsg(el); }, 9000);
+  }
+
+  /* 手机 App 1.7 才带麦克风权限桥：更早的版本在 App 里必然录不了音 */
+  function appTooOldForMic() {
+    if (!window.JHJX_APP || typeof window.JHJX_APP.version !== 'function') return false;
+    try {
+      var v = String(window.JHJX_APP.version() || '');
+      return !!v && parseFloat(v) < 1.7;
+    } catch (e) { return false; }
+  }
+
+  /* 录音失败要说清「是哪种失败、下一步怎么办」：
+     只丢一句「没有麦克风权限」，用户不知道去哪儿开。 */
+  function micFailHint(err) {
+    var name = (err && err.name) || '';
+    var ua = (navigator && navigator.userAgent) || '';
+    if (appTooOldForMic()) {
+      return '手机 App 要更新到 1.7 才能录音：在 App 里点「检查更新」，或到官网下载页装新版；也可以先发文字。';
+    }
+    if (!micSupported) {
+      if (/MicroMessenger/i.test(ua)) {
+        return '微信里打开的页面不能录音：点右上角「⋯」→「在浏览器打开」，再点「语音」；也可以先发文字。';
+      }
+      if (location.protocol !== 'https:' && location.hostname !== '127.0.0.1' && location.hostname !== 'localhost') {
+        return '录音要在 https 的页面里才能用，现在这个地址不行；也可以先发文字。';
+      }
+      return '这个浏览器不支持录音：换 Chrome / Safari / Edge 打开，或者直接发文字。';
+    }
+    if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'PermissionDeniedError') {
+      if (window.JHJX_APP) {
+        return '麦克风权限被拒了：到手机「设置 → 应用 → 掌上嘉协 → 权限」里打开「麦克风」，回来再点一次「语音」。';
+      }
+      return '麦克风权限被拒了：点浏览器地址栏左边的锁图标 → 把「麦克风」改成「允许」，再点一次「语音」。';
+    }
+    if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+      return '这台设备上没找到麦克风；也可以先发文字。';
+    }
+    if (name === 'NotReadableError' || name === 'TrackStartError') {
+      return '麦克风被别的应用占着了：关掉正在录音或通话的应用，再点一次「语音」。';
+    }
+    if (name === 'NotSupportedError') {
+      return '这个浏览器不认这种录音格式：换 Chrome / Safari 试试，或者先发文字。';
+    }
+    return '录音没起来' + (err && err.message ? '（' + err.message + '）' : '') + '；也可以先发文字。';
+  }
+
   function startRecording() {
     if (!micSupported) {
-      alert('这台设备的浏览器不支持录音，或者没有给麦克风权限');
+      chatMsg(micFailHint(null), 'error');
       return;
     }
     if (rec.recorder) return;
@@ -1346,7 +1423,7 @@
       } catch (e) {
         rec.recorder = null;
         releaseMic();
-        alert('这台设备的浏览器不支持录音，或者没有给麦克风权限');
+        chatMsg(micFailHint(e), 'error');
         return;
       }
       rec.recorder.ondataavailable = function (e) {
@@ -1362,14 +1439,14 @@
         releaseMic();
         hideRecBar();
         if (!giveUp) {
-          try { sendRecording(blob); } catch (e) { alert('语音发不出去，稍后再试'); }
+          try { sendRecording(blob); } catch (e) { chatMsg('语音发不出去，稍后再试', 'error'); }
         }
       };
       rec.startedAt = Date.now();
       try { rec.recorder.start(); } catch (e) {
         rec.recorder = null;
         releaseMic();
-        alert('开始录音失败了，稍后再试一次');
+        chatMsg('开始录音失败：' + micFailHint(e), 'error');
         return;
       }
       var bar = $('frRecBar');
@@ -1378,8 +1455,8 @@
       if (t) t.textContent = '0:00';
       if (rec.timer) clearInterval(rec.timer);
       rec.timer = setInterval(recTicks, 250);
-    }, function () {
-      alert('这台设备的浏览器不支持录音，或者没有给麦克风权限');
+    }, function (err) {
+      chatMsg(micFailHint(err), 'error');
     });
   }
 
@@ -1441,9 +1518,27 @@
       open.type = 'button';
       open.className = 'fr-btn';
       open.textContent = '进群';
-      open.addEventListener('click', function () { enterGroup(g.id); });
+      open.addEventListener('click', function (e) {
+        /* 别让点击冒泡到整行：不然会「进群」两次 */
+        e.stopPropagation();
+        enterGroup(g.id);
+      });
       side.appendChild(open);
       row.appendChild(side);
+
+      /* 手机上大家习惯点整行（QQ / 微信就是这样）：
+         整行也能进群，键盘也能用（回车 / 空格） */
+      row.classList.add('is-clickable');
+      row.setAttribute('role', 'button');
+      row.setAttribute('tabindex', '0');
+      row.title = '进入「' + g.name + '」';
+      row.addEventListener('click', function () { enterGroup(g.id); });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          e.preventDefault();
+          enterGroup(g.id);
+        }
+      });
 
       box.appendChild(row);
     });
@@ -1652,7 +1747,7 @@
     var name = window.prompt('新的群名称（1-20 个字）', g.name || '');
     if (name === null) return;
     name = String(name).trim();
-    if (name.length < 1 || name.length > 20) { alert('群名称写 1-20 个字'); return; }
+    if (name.length < 1 || name.length > 20) { showMsg(frGroupMsg, '群名称写 1-20 个字', 'error'); return; }
     API.groupRename(g.id, name).then(function (res) {
       if (res.status === 200 && res.data && res.data.group) {
         state.current = Object.assign({}, state.current, res.data.group);
@@ -1662,7 +1757,7 @@
         refreshGroups();
         showMsg($('frGroupMsg'), '群名称改好了', 'ok');
       } else {
-        alert((res.data && res.data.error) || '改名失败');
+        showMsg(frGroupMsg, (res.data && res.data.error) || '改名失败', 'error');
       }
     });
   }
@@ -1693,7 +1788,7 @@
     if (guest) guest.hidden = false;
     var sendBtn = $('frChatSend');
     if (sendBtn) sendBtn.disabled = true;
-    alert('登录已过期，重新登录一下就能继续聊天了');
+    chatMsg('登录已过期，重新登录一下就能继续聊天了', 'error');
   }
 
   /* 接口都返回 {status, data}；401 说明凭证过期了，统一走上面那段 */
