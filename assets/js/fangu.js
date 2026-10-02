@@ -29,6 +29,9 @@
   var crumbEl = $('fgCrumb');
   var filterWrap = $('fgFilterWrap');
   var tagsEl = $('fgTags');
+  var scoreWrap = $('fgScoreWrap');
+  var scoreFiltersEl = $('fgScoreFilters');
+  var libHint = $('fgLibHint');
   var sheet = $('fgSheet');
   var sheetBox = $('fgSheetBox');
 
@@ -39,6 +42,9 @@
     total: 0,
     tag: '',           /* 当前选中的标签 id（空 = 全部） */
     tags: [],          /* 标签表：后端按 B 站番剧索引的「风格」给的 */
+    score: '',         /* 评分档：bili / gu / global（空 = 不限） */
+    min: 0,            /* 评分下限 */
+    scope: 'all',      /* all = 全站番剧；lib = 本站看过的番（咕咪 / 大众评分只有这些才有） */
     keyword: '',
     results: [],
     need: 0,
@@ -210,6 +216,65 @@
     tags.forEach(function (t) { chip(t.id, t.name); });
   }
 
+  /* ---------------- 评分档 ---------------- */
+  /* 三档评分各给几个分数段：点一下就找「这个分数以上」的番。
+     B 站评分全站的番都有，咕咪 / 大众评分只有本站点开过的番才有，
+     所以后两档挑出来的是「本站看过的番」那一小份，界面上会说明。 */
+  var SCORE_ROWS = [
+    { key: 'bili', label: 'B 站评分', opts: [['9.5', '9.5 以上'], ['9', '9.0 以上'], ['8.5', '8.5 以上'], ['8', '8.0 以上']] },
+    { key: 'gu', label: '咕咪评分', opts: [['9', '9.0 以上'], ['8', '8.0 以上'], ['7', '7.0 以上']] },
+    { key: 'global', label: '大众评分', opts: [['9', '9.0 以上'], ['8', '8.0 以上'], ['7', '7.0 以上']] },
+  ];
+
+  function renderScoreFilters() {
+    if (!scoreFiltersEl) return;
+    scoreFiltersEl.innerHTML = '';
+    SCORE_ROWS.forEach(function (row) {
+      var line = document.createElement('div');
+      line.className = 'fg-score-line';
+      var lab = document.createElement('span');
+      lab.className = 'fg-score-line__label';
+      lab.textContent = row.label;
+      line.appendChild(lab);
+      var box = document.createElement('div');
+      box.className = 'fg-tags';
+      var chip = function (key, min, text) {
+        var on = String(state.score) === key && String(state.min) === String(min);
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'fg-tag fg-tag--score' + (on ? ' is-on' : '');
+        if (key) b.setAttribute('data-score-key', key);
+        b.textContent = text;
+        b.addEventListener('click', function () {
+          if (String(state.score) === key && String(state.min) === String(min)) {
+            /* 再点一下就是取消这一档 */
+            state.score = '';
+            state.min = 0;
+          } else {
+            state.score = key;
+            state.min = Number(min) || 0;
+          }
+          state.keyword = '';
+          queryEl.value = '';
+          loadBrowse(1);
+        });
+        box.appendChild(b);
+      };
+      chip('', 0, '不限');
+      row.opts.forEach(function (o) { chip(row.key, o[0], o[1]); });
+      line.appendChild(box);
+      scoreFiltersEl.appendChild(line);
+    });
+    if (scoreWrap) scoreWrap.hidden = false;
+  }
+
+  function scoreLabel() {
+    if (!state.score) return '';
+    var row = SCORE_ROWS.filter(function (r) { return r.key === state.score; })[0];
+    var name = row ? row.label : state.score;
+    return name + ' ' + fmtScore(state.min) + ' 以上';
+  }
+
   /* ---------------- 列表与翻页 ---------------- */
   function renderList() {
     var rows = state.results || [];
@@ -274,24 +339,27 @@
   function renderCrumb() {
     if (!crumbEl) return;
     crumbEl.innerHTML = '';
-    var text = '';
+    var parts = [];
     if (state.mode === 'search') {
-      text = '搜「' + state.keyword + '」找到 ' + (state.total || 0) + ' 部';
-    } else if (state.tag) {
-      text = '标签「' + (tagName(state.tag) || state.tag) + '」· 共 ' + (state.total || 0) + ' 部';
+      parts.push('搜「' + state.keyword + '」找到 ' + (state.total || 0) + ' 部');
     } else {
-      text = '全部番剧 · 按追番人数排 · 共 ' + (state.total || 0) + ' 部';
+      if (state.tag) parts.push('标签「' + (tagName(state.tag) || state.tag) + '」');
+      if (state.score) parts.push(scoreLabel());
+      if (!parts.length) parts.push('全部番剧 · 按追番人数排');
+      parts.push('共 ' + (state.total || 0) + ' 部');
     }
     var span = document.createElement('span');
-    span.textContent = text;
+    span.textContent = parts.join(' · ');
     crumbEl.appendChild(span);
-    if (state.mode === 'search' || state.tag) {
+    if (state.mode === 'search' || state.tag || state.score) {
       var back = document.createElement('button');
       back.type = 'button';
       back.className = 'fg-crumb__back';
-      back.textContent = state.mode === 'search' ? '回到全部番剧' : '取消标签';
+      back.textContent = state.mode === 'search' ? '回到全部番剧' : '取消筛选';
       back.addEventListener('click', function () {
         state.tag = '';
+        state.score = '';
+        state.min = 0;
         state.keyword = '';
         queryEl.value = '';
         loadBrowse(1);
@@ -312,12 +380,12 @@
     } catch (e) { /* 老浏览器不支持平滑滚动就算了 */ }
   }
 
-  /* 翻着看：一页 20 部，带标签筛选 */
+  /* 翻着看：一页 20 部，带标签 / 评分筛选 */
   function loadBrowse(page) {
     if (state.busy) return;
     state.busy = true;
     msg('正在翻…');
-    window.JHJX_API.fanguBrowse(page || 1, state.tag).then(function (res) {
+    window.JHJX_API.fanguBrowse(page || 1, state.tag, state.score, state.min).then(function (res) {
       state.busy = false;
       if (res.status !== 200) {
         msg((res.data && res.data.error) || '列表没取回来，过一会儿再试', true);
@@ -330,15 +398,33 @@
       state.total = Number(d.total) || 0;
       state.results = d.list || [];
       state.tag = String(d.tag || '');
+      state.score = String(d.score || '');
+      state.min = Number(d.min) || 0;
+      state.scope = String(d.scope || 'all');
       if (d.tags && d.tags.length) state.tags = d.tags;
       state.keyword = '';
       queryEl.value = '';
       /* 标签没取到时至少把当前这个显示出来，别让人以为自己点丢了 */
       if (state.tag && !tagName(state.tag)) state.tags = state.tags.concat([{ id: state.tag, name: '已选标签' }]);
       renderTags();
+      renderScoreFilters();
       renderList();
       renderPager();
       renderCrumb();
+      /* 咕咪 / 大众评分只有本站看过的番才有分，这一份是从哪儿来的要说清楚 */
+      if (libHint) {
+        var lib = state.scope === 'lib';
+        libHint.hidden = !lib;
+        libHint.textContent = lib
+          ? '咕咪评分、大众评分只有本站点开过的番才有，所以这一份是从「本站看过的番」里挑的（一共 ' + state.total + ' 部）。'
+          : '';
+      }
+      emptyEl.hidden = state.results.length > 0;
+      if (!state.results.length) {
+        emptyEl.textContent = state.scope === 'lib'
+          ? '本站看过的番里，这一档还挑不出东西来。去「全部番剧」点开几部番，点开过的番就有咕咪评分和大众评分了。'
+          : '这一档没挑出番来，换个分数段试试。';
+      }
       msg('');
     }, function () {
       state.busy = false;

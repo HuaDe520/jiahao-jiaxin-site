@@ -251,6 +251,18 @@
 .fg-page-btn[disabled] { opacity: .45; cursor: not-allowed; }
 .fg-page-gap { color: var(--ink-mute); padding: 0 2px; }
 .fg-page-info { flex-basis: 100%; text-align: center; font-size: 12.5px; color: var(--ink-mute); margin-top: 4px; }
+
+/* ---------------- 按评分找番：一行一档评分 ---------------- */
+.fg-score-filters { display: flex; flex-direction: column; gap: 8px; }
+.fg-score-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fg-score-line__label {
+  flex: none;
+  min-width: 62px;
+  font-size: 12.5px;
+  color: var(--jade-800);
+  font-weight: 700;
+}
+.fg-tag--score { font-size: 12px; padding: 4px 9px; }
 .fg-guest { margin: 20px 0; padding: 18px; border-radius: 16px; background: #fff; border: 1px dashed rgba(18, 101, 90, .3); }
 .fg-guest p { margin: 0 0 12px; color: var(--ink-soft); }
 

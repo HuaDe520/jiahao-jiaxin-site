@@ -373,8 +373,10 @@
     fanguSearch: function (q, page) {
       return call('GET', '/api/fangu/search?q=' + encodeURIComponent(q || '') + '&page=' + encodeURIComponent(page || 1));
     },
-    fanguBrowse: function (page, tag) {
-      return call('GET', '/api/fangu/browse?page=' + encodeURIComponent(page || 1) + '&tag=' + encodeURIComponent(tag || ''));
+    fanguBrowse: function (page, tag, score, min) {
+      var q = '/api/fangu/browse?page=' + encodeURIComponent(page || 1) + '&tag=' + encodeURIComponent(tag || '');
+      if (score) q += '&score=' + encodeURIComponent(score) + '&min=' + encodeURIComponent(min || 0);
+      return call('GET', q);
     },
     fanguHome: function () { return call('GET', '/api/fangu/home'); },
     fanguSubject: function (seasonId, jpTitle) {
