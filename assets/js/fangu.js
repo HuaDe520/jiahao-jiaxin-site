@@ -87,7 +87,10 @@
   }
 
   /* 封面：优先用 B 站图床那张裁好的小图（不经我们的服务器，出来得快），
-     直连被挡（有的网络会被图床拦）再退回后端的转发地址，总之要出图。 */
+     直连被挡（有的网络会被图床拦）再退回后端的转发地址，总之要出图。
+     图床还有一种脾气：不报错、也不给图（同一时间要的图太多就被晾着），
+     所以再挂一个计时器，几秒还没出来就换我们的转发。 */
+  var COVER_WAIT = 5000;
   function setCover(img, item) {
     var direct = String(item.coverSmall || '');
     var fallback = '';
@@ -97,15 +100,29 @@
     img.setAttribute('referrerpolicy', 'no-referrer');
     img.loading = 'lazy';
     img.decoding = 'async';
-    var tried = false;
-    img.addEventListener('error', function () {
-      if (tried || !fallback) return;
-      tried = true;
+    var settled = false;
+    var timer = 0;
+    function clear() { if (timer) { clearTimeout(timer); timer = 0; } }
+    function useFallback() {
+      if (settled || !fallback) return;
+      settled = true;
+      clear();
       img.src = fallback;
+    }
+    img.addEventListener('load', function () {
+      if (img.naturalWidth > 0) { settled = true; clear(); }
     });
-    if (direct) img.src = direct;
-    else if (fallback) img.src = fallback;
-    else img.hidden = true;
+    img.addEventListener('error', useFallback);
+    if (direct) {
+      img.src = direct;
+      timer = setTimeout(function () {
+        if (!(img.complete && img.naturalWidth > 0)) useFallback();
+      }, COVER_WAIT);
+    } else if (fallback) {
+      img.src = fallback;
+    } else {
+      img.hidden = true;
+    }
   }
 
   /* 三档评分徽章：没有的就写「暂无」，别空着让人以为坏了 */
