@@ -340,7 +340,8 @@
           item.scoreFew = !!row.few;
           item.scoreGu = row.gu || 0;
           item.guCount = row.guCount || 0;
-          item.scorePending = false;
+          /* 服务器这次也没个说法（取不到）→ 留着，下次渲染再要一次 */
+          item.scorePending = !!row.pending;
           patchCard(sid, item);
         });
       }, function () { /* 补不上就算了，卡片上先写着「暂无」 */ });
