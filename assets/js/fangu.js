@@ -245,6 +245,7 @@
         queryEl.value = '';
         renderTags();
         msg('正在挑…');
+        loadingForTag(name);
         if (state.src === 'anilist') loadMore(1);
         else loadBrowse(1);
       });
@@ -373,6 +374,7 @@
         state.score = '';
         state.min = 0;
         state.max = 10;
+        renderLoading('正在把全部番剧翻出来…');
         go(0, 10);
       });
       box.appendChild(any);
@@ -389,10 +391,12 @@
             state.score = '';
             state.min = 0;
             state.max = 10;
+            renderLoading('正在把全部番剧翻出来…');
           } else {
             state.score = row.key;
             state.min = b.min;
             state.max = b.max;
+            loadingForScore(row, b.min, b.max);
           }
           go(b.min, b.max);
         });
@@ -414,6 +418,55 @@
   }
 
   /* ---------------- 列表与翻页 ---------------- */
+  /* 换筛选 / 翻页 / 搜名字的时候，下面那一片先摆个「正在弄」的样子：
+     转圈 + 一句说明 + 几张占位卡，别让人对着一屏旧内容发愣 */
+  function renderLoading(text, sub) {
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    var box = document.createElement('div');
+    box.className = 'fg-loading';
+    box.id = 'fgLoading';
+    box.setAttribute('role', 'status');
+    box.setAttribute('aria-live', 'polite');
+    var spin = document.createElement('span');
+    spin.className = 'fg-loading__spin';
+    spin.setAttribute('aria-hidden', 'true');
+    box.appendChild(spin);
+    var t = document.createElement('p');
+    t.className = 'fg-loading__text';
+    t.textContent = text || '正在找这一档的番…';
+    box.appendChild(t);
+    if (sub) {
+      var s = document.createElement('p');
+      s.className = 'fg-loading__sub';
+      s.textContent = sub;
+      box.appendChild(s);
+    }
+    listEl.appendChild(box);
+    var sk = document.createElement('div');
+    sk.className = 'fg-loading__skel';
+    sk.setAttribute('aria-hidden', 'true');
+    for (var i = 0; i < 6; i++) {
+      var c = document.createElement('span');
+      c.className = 'fg-loading__card';
+      sk.appendChild(c);
+    }
+    listEl.appendChild(sk);
+    emptyEl.hidden = true;
+  }
+  /* 挑分的时候顺便说清楚在挑什么（大众评分还要一部一部核，先出来的先摆） */
+  function loadingForScore(row, min, max) {
+    var name = row ? row.label : '';
+    var band = Number(max) >= 10 ? (fmtScore(min) + ' 以上') : (fmtScore(min) + '–' + fmtScore(max));
+    if (row && row.key === 'global') {
+      renderLoading('正在按「' + name + ' ' + band + '」挑番…', '大众评分要一部一部去几个平台核对，先核好的先摆出来，剩下的自己会接着补。');
+    } else {
+      renderLoading('正在按「' + name + ' ' + band + '」挑番…');
+    }
+  }
+  function loadingForTag(name) {
+    renderLoading(name && name !== '全部' ? ('正在按「' + name + '」挑番…') : '正在把全部番剧翻出来…');
+  }
   /* 卡片上的「大众」本来是空的：服务器把这一页算好后补上来。
      一页 20 部，服务器边算边记，翻过一次的番下次就现成了。
      同一部番别重复问（页面上换筛选、自动核对都会再渲染几遍），
@@ -605,6 +658,8 @@
         state.max = 10;
         state.keyword = '';
         queryEl.value = '';
+        state.page = 1;
+        renderLoading('正在把全部番剧翻出来…');
         if (state.src === 'anilist') loadMore(1);
         else loadBrowse(1);
       });
@@ -616,9 +671,9 @@
   function goPage(p) {
     var pages = Number(state.pages) || 1;
     if (p < 1 || p > pages || p === state.page) return;
-    if (state.mode === 'search') doSearch(state.keyword, p);
-    else if (state.src === 'anilist') loadMore(p);
-    else loadBrowse(p);
+    if (state.mode === 'search') { renderLoading('正在找第 ' + p + ' 页…'); doSearch(state.keyword, p); }
+    else if (state.src === 'anilist') { renderLoading('正在翻到第 ' + p + ' 页…'); loadMore(p); }
+    else { renderLoading(state.score ? '正在挑这一档的第 ' + p + ' 页…' : '正在翻到第 ' + p + ' 页…'); loadBrowse(p); }
     try {
       var top = listEl.getBoundingClientRect().top + window.pageYOffset - 130;
       window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
@@ -646,6 +701,7 @@
     }
     /* 按评分找番那几行是给 B 站片库用的（评分是服务器按 B 站索引扫出来的） */
     if (scoreWrap) scoreWrap.hidden = more;
+    renderLoading(more ? '正在翻「更多番剧」（AniList 的片库）…' : '正在把全部番剧翻出来…');
     if (more) loadMore(1);
     else loadBrowse(1);
   }
@@ -661,6 +717,12 @@
   var verifySig = '';
   var verifyRounds = 0;
   var VERIFY_ROUNDS = 3;
+  /* 接着核的那几轮：列表留着不动，只在提示那一行说一声「正在核对」 */
+  function markVerifyBusy() {
+    if (!libHint) return;
+    libHint.hidden = false;
+    libHint.textContent = '正在继续核对下一批…（这一档还剩 ' + (state.pending || 0) + ' 部没核完）';
+  }
   function keepVerifying() {
     if (String(state.score) !== 'global' || !(state.pending > 0)) return;
     var sig = [state.page, state.tag, state.min, state.max, state.score, state.mode].join('|');
@@ -671,6 +733,7 @@
       /* 这中间要是有人点了别的、或者翻页了，就别接着核了 */
       if (String(state.score) !== 'global' || state.mode !== 'browse') return;
       if ([state.page, state.tag, state.min, state.max, state.score, state.mode].join('|') !== sig) return;
+      markVerifyBusy();
       loadBrowse(state.page);
     }, 500);
   }
@@ -735,6 +798,7 @@
       settleList();
     }, function () {
       settleList();
+      renderList();      /* 取不到就把原来的那一屏放回来，别一直转圈 */
       msg('网络不太好，列表没取回来', true);
     });
     return pending;
@@ -753,6 +817,7 @@
       if (mySeq !== listSeq) { settleList(); return; }
       if (res.status !== 200) {
         settleList();
+        renderList();    /* 出错时把「正在弄」那块换成原来那一屏 */
         msg((res.data && res.data.error) || '列表没取回来，过一会儿再试', true);
         return;
       }
@@ -815,6 +880,7 @@
       keepVerifying();
     }, function () {
       settleList();
+      renderList();    /* 出错时把「正在弄」那块换成原来那一屏 */
       msg('网络不太好，列表没取回来', true);
     });
     return pending;
@@ -827,6 +893,7 @@
     state.keyword = kw;
     goBtn.disabled = true;
     msg('正在找…');
+    renderLoading('正在找「' + kw + '」…', 'B 站那边没有的，会顺手去 AniList 片库再找一遍。');
     window.JHJX_API.fanguSearch(kw, p).then(function (res) {
       goBtn.disabled = false;
       if (res.status !== 200) {
@@ -881,6 +948,7 @@
       return null;
     }
     state.mode = state.keyword ? 'search' : 'browse';
+    renderLoading('正在把全部番剧翻出来…');
     return loadBrowse(state.page || 1);
   }
 
