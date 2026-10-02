@@ -292,7 +292,8 @@
   color: var(--jade-800);
   font-weight: 700;
 }
-/* 分数段是横向排的：一屏摆不下就往右划，别把页面堆得老长 */
+/* 分数段是横向排的：一屏摆不下就往右划（手机滑、电脑拖 / 滚轮），
+   滚动条留着当提示，别藏起来——不然电脑上不知道右边还有 */
 .fg-score-scroll {
   flex: 1 1 auto;
   min-width: 0;
@@ -301,13 +302,20 @@
   gap: 6px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 2px 2px 6px;
+  padding: 2px 2px 8px;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(18, 101, 90, .35) transparent;
   scroll-snap-type: x proximity;
+  cursor: grab;
 }
-.fg-score-scroll::-webkit-scrollbar { display: none; }
+.fg-score-scroll.is-dragging { cursor: grabbing; scroll-snap-type: none; }
+.fg-score-scroll::-webkit-scrollbar { height: 6px; }
+.fg-score-scroll::-webkit-scrollbar-track { background: rgba(18, 101, 90, .06); border-radius: 3px; }
+.fg-score-scroll::-webkit-scrollbar-thumb { background: rgba(18, 101, 90, .32); border-radius: 3px; }
+.fg-score-scroll::-webkit-scrollbar-thumb:hover { background: rgba(18, 101, 90, .5); }
 .fg-tag--score { flex: none; font-size: 12px; padding: 4px 9px; scroll-snap-align: start; }
+.fg-tag--score:active { transform: scale(.97); }
 .fg-guest { margin: 20px 0; padding: 18px; border-radius: 16px; background: #fff; border: 1px dashed rgba(18, 101, 90, .3); }
 .fg-guest p { margin: 0 0 12px; color: var(--ink-soft); }
 

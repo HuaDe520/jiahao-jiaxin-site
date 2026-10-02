@@ -259,6 +259,54 @@
     return out;
   }
 
+  /* 分数段那一行是横着排的：手机上直接滑，电脑上得能拖、能滚滚轮，
+     滚动条也别藏起来 —— 不然右边那些段根本够不着 */
+  function makeScrollable(box) {
+    var down = false;
+    var startX = 0;
+    var startLeft = 0;
+    var dragged = false;
+    box.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'touch') return;      /* 触摸本来就能滑，不用自己管 */
+      down = true;
+      dragged = false;
+      startX = e.clientX;
+      startLeft = box.scrollLeft;
+      box.classList.add('is-dragging');
+      try { box.setPointerCapture(e.pointerId); } catch (err) { /* 老浏览器没有也能用滚轮 */ }
+    });
+    box.addEventListener('pointermove', function (e) {
+      if (!down) return;
+      var dx = e.clientX - startX;
+      if (Math.abs(dx) > 4) dragged = true;
+      box.scrollLeft = startLeft - dx;
+    });
+    function release(e) {
+      if (!down) return;
+      down = false;
+      box.classList.remove('is-dragging');
+      try { box.releasePointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+    }
+    box.addEventListener('pointerup', release);
+    box.addEventListener('pointercancel', release);
+    box.addEventListener('pointerleave', release);
+    /* 鼠标滚轮在这一行上就横着滚 */
+    box.addEventListener('wheel', function (e) {
+      if (box.scrollWidth <= box.clientWidth) return;
+      var d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (!d) return;
+      e.preventDefault();
+      box.scrollLeft += d;
+    }, { passive: false });
+    /* 拖过一下就别当成「点了这个分数段」 */
+    box.addEventListener('click', function (e) {
+      if (!dragged) return;
+      dragged = false;
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+  }
+
   function renderScoreFilters() {
     if (!scoreFiltersEl) return;
     scoreFiltersEl.innerHTML = '';
@@ -299,6 +347,7 @@
         });
         box.appendChild(el);
       });
+      makeScrollable(box);
       line.appendChild(box);
       scoreFiltersEl.appendChild(line);
     });
