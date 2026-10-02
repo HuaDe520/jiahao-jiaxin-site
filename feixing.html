@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=6f4eea6e">
-<link rel="stylesheet" href="assets/css/feixing.css?v=dcb29cbb">
+<link rel="stylesheet" href="assets/css/feixing.css?v=dada40e4">
 </head>
 <body class="fx-page">
 
@@ -65,7 +65,7 @@
         <!-- 一、大厅 -->
         <section class="fx-panel" id="fxLobby" hidden>
           <h3 class="fx-h">建一桌</h3>
-          <p class="fx-hint">自己开一桌，把房间号发给同学，人齐了就能开局。两个人玩是<b>对角同盟</b>：红 + 蓝 一边，黄 + 绿 一边，谁的两色先全部到家谁赢。</p>
+          <p class="fx-hint">自己开一桌，把房间号发给同学，人齐了就能开局。<b>一个人一种颜色</b>：两个人是红、蓝两边（各 4 架，一共 8 架），三个人红黄蓝各一边（12 架）。要一直打到<b>所有人都到家</b>才算完，最后按到家的先后来排名次；中途退出的话，用房间号还能坐回来接着打。</p>
           <div class="fx-sizes" id="fxSizes">
             <button class="btn btn--primary fx-size" type="button" data-max="2">2 人</button>
             <button class="btn btn--primary fx-size" type="button" data-max="3">3 人</button>
@@ -129,9 +129,13 @@
 
           <p class="fx-note" id="fxNote"></p>
 
+          <!-- 打完之后：谁先到家的顺序 -->
+          <div class="fx-rank" id="fxRank" hidden></div>
+
           <div class="fx-acts">
+            <button class="btn btn--primary" id="fxRejoin" type="button" hidden>坐回这一家</button>
             <button class="btn btn--primary" id="fxAgain" type="button" hidden>再来一局</button>
-            <button class="btn btn--ghost" id="fxLeavePlay" type="button">离开房间</button>
+            <button class="btn btn--ghost" id="fxLeavePlay" type="button">退出这一轮</button>
           </div>
 
           <h3 class="fx-h">这一桌</h3>
@@ -179,8 +183,8 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/api.js?v=d7d68ddb"></script>
-<script src="assets/js/feixing.js?v=164c94f8"></script>
+<script src="assets/js/api.js?v=486afa1b"></script>
+<script src="assets/js/feixing.js?v=1813c33d"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }

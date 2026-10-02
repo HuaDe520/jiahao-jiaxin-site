@@ -357,6 +357,38 @@
 .fx-strip__who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fx-strip__colors { margin-left: auto; display: flex; gap: 5px; }
 
+/* 没在用的那几家（两个人玩时另外两家）：压暗，别抢戏 */
+.fx-cell.is-off, .fx-hangar-bg.is-off { opacity: .18; }
+.fx-plane[hidden] { display: none; }
+
+/* 打完之后的到达顺序 */
+.fx-rank {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fffdf7, #f7f4ea);
+  border: 1px solid rgba(201, 162, 75, .35);
+}
+.fx-rank__head { font-size: 13px; font-weight: 700; color: var(--jade-900); margin-bottom: 8px; }
+.fx-rank__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.fx-rank__row.is-first { color: #7a5c12; font-weight: 700; }
+.fx-rank__row.is-left { color: var(--ink-mute); font-size: 13px; }
+.fx-rank__no { flex: none; min-width: 52px; font-weight: 700; }
+.fx-rank__who { flex: 1 1 auto; min-width: 0; }
+
+/* 退出了这一轮 / 已经到家的座位 */
+.fx-strip__seat.is-left { opacity: .55; }
+.fx-strip__seat.is-left .fx-strip__who { text-decoration: line-through; }
+.fx-strip__seat.is-done { background: rgba(201, 162, 75, .12); }
+.fx-seat.is-left { opacity: .6; }
+
 @media (max-width: 420px) {
   .fx-code { font-size: 34px; }
   .fx-dice { width: 56px; height: 56px; font-size: 26px; }

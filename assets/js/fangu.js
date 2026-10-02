@@ -45,7 +45,8 @@
     score: '',         /* 评分区间用哪一档：bili / gu / global（空 = 不限） */
     min: 0,            /* 区间下限（含） */
     max: 10,           /* 区间上限（不含；到 10 就是「X 分以上」） */
-    scope: 'all',      /* all = 全站番剧；lib = 本站看过的番（咕咪 / 大众评分只有这些才有） */
+    scope: 'all',      /* all = 全站番剧；lib = 本站看过的番（咕咪评分只有这些才有） */
+    pending: 0,        /* 大众评分还差几部没核对完（服务器说的） */
     keyword: '',
     results: [],
     span: 2,           /* 页码中间那一坨先显示多少页（点省略号会变多） */
@@ -130,14 +131,15 @@
     }
   }
 
-  /* 三档评分徽章：没有的就写「暂无」，别空着让人以为坏了 */
+  /* 三档评分徽章：没有的就写「暂无」，别空着让人以为坏了。
+     大众评分只找得到 B 站一家时，按规矩写「来源太少」 */
   function scoresRow(s) {
     var wrap = document.createElement('div');
     wrap.className = 'fg-scores';
     var rows = [
-      ['gu', '咕咪', s.scoreGu],
-      ['global', '大众', s.scoreGlobal],
-      ['bili', 'B站', s.scoreBili],
+      ['gu', '咕咪', s.scoreGu, ''],
+      ['global', '大众', s.scoreGlobal, s.scoreFew ? '来源太少' : ''],
+      ['bili', 'B站', s.scoreBili, ''],
     ];
     rows.forEach(function (r) {
       var span = document.createElement('span');
@@ -150,7 +152,7 @@
         b.textContent = v;
         span.appendChild(b);
       } else {
-        span.textContent = r[1] + ' 暂无';
+        span.textContent = r[1] + ' ' + (r[3] || '暂无');
       }
       wrap.appendChild(span);
     });
@@ -244,8 +246,8 @@
      B 站评分最低也就 2 分出头，所以那几段不摆出来占地方。 */
   var SCORE_ROWS = [
     { key: 'bili', label: 'B 站评分', floor: 2 },
+    { key: 'global', label: '大众评分', floor: 2 },
     { key: 'gu', label: '咕咪评分', floor: 1 },
-    { key: 'global', label: '大众评分', floor: 1 },
   ];
 
   function scoreBands(floor) {
@@ -312,6 +314,53 @@
   }
 
   /* ---------------- 列表与翻页 ---------------- */
+  /* 卡片上的「大众」本来是空的：服务器把这一页算好后补上来。
+     一页 20 部，服务器边算边记，翻过一次的番下次就现成了 */
+  function fillScores() {
+    var need = [];
+    var byId = {};
+    (state.results || []).forEach(function (r) {
+      if (!r || !r.seasonId) return;
+      byId[String(r.seasonId)] = r;
+      if (r.scorePending) need.push(r);
+    });
+    if (!need.length) return;
+    var groups = [];
+    for (var i = 0; i < need.length; i += 20) groups.push(need.slice(i, i + 20));
+    groups.forEach(function (g) {
+      window.JHJX_API.fanguScores(g).then(function (res) {
+        if (res.status !== 200 || !res.data || !res.data.scores) return;
+        var got = res.data.scores;
+        Object.keys(got).forEach(function (sid) {
+          var row = got[sid];
+          var item = byId[sid];
+          if (!item || !row) return;
+          item.scoreGlobal = row.global == null ? null : row.global;
+          item.globalSources = row.sources || [];
+          item.scoreFew = !!row.few;
+          item.scoreGu = row.gu || 0;
+          item.guCount = row.guCount || 0;
+          item.scorePending = false;
+          patchCard(sid, item);
+        });
+      }, function () { /* 补不上就算了，卡片上先写着「暂无」 */ });
+    });
+  }
+
+  /* 只把这张卡片上的分数换掉，不重画整个列表（重画会把滚动位置也弄丢） */
+  function patchCard(seasonId, item) {
+    if (!listEl) return;
+    var cards = listEl.querySelectorAll('.fg-card');
+    for (var i = 0; i < cards.length; i++) {
+      if (cards[i].getAttribute('data-id') !== String(seasonId)) continue;
+      try {
+        var old = cards[i].querySelector('.fg-scores');
+        if (old && old.parentNode === cards[i]) cards[i].replaceChild(scoresRow(item), old);
+      } catch (e) { /* 列表刚好重画了就跳过：下次渲染自然会带上分数 */ }
+      return;
+    }
+  }
+
   function renderList() {
     var rows = state.results || [];
     renderGrid(listEl, rows);
@@ -321,6 +370,7 @@
         ? '没搜到。换个写法试试，日文原名也行。'
         : '这一页没取到番，翻回去看看别页。';
     }
+    fillScores();
   }
 
   /* 页码：两头固定，中间跟着当前页走；中间断档给个省略号，
@@ -495,6 +545,7 @@
       state.min = Number(d.min) || 0;
       state.max = d.max == null ? 10 : Number(d.max);
       state.scope = String(d.scope || 'all');
+      state.pending = Number(d.pending) || 0;
       state.span = 2;      /* 换了一批番，页码重新收拢 */
       if (d.tags && d.tags.length) state.tags = d.tags;
       state.keyword = '';
@@ -506,18 +557,20 @@
       renderList();
       renderPager();
       renderCrumb();
-      /* 咕咪 / 大众评分只有本站看过的番才有分，这一份是从哪儿来的要说清楚 */
+      /* 咕咪评分只有咱们自己打过分（点开过）的番才有：这一份是从哪儿来的要说清楚。
+         大众评分每部番都有，服务器边挑边算，没算完的会告诉我们还差几部 */
       if (libHint) {
-        var lib = state.scope === 'lib';
-        libHint.hidden = !lib;
-        libHint.textContent = lib
-          ? '咕咪评分、大众评分只有本站点开过的番才有，所以这一份是从「本站看过的番」里挑的（一共 ' + state.total + ' 部）。'
-          : '';
+        var lib = state.score === 'gu';
+        var parts = [];
+        if (lib) parts.push('咕咪评分只有本站点开过的番才有，所以这一份是从「本站看过的番」里挑的（一共 ' + state.total + ' 部）。');
+        if (state.pending > 0) parts.push('这一档还有 ' + state.pending + ' 部的大众评分正在核对，翻下一页或者过会儿再看就会补齐。');
+        libHint.hidden = !parts.length;
+        libHint.textContent = parts.join(' ');
       }
       emptyEl.hidden = state.results.length > 0;
       if (!state.results.length) {
-        emptyEl.textContent = state.scope === 'lib'
-          ? '本站看过的番里，这一档还挑不出东西来。去「全部番剧」点开几部番，点开过的番就有咕咪评分和大众评分了。'
+        emptyEl.textContent = lib
+          ? '本站看过的番里，这一档还挑不出东西来。去「全部番剧」点开几部番，点开过的番就有咕咪评分了。'
           : '这一档没挑出番来，换个分数段试试。';
       }
       msg('');
@@ -679,8 +732,9 @@
   /* 「大众评分是哪几个平台平均出来的」写清楚，别让人以为是瞎编的 */
   function globalNote(sub) {
     var src = Array.isArray(sub.globalSources) ? sub.globalSources : [];
+    if (sub.scoreFew) return '评分来源太少，暂无';
     if (src.length) return src.map(function (s) { return s.name + ' ' + fmtScore(s.score); }).join(' · ');
-    return '几个平台的平均分';
+    return '几个平台加 B 站的平均分';
   }
 
   function renderDetail(sub, reviews) {
@@ -736,14 +790,14 @@
     var big = document.createElement('div');
     big.className = 'fg-score-big';
     [
-      ['咕咪评分', sub.scoreGu, (sub.guCount || 0) + ' 人打过', 'gu'],
-      ['大众评分', sub.scoreGlobal, globalNote(sub), 'global'],
-      ['B 站评分', sub.scoreBili, sub.scoreBiliCount ? sub.scoreBiliCount + ' 人打过' : 'B 站评分', 'bili'],
+      ['咕咪评分', sub.scoreGu, (sub.guCount || 0) + ' 人打过', 'gu', '暂无'],
+      ['大众评分', sub.scoreGlobal, globalNote(sub), 'global', sub.scoreFew ? '来源太少' : '暂无'],
+      ['B 站评分', sub.scoreBili, sub.scoreBiliCount ? sub.scoreBiliCount + ' 人打过' : 'B 站评分', 'bili', '暂无'],
     ].forEach(function (r) {
       var d = document.createElement('div');
       d.setAttribute('data-big', r[3]);
       var b = document.createElement('b');
-      b.textContent = fmtScore(r[1]) || '暂无';
+      b.textContent = fmtScore(r[1]) || r[4] || '暂无';
       d.appendChild(b);
       var s = document.createElement('span');
       s.textContent = r[0] + ' · ' + r[2];

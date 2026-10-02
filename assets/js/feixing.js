@@ -40,6 +40,7 @@
     queued: null,      /* 动画期间收到的新局面，动画完再画 */
     busy: false,
     inviteLoaded: false,
+    activeColors: [],  /* 这一局在用的颜色（两个人就是两家，只画 8 架飞机） */
   };
   var msgTimer = 0;
 
@@ -194,6 +195,7 @@
     }
     board.appendChild(layer);
     S.boardReady = true;
+    applyActiveColors(S.activeColors);
 
     /* 老一点的 WebView 不认 aspect-ratio，棋盘会塌成 0 高。
        量一个正方形高度兜着，窗口变了再量一次 */
@@ -397,11 +399,11 @@
 
   /* ---------------- 等待室 ----------------
      开局前服务器还不发颜色（颜色是点「开始」那一刻才分的），等待室里
-     先按人数把「这个座位将来坐哪几家」写出来：两个人是对角同盟，
-     三个人红黄蓝各一边，四个人一人一色。开局之后一律以服务器给的
-     colors 为准。 */
+     先按人数把「这个座位将来坐哪一家」写出来：**一个人一种颜色**，
+     两个人是红 / 蓝两边，三个人红黄蓝，四个人一人一色。
+     开局之后一律以服务器给的 colors 为准。 */
   function planColors(n) {
-    if (n <= 2) return [[0, 2], [1, 3]];
+    if (n <= 2) return [[0], [2]];
     if (n === 3) return [[0], [1], [2]];
     return [[0], [1], [2], [3]];
   }
@@ -419,7 +421,7 @@
     var seats = room.seats || [];
     var max = Number(room.maxPlayers) || seats.length || 2;
     $('fxCodeBig').textContent = room.code || '······';
-    $('fxCodeTip').textContent = (max === 2 ? '两人一桌 · 对角同盟' : max + ' 人一桌');
+    $('fxCodeTip').textContent = (max === 2 ? '两人一桌 · 红一边蓝一边，各 4 架' : max + ' 人一桌 · 一人一色');
 
     for (var i = 0; i < max; i++) {
       var s = seats[i];
@@ -438,7 +440,7 @@
         continue;
       }
       var mine = !!(room.me && room.me.seat === s.seat);
-      row.className = 'fx-seat' + (mine ? ' is-me' : '');
+      row.className = 'fx-seat' + (mine ? ' is-me' : '') + (s.left ? ' is-left' : '');
       var no = document.createElement('span');
       no.className = 'fx-seat__no';
       no.textContent = String(s.seat + 1);
@@ -555,6 +557,82 @@
     });
   }
 
+  /* 只画「这一局真在用」的颜色：两个人就是两方 8 架，三个人 12 架。
+     没在用的那几家，飞机收起来、格子也压暗，别让人以为漏了什么 */
+  function applyActiveColors(colors) {
+    var active = (colors && colors.length) ? colors : [0, 1, 2, 3];
+    S.activeColors = active;
+    if (!S.boardReady) return;
+    Object.keys(S.pieces || {}).forEach(function (k) {
+      var el = S.pieces[k];
+      var on = active.indexOf(colorOf(k)) >= 0;
+      el.hidden = !on;
+      if (!on) el.classList.remove('is-legal', 'is-moving', 'is-hit');
+    });
+    var board = $('fxBoard');
+    if (!board) return;
+    var cells = board.querySelectorAll('[data-c]');
+    for (var i = 0; i < cells.length; i++) {
+      var c = Number(cells[i].getAttribute('data-c'));
+      if (cells[i].classList.contains('fx-plane')) continue;   /* 飞机单独在上面处理过了 */
+      if (active.indexOf(c) >= 0) cells[i].classList.remove('is-off');
+      else cells[i].classList.add('is-off');
+    }
+  }
+
+  /* 跑到最后的排名：先到家的在前，退出的排最后 */
+  function renderRanking(room) {
+    var box = $('fxRank');
+    if (!box) return;
+    var list = (room.ranking || []).slice();
+    var st = room.state || {};
+    if (room.status !== 'over') { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML = '';
+    var head = document.createElement('div');
+    head.className = 'fx-rank__head';
+    head.textContent = '这一局的到达顺序';
+    box.appendChild(head);
+    var arrived = list.filter(function (r) { return r.rank > 0; });
+    var left = list.filter(function (r) { return !(r.rank > 0); });
+    arrived.sort(function (a, b) { return a.rank - b.rank; });
+    arrived.forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'fx-rank__row' + (r.rank === 1 ? ' is-first' : '');
+      row.setAttribute('data-seat', String(r.seat));
+      var n = document.createElement('span');
+      n.className = 'fx-rank__no';
+      n.textContent = '第 ' + r.rank + ' 名';
+      row.appendChild(n);
+      var w = document.createElement('span');
+      w.className = 'fx-rank__who';
+      w.textContent = r.name || '（没有名字）';
+      row.appendChild(w);
+      row.appendChild(colorsOf((room.seats[r.seat] || {}).colors));
+      box.appendChild(row);
+    });
+    left.forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'fx-rank__row is-left';
+      var n = document.createElement('span');
+      n.className = 'fx-rank__no';
+      n.textContent = '没到';
+      row.appendChild(n);
+      var w = document.createElement('span');
+      w.className = 'fx-rank__who';
+      w.textContent = (r.name || '（没有名字）') + '（退出了这一轮）';
+      row.appendChild(w);
+      box.appendChild(row);
+    });
+    if (!arrived.length) {
+      var none = document.createElement('div');
+      none.className = 'fx-rank__row is-left';
+      none.textContent = '这一局没人跑完，就到这儿了。';
+      box.appendChild(none);
+    }
+    void st;
+  }
+
   /* ---------------- 对局 ---------------- */
   function renderPlay(room) {
     var st = room.state || {};
@@ -562,12 +640,13 @@
     var me = room.me;
 
     $('fxRoomChip').textContent = '房间 ' + room.code;
+    applyActiveColors(room.activeColors);
 
     var you = $('fxYou');
     you.innerHTML = '';
     if (me) {
       var label = document.createElement('span');
-      label.textContent = '你是';
+      label.textContent = me.left ? '你已经退出这一轮（用房间号还能回来），你本来是' : '你是';
       you.appendChild(label);
       (me.colors || []).forEach(function (c) { you.appendChild(dot(c)); });
       if (me.isHost) {
@@ -577,22 +656,24 @@
         you.appendChild(tag);
       }
     } else {
-      you.textContent = '你在旁边看这一桌';
+      you.textContent = room.canRejoin ? '你退出过这一轮，点「坐回这一家」还能接着打' : '你在旁边看这一桌';
     }
 
-    /* 轮到谁了 */
+    /* 轮到谁了 / 这一局结束了 */
     var turnEl = $('fxTurn');
     if (room.status === 'over') {
-      var winner = st.winner;
-      var name = (winner != null && seats[winner]) ? seats[winner].name : '';
-      turnEl.textContent = name ? name + ' 赢了' : '这一局散了';
+      var first = (room.ranking || []).filter(function (r) { return r.rank === 1; })[0];
+      turnEl.textContent = first ? ('这一局结束：' + first.name + ' 第一个到家') : '这一局结束了';
+      turnEl.className = 'fx-turn';
+    } else if (me && me.left) {
+      turnEl.textContent = '你退出了这一轮';
       turnEl.className = 'fx-turn';
     } else if (me && me.isTurn) {
       turnEl.textContent = '轮到你了';
       turnEl.className = 'fx-turn is-mine';
     } else {
       var cur = seats[st.turn];
-      turnEl.textContent = cur ? '轮到 ' + cur.name + ' 了，先等他掷' : '等着开局';
+      turnEl.textContent = cur ? ('轮到 ' + cur.name + ' 了，先等他掷' + (cur.left ? '（他退出了）' : '')) : '等着开局';
       turnEl.className = 'fx-turn';
     }
 
@@ -613,21 +694,27 @@
     $('fxNote').textContent = st.note || '';
 
     /* 散了、人不够的时候别递「再来一局」，那一下服务器也会拦回来 */
-    $('fxAgain').hidden = !(room.status === 'over' && me && me.isHost && seats.length >= 2);
+    $('fxAgain').hidden = !(room.status === 'over' && me && me.isHost && (room.seats || []).filter(function (s) { return !s.left; }).length >= 2);
+    /* 退出了这一轮的人，可以就地坐回来（也还能用房间号搜回来） */
+    var rejoin = $('fxRejoin');
+    if (rejoin) rejoin.hidden = !(me && me.left && room.status === 'playing');
 
-    /* 这一桌的轮次条 */
+    /* 这一桌的轮次条：谁到齐了、谁退出了，一眼看得出来 */
     var strip = $('fxStrip');
     strip.innerHTML = '';
     seats.forEach(function (s) {
       var row = document.createElement('div');
-      row.className = 'fx-strip__seat' + (room.status === 'playing' && st.turn === s.seat ? ' is-turn' : '');
+      row.className = 'fx-strip__seat'
+        + (room.status === 'playing' && st.turn === s.seat && !s.left ? ' is-turn' : '')
+        + (s.left ? ' is-left' : '')
+        + (s.done ? ' is-done' : '');
       var no = document.createElement('span');
       no.className = 'fx-seat__no';
-      no.textContent = String(s.seat + 1);
+      no.textContent = s.done && s.rank ? ('第' + s.rank) : String(s.seat + 1);
       row.appendChild(no);
       var who = document.createElement('span');
       who.className = 'fx-strip__who';
-      who.textContent = (s.name || '（没有名字）') + (me && me.seat === s.seat ? '（我）' : '');
+      who.textContent = (s.name || '（没有名字）') + (me && me.seat === s.seat ? '（我）' : '') + (s.left ? '（退出）' : (s.done ? '（到家）' : ''));
       row.appendChild(who);
       if (s.isHost) {
         var tag = document.createElement('span');
@@ -639,6 +726,7 @@
       strip.appendChild(row);
     });
 
+    renderRanking(room);
     refreshRoll();
   }
 
@@ -753,13 +841,29 @@
 
   function leaveRoom() {
     var code = S.code;
-    stopPoll();
     if (!code) { lobby(''); return; }
+    /* 打了一半退出，退的是「这一轮」：牌桌还在，记住房间号随时能坐回来 */
+    var playing = !!(S.room && S.room.status === 'playing');
+    stopPoll();
     API.flightLeave(code).then(function () {
-      lobby('已经离开这一桌了');
+      lobby(playing
+        ? '你退出了这一轮。想接着打，还用房间号 ' + code + ' 就能坐回来'
+        : '已经离开这一桌了');
     }, function () {
       lobby('已经离开这一桌了');
     });
+  }
+
+  /* 退出了这一轮的人，就地坐回自己那一家（飞机重新摆回机场） */
+  function rejoin() {
+    if (!S.code) return;
+    msg('正在坐回这一家…');
+    API.flightJoin(S.code).then(function (res) {
+      if (res.status !== 200) { msg(realError(res, '没坐回来，用房间号再试一次'), true); return; }
+      msg('回来了，飞机重新摆好，接着打');
+      applyRoom(res.data.room, { force: true });
+      startPoll();
+    }, function () { msg('网络不太好，没坐回来', true); });
   }
 
   function again() {
@@ -880,6 +984,7 @@
   $('fxStart').addEventListener('click', startGame);
   $('fxLeaveWait').addEventListener('click', leaveRoom);
   $('fxLeavePlay').addEventListener('click', leaveRoom);
+  if ($('fxRejoin')) $('fxRejoin').addEventListener('click', rejoin);
   $('fxAgain').addEventListener('click', again);
   $('fxRoll').addEventListener('click', rollDice);
 

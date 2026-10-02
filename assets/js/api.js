@@ -379,6 +379,19 @@
       return call('GET', q);
     },
     fanguHome: function () { return call('GET', '/api/fangu/home'); },
+    /* 一页番的大众评分（列表翻完顺手要一次，服务器会边算边记）。
+       把名字和 B 站评分一起带过去，服务器就不用为了算分把每部番都抓一遍 */
+    fanguScores: function (items) {
+      var list = (items || []).slice(0, 24).map(function (x) {
+        if (x && typeof x === 'object') {
+          return { i: String(x.seasonId || ''), t: String(x.title || ''), j: String(x.jpTitle || ''), b: x.scoreBili == null ? null : Number(x.scoreBili) };
+        }
+        return { i: String(x == null ? '' : x), t: '', j: '', b: null };
+      }).filter(function (x) { return x.i; });
+      if (!list.length) return Promise.resolve({ status: 200, data: { ok: true, scores: {} } });
+      var ids = list.map(function (x) { return x.i; }).join(',');
+      return call('GET', '/api/fangu/scores?ids=' + encodeURIComponent(ids) + '&q=' + encodeURIComponent(JSON.stringify(list)));
+    },
     fanguSubject: function (seasonId, jpTitle) {
       var q = jpTitle ? '?jp=' + encodeURIComponent(jpTitle) : '';
       return call('GET', '/api/fangu/subject/' + encodeURIComponent(seasonId) + q);

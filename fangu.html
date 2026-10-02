@@ -50,7 +50,7 @@
       <header class="section__head">
         <p class="eyebrow"><span class="eyebrow__line"></span>嘉番 · 番咕咪</p>
         <h2>番咕咪</h2>
-        <p class="section__lead">按名字搜，或者按「热血 / 奇幻 / 搞笑」这样的标签一页一页翻着找。每部番三个分数——咕咪评分（咱们自己打的）、大众评分（AniList、MyAnimeList、Bangumi 几个平台取平均）、B 站评分，都是 10 分制。看得顺眼的，点进去推荐一下。</p>
+        <p class="section__lead">按名字搜，或者按「热血 / 奇幻 / 搞笑」这样的标签一页一页翻着找。每部番三个分数——咕咪评分（咱们自己打的）、大众评分（AniList、MyAnimeList、Bangumi 几个平台加上 B 站评分取平均，每部番都有）、B 站评分，都是 10 分制。看得顺眼的，点进去推荐一下。</p>
       </header>
 
       <!-- 没登录也能搜、能翻、能看；只有打分 / 写评价 / 推荐要登录 -->
@@ -128,7 +128,7 @@
       <a href="friends.html">好友</a>
     </nav>
     <div class="site-footer__meta">
-      <p>番剧信息、封面与 B 站评分来自哔哩哔哩公开接口，大众评分是 AniList、MyAnimeList、Bangumi 几个平台的平均分，版权归原作者所有。</p>
+      <p>番剧信息与封面来自哔哩哔哩公开接口；大众评分是 AniList、MyAnimeList、Bangumi 和 B 站评分取的平均分，版权归原作者所有。</p>
       <p>&copy; <span id="year">2026</span> 浙江嘉豪嘉欣协会 · 保留所有权利</p>
     </div>
   </div>
@@ -144,8 +144,8 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/api.js?v=d7d68ddb"></script>
-<script src="assets/js/fangu.js?v=5f5edc4b"></script>
+<script src="assets/js/api.js?v=486afa1b"></script>
+<script src="assets/js/fangu.js?v=f55ca4d6"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }
