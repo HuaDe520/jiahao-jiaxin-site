@@ -898,3 +898,19 @@
   /* 手机上「成员」面板收进群设置了，腾出位置给「群设置」 */
   #frPaneChat.is-group #frChatMembers { display: none; }
 }
+
+/* 语音消息：整条气泡都是点击范围（以前只有里面那个小三角键能点，
+   手机上常常「点不动」）。点哪都算播放 / 暂停，所以给个手型 + 按压反馈。 */
+.fr-bubble--voice {
+  padding: 11px 13px 9px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.fr-bubble--voice:active { filter: brightness(.96); }
+.fr-bubble--voice .fr-voice { width: 100%; min-height: 44px; }
+
+@media (max-width: 720px) {
+  /* 手机上再松一点，指头更好落 */
+  .fr-bubble--voice { padding: 12px 14px 10px; }
+  .fr-bubble--voice .fr-voice { min-height: 46px; }
+}

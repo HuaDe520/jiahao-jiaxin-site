@@ -188,7 +188,12 @@
        没有 dur 才退回去看 audio.duration；两者都没有就只写「语音」 */
     var real = m.media ? Number(m.media.dur) || 0 : 0;
     var den = real > 0 ? real : 0;          /* 进度条的分母（0 = 还不知道时长） */
-    b.classList.add('fr-bubble--media');
+    /* 整条语音消息都是点击范围：绑在气泡上，不再只绑那个小三角键。
+       手机上大拇指点哪儿都能播，才不会被「点不动」绊住。 */
+    b.classList.add('fr-bubble--media', 'fr-bubble--voice');
+    b.setAttribute('role', 'button');
+    b.setAttribute('tabindex', '0');
+    b.setAttribute('aria-label', '播放语音');
     var v = document.createElement('span');
     v.className = 'fr-voice';
 
@@ -233,6 +238,7 @@
       v.classList.remove('is-playing');
       btn.textContent = '▶';
       btn.title = '播放语音';
+      b.setAttribute('aria-label', '播放语音');
       fill.style.width = '0%';
       if (audioNow.el === audio) { audioNow.el = null; audioNow.row = null; audioNow.btn = null; }
     }
@@ -244,7 +250,19 @@
       audioObjectUrl(m, audio).then(function () {
         if (audio.paused) {
           var p = audio.play();
-          if (p && p.catch) p.catch(function () { /* 浏览器不给自动播就先算了 */ });
+          if (p && p.catch) {
+            /* 播不动不能一声不吭：多半是浏览器/App 不让自动播，或者这段音频它解不开。
+               早点说清楚，用户才知道该再点一下还是该更新。 */
+            p.catch(function (err) {
+              var why = (err && err.name) || '';
+              stopMe();
+              if (why === 'NotAllowedError') {
+                chatMsg('点一下没播起来：再点一次气泡试试。', 'error');
+              } else {
+                chatMsg('这段语音播不了' + (why ? '（' + why + '）' : '') + '：更新 App 或换浏览器再试。', 'error');
+              }
+            });
+          }
         }
         /* 进播放态不等时长读出来：按钮先变 ⏸，进度条从 0 开始走 */
         fill.style.width = '0%';
@@ -252,6 +270,7 @@
         v.classList.add('is-playing');
         btn.textContent = '⏸';
         btn.title = '暂停语音';
+        b.setAttribute('aria-label', '暂停语音');
       });
     }
 
@@ -281,11 +300,18 @@
       audio.addEventListener('error', function () { dur.textContent = den > 0 ? fmtSecs(den) + ' 秒' : '语音'; });
     }
 
-    v.addEventListener('click', function (e) {
+    /* 整条气泡（连语音转写那行小字）点哪儿都算播放/暂停。
+       里面那个按钮不再拦点击——拦了反而点不响。 */
+    b.addEventListener('click', function (e) {
       e.stopPropagation();
       toggle();
     });
-    btn.addEventListener('click', function (e) { e.stopPropagation(); });
+    b.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggle();
+      }
+    });
   }
 
   /* 音频要用带 token 的请求取回来，才能当本地地址播 */
@@ -355,11 +381,25 @@
     b.appendChild(f);
   }
 
-  /* 下载走接口的二进制（带登录凭证），点不动就给个提示 */
+  /* 下载走接口的二进制（带登录凭证）。
+     App 里 blob: 链接是下不了的（旧版 App 还会把它当成「App 更新」，弹一句
+     「请打开浏览器访问…下载新版」），所以 App 1.12 起改走原生保存：网页把字节
+     交给 App，App 存进手机的「下载」。浏览器里还是老办法。 */
   function downloadFile(key, name) {
     if (!key) { chatMsg('这个文件暂时拿不到', 'error'); return; }
+    var canSave = !!(window.JHJX_APP && typeof window.JHJX_APP.saveFile === 'function');
+    if (window.JHJX_APP && !canSave) {
+      var hint = '这个版本的 App 存不了文件：在 App 里点「检查更新」装上 1.12，之后点文件就直接存到手机的「下载」里。';
+      if (typeof window.JHJX_APP.checkUpdate === 'function') {
+        chatMsg(hint, 'error', '检查更新', function () { try { window.JHJX_APP.checkUpdate(); } catch (e) { /* 忽略 */ } });
+      } else {
+        chatMsg(hint, 'error');
+      }
+      return;
+    }
     API.mediaBlob(key).then(function (blob) {
       if (!blob) { chatMsg('文件下载失败，网络或登录状态可能有问题', 'error'); return; }
+      if (canSave) { appSaveFile(blob, name); return; }
       var url = '';
       try { url = URL.createObjectURL(blob); } catch (e) { url = ''; }
       if (!url) { chatMsg('这台设备的浏览器不支持直接下载', 'error'); return; }
@@ -372,6 +412,26 @@
       if (a.parentNode) a.parentNode.removeChild(a);
       setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) { /* 忽略 */ } }, 20000);
     });
+  }
+
+  /* App 里保存文件：把字节转成 base64 交给原生，存完用 App 回的话给用户一个准信 */
+  function appSaveFile(blob, name) {
+    var fileName = String(name || '文件');
+    var mime = String(blob.type || 'application/octet-stream');
+    if (blob.size > 8 * 1024 * 1024) { chatMsg('文件太大了，手机这边存不下来', 'error'); return; }
+    var reader = new FileReader();
+    reader.onload = function () {
+      var data = String(reader.result || '');
+      var comma = data.indexOf(',');
+      var b64 = comma >= 0 ? data.slice(comma + 1) : '';
+      if (!b64) { chatMsg('文件读不出来，再试一次', 'error'); return; }
+      var msg = '';
+      try { msg = String(window.JHJX_APP.saveFile(fileName, mime, b64) || ''); } catch (e) { msg = ''; }
+      if (msg === 'ok') chatMsg('已保存到手机的「下载」里：' + fileName, 'ok');
+      else chatMsg(msg || '文件没存下来，再试一次', 'error');
+    };
+    reader.onerror = function () { chatMsg('文件读不出来，再试一次', 'error'); };
+    try { reader.readAsDataURL(blob); } catch (e) { chatMsg('文件读不出来，再试一次', 'error'); }
   }
 
   /* ---------------- 好友列表（含会话信息） ---------------- */

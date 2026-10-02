@@ -14,7 +14,7 @@
  *   · 后端接口（另一个域名）不拦，直接放行。
  */
 
-const CACHE = 'jhjx-site-v202610020716';
+const CACHE = 'jhjx-site-v202610020726';
 
 /* 首屏必需的东西，装完 SW 就悄悄缓存好；注意别放 512 图标这类大文件 */
 const SHELL = [

@@ -1,12 +1,12 @@
 {
-  "versionCode": 12,
-  "versionName": "1.11",
-  "file": "zhangshang-jiaxie-1.11.apk",
-  "url": "https://xbc-zjja.com.cn/download/zhangshang-jiaxie-1.11.apk",
-  "urlBackup": "https://huade520.github.io/jiahao-jiaxin-site/download/zhangshang-jiaxie-1.11.apk",
-  "size": 140651,
-  "sha256": "836f4301282803e85f3864ca838b52511d308e9fcfa7eb948db77fe528b6dfaf",
-  "notes": "1.11 版把语音消息真正修好了：录音改由 App 自己完成（网页不再依赖 WebView 的麦克风授权，有些机型明明给了系统权限，WebView 里还是打不开话筒），另外加了麦克风自检，能分清是系统不让录还是网页层不让录。",
+  "versionCode": 13,
+  "versionName": "1.12",
+  "file": "zhangshang-jiaxie-1.12.apk",
+  "url": "https://xbc-zjja.com.cn/download/zhangshang-jiaxie-1.12.apk",
+  "urlBackup": "https://huade520.github.io/jiahao-jiaxin-site/download/zhangshang-jiaxie-1.12.apk",
+  "size": 144747,
+  "sha256": "50a1a86e7b79218b254033570490a0040f3d0642e3ca8050de9dbb134a72b88a",
+  "notes": "1.12 版修好了聊天里收文件：点文件会直接存到手机的「下载」里（以前会被当成 App 更新，弹一句「请打开浏览器下载新版」）；语音消息整条都能点，点到哪儿都能播。",
   "forceBelow": 1,
   "releasedAt": "2026-10-02"
 }

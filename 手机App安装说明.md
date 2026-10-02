@@ -43,18 +43,28 @@ iOS 不允许安装第三方安装包，只能用 **Safari** 添加到主屏幕�
 
 | 项目 | 值 |
 | --- | --- |
-| 文件名 | `download/zhangshang-jiaxie-1.11.apk` |
-| 版本 | 1.11（versionCode 12） |
-| 大小 | 137 KB |
+| 文件名 | `download/zhangshang-jiaxie-1.12.apk` |
+| 版本 | 1.12（versionCode 13） |
+| 大小 | 141 KB |
 | 包名 | `com.jiahaojiaxin.assoc` |
 | 支持系统 | Android 5.0（API 21）及以上 |
 | 目标版本 | Android 14（API 34） |
 | 权限 | `INTERNET`、`ACCESS_NETWORK_STATE`、`RECORD_AUDIO`（发语音）、`REQUEST_INSTALL_PACKAGES`（自己装更新用）|
 | 签名证书 | CN=Zhejiang Jiahao Jiaxin Association |
 | 证书 SHA-256 | `302b107e38b8da634d0d7c24691e97d88248643f6aa7f108729fa1c068ec5bec` |
-| APK SHA-256 | `836f4301282803e85f3864ca838b52511d308e9fcfa7eb948db77fe528b6dfaf` |
+| APK SHA-256 | `50a1a86e7b79218b254033570490a0040f3d0642e3ca8050de9dbb134a72b88a` |
 
 App 本质是一个 WebView 外壳，**打开的就是官网**——所以官网内容一更新，App 里立刻就是新的，不需要重新发版。只有用到安卓本机能力的功能（朗读、更新）才需要重新打包。
+
+### 1.12 改了什么：聊天里能收文件了
+
+以前在 App 里点聊天中的文件是下不了的：网页用的是 `blob:` 链接 + `<a download>`，WebView 处理不了这种下载，转而把它交给 App 的下载监听——而那个监听**把任何下载都当成 App 自己的安装包在更新**，于是转一圈失败，弹一句「请打开浏览器访问 xbc-zjja.com.cn/app.html 下载新版」。
+
+1.12 分两头修：
+
+- App 这边：`onDownloadStart` 先判断「这是不是安装包」（URL / MIME / Content-Disposition 里有没有 `.apk`），不是就立刻返回，不再动更新流程；
+- 网页这边：App 里点文件改走新的原生桥 `JHJX_APP.saveFile(名字, MIME, base64)`——网页照旧用带登录凭证的请求把字节取回来，再交给 App 存进手机的「下载」（安卓 10 及以上用 `MediaStore.Downloads`，不需要任何权限；更老的系统写进应用自己的外部下载目录）。存完 App 会回一句「已保存到手机的「下载」里：xxx」。
+- 顺手把 `setMediaPlaybackRequiresUserGesture` 关掉，语音在取回字节之后就能直接播；语音气泡也改成**整条都能点**（点气泡留白、点转写那行小字、点小三角键都算播放/暂停）。
 
 ### 1.11 改了什么：语音改由 App 自己录
 
