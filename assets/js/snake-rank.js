@@ -33,14 +33,18 @@ var pendingRefresh = false;   /* 读取途中又切了模式：回包后补刷�
     return MODES.indexOf(m) >= 0 ? m : 'normal';
   }
 
-  /* 两边的「模式」是同一个设置：点榜单上的标签，游戏也跟着换 */
+  /* 两边的「模式」是同一个设置：点榜单上的标签，游戏也跟着换。
+     注意：一局进行中游戏会拒绝换难度（防止「悠闲攒分、切挑战交分」），
+     这时它会把当前难度原样返回，榜单标签就跟着它走，别自作主张改。 */
   function setMode(next) {
     if (MODES.indexOf(next) < 0) return;
-    mode = next;
     if (window.jhjxSnake && window.jhjxSnake.setMode) {
-      window.jhjxSnake.setMode(next);   /* 它会发事件回来，刷新由事件负责 */
+      var real = window.jhjxSnake.setMode(next);   /* 它会发事件回来，刷新由事件负责 */
+      if (MODES.indexOf(real) >= 0) mode = real;
+      paintModes();
       return;
     }
+    mode = next;
     paintModes();
     refresh();
   }

@@ -50,6 +50,12 @@
   var food = { x: 14, y: 10 };
   var score = 0;
   var mode = 'normal';         /* 悠闲 / 标准 / 挑战：决定速度和分数交到哪个榜 */
+  /* 这一局是在哪个难度下开的。分数只认它：不然可以「悠闲模式慢慢攒分、
+     死之前切到挑战交分」，挑战榜就白给了。 */
+  var runMode = mode;
+  /* 一局进行中点了别的难度时，先记下来等第二下确认（换难度=重开一局） */
+  var pendingMode = '';
+  var pendingTimer = 0;
   var baseMs = SPEEDS.normal;
   var stepMs = SPEEDS.normal;
   var acc = 0;
@@ -114,6 +120,8 @@
 
   /* ---------- 一局的开头 ---------- */
   function reset() {
+    runMode = mode;
+    clearPendingMode();
     snake = [{ x: 9, y: 10 }, { x: 8, y: 10 }, { x: 7, y: 10 }];
     prevSnake = snake.slice();
     dir = DIRS.right;
@@ -125,6 +133,7 @@
     lastTs = 0;
     placeFood();
     state = 'idle';
+    lockSpeeds();
     setStatus('准备好了就按「开始游戏」');
     draw();
   }
@@ -263,7 +272,8 @@
     if (growing) {
       score++;
       scoreEl.textContent = String(score);
-      if (score > currentBest()) { bests[mode] = score; paintBest(); saveBests(); }
+      /* 记到「开局时的难度」上，不是当前选中的那个 */
+      if (score > (bests[runMode] || 0)) { bests[runMode] = score; paintBest(); saveBests(); }
       stepMs = Math.max(MIN_STEP, baseMs - Math.floor(score / 2) * 6);
       placeFood();
       if (food.x < 0) { gameOver('整块棋盘都被你占满了'); return; }
@@ -275,13 +285,16 @@
   function gameOver(why) {
     state = 'over';
     if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+    lockSpeeds();
     draw();
-    var title = score >= currentBest() && score > 0 ? '新纪录 ' + score + ' 分' : '本局 ' + score + ' 分';
-    showOverlay(title, why + '。' + MODE_NAMES[mode] + '模式的最高分 ' + currentBest() + ' 分。', '再来一局');
+    var bestNow = bests[runMode] || 0;
+    var title = score >= bestNow && score > 0 ? '新纪录 ' + score + ' 分' : '本局 ' + score + ' 分';
+    showOverlay(title, why + '。' + MODE_NAMES[runMode] + '模式的最高分 ' + bestNow + ' 分。', '再来一局');
     setStatus(why + '，本局 ' + score + ' 分');
-    /* 交到好友排行榜（没登录/没联网时它自己会安静地跳过） */
+    /* 交到好友排行榜（没登录/没联网时它自己会安静地跳过）。
+       交的是这一局开局的难度，中途换不了。 */
     if (score > 0 && window.jhjxSnakeRank && window.jhjxSnakeRank.submit) {
-      window.jhjxSnakeRank.submit(score, mode);
+      window.jhjxSnakeRank.submit(score, runMode);
     }
   }
 
@@ -306,7 +319,9 @@
     if (state === 'over' || state === 'idle') {
       if (state === 'over') reset();
     }
+    runMode = mode;               /* 这一局就按这个难度算分 */
     state = 'running';
+    lockSpeeds();
     hideOverlay();
     lastTs = 0;
     acc = 0;
@@ -318,6 +333,7 @@
   function pause(quiet) {
     if (state !== 'running') return;
     state = 'paused';
+    lockSpeeds();
     if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
     draw();
     showOverlay('暂停中', '本局已经吃到 ' + score + ' 个果实。', '继续');
@@ -327,6 +343,7 @@
   function resume() {
     if (state !== 'paused') return;
     state = 'running';
+    lockSpeeds();
     hideOverlay();
     lastTs = 0;
     setStatus('继续');
@@ -473,7 +490,56 @@
     }
   }
 
+  /* 一局没结束之前，难度按钮按不动（只是看起来灰掉 + 点了给一句说明，
+     不用 disabled 属性，不然点了连句解释都没有）。 */
+  function runLocked() {
+    return state === 'running' || state === 'paused';
+  }
+
+  function clearPendingMode() {
+    pendingMode = '';
+    if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = 0; }
+  }
+
+  function lockSpeeds() {
+    if (!speedsEl) return;
+    var locked = runLocked();
+    var all = speedsEl.querySelectorAll('.sn-speed');
+    for (var i = 0; i < all.length; i++) {
+      all[i].classList.toggle('is-locked', locked);
+      all[i].setAttribute('aria-disabled', locked ? 'true' : 'false');
+      all[i].title = locked ? '这一局已经开始，换难度会重开一局' : '选难度';
+    }
+  }
+
   function setMode(next, quiet) {
+    if (MODES.indexOf(next) < 0) return mode;
+    /* 一局进行中（含暂停）想换难度：换就等于重开一局，分数作废，
+       所以要点两下确认——这样「悠闲攒分、切挑战交分」根本无从谈起。 */
+    if (runLocked() && next !== runMode) {
+      if (pendingMode === next) {
+        clearPendingMode();
+        if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+        reset();                                   /* 这一局作废，回到没开始的状态 */
+        applyMode(next, true);
+        setStatus('换成「' + MODE_NAMES[mode] + '」了，刚才那局作废；按「开始游戏」打新的一局');
+        return mode;
+      }
+      pendingMode = next;
+      if (pendingTimer) clearTimeout(pendingTimer);
+      pendingTimer = setTimeout(clearPendingMode, 5000);
+      if (!quiet) {
+        setStatus('换难度会重开一局，现在这局的分数作废。再点一下「' + MODE_NAMES[next] + '」就换过去。');
+      }
+      return mode;
+    }
+    clearPendingMode();
+    applyMode(next, quiet);
+    return mode;
+  }
+
+  /* 真正把难度换掉（按钮、速度、存盘、榜单通知） */
+  function applyMode(next, quiet) {
     if (MODES.indexOf(next) < 0) return mode;
     if (next !== mode) {
       mode = next;
@@ -484,6 +550,7 @@
       paintBest();
       if (!quiet) setStatus('换成「' + MODE_NAMES[mode] + '」模式了');
     }
+    lockSpeeds();
     /* 排行榜要跟着换榜：用事件通知它，别互相直接调 */
     try {
       window.dispatchEvent(new CustomEvent('jhjx:snake-mode', { detail: { mode: mode } }));
@@ -519,6 +586,9 @@
     bests: function () { return { easy: bests.easy, normal: bests.normal, hard: bests.hard }; },
     bestOf: function (m) { return bests[m] || 0; },
     mode: function () { return mode; },
+    /* 这一局的难度（开着局之后就不会变）和「难度是不是锁着」 */
+    runMode: function () { return runMode; },
+    locked: runLocked,
     setMode: setMode,
     dir: function () { return { x: dir.x, y: dir.y }; },
     head: function () { return { x: snake[0].x, y: snake[0].y }; },

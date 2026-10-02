@@ -43,6 +43,13 @@
   background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
   border-color: rgba(201, 162, 75, .6); color: #2b2109;
 }
+/* 一局没结束：难度锁着，看着就点不动（点了会给一句说明） */
+.sn-speed.is-locked {
+  opacity: .55;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+.sn-speed.is-locked:hover { border-color: rgba(18, 101, 90, .2); transform: none; }
 
 /* ---------- 棋盘 ---------- */
 .sn-board-wrap {
