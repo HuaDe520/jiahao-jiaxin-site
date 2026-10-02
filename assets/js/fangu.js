@@ -63,6 +63,7 @@
     if (text) msgTimer = setTimeout(function () { msgEl.className = 'fg-msg'; }, 7000);
   }
 
+  /* 没登录也能用：翻页、搜索、看详情都放行，只有打分 / 写评价 / 推荐要登录 */
   function loggedIn() {
     try { return !!(window.JHJX_API && window.JHJX_API.token && window.JHJX_API.token()); } catch (e) { return false; }
   }
@@ -107,6 +108,8 @@
       if (settled || !fallback) return;
       settled = true;
       clear();
+      /* 已经决定换源了，就别再懒加载等着 —— 现在就要 */
+      img.loading = 'eager';
       img.src = fallback;
     }
     img.addEventListener('load', function () {
@@ -684,7 +687,28 @@
       sheetBox.appendChild(secSum);
     }
 
-    /* 我的评分 + 评价 */
+    /* 我的评分 + 评价（没登录的人看不到这块，换成一句登录提示） */
+    var canAct = (sub.loggedIn === undefined) ? loggedIn() : !!sub.loggedIn;
+    if (!canAct) {
+      var secGuest = document.createElement('div');
+      secGuest.className = 'fg-sec';
+      var lg = document.createElement('div');
+      lg.className = 'fg-sec__label';
+      lg.textContent = '打分 · 写评价 · 推荐';
+      secGuest.appendChild(lg);
+      var tip = document.createElement('p');
+      tip.className = 'fg-detail__line';
+      tip.id = 'fgGuestTip';
+      tip.textContent = '这三件事要先登录，登录之后你给的分和推荐都记在你名下。别的都能看，不用登录。';
+      secGuest.appendChild(tip);
+      var go = document.createElement('a');
+      go.className = 'fg-btn fg-btn--main';
+      go.id = 'fgGuestLogin';
+      go.href = 'account.html';
+      go.textContent = '去登录';
+      secGuest.appendChild(go);
+      sheetBox.appendChild(secGuest);
+    } else {
     var secMine = document.createElement('div');
     secMine.className = 'fg-sec';
     var l3 = document.createElement('div');
@@ -774,6 +798,7 @@
     }
     secMine.appendChild(acts);
     sheetBox.appendChild(secMine);
+    }
 
     /* 大家的评价 */
     var secRev = document.createElement('div');
@@ -882,11 +907,12 @@
   window.addEventListener('jhjx:session', function () { location.reload(); });
 
   if (!loggedIn()) {
+    /* 没登录：照样能用，只在上面挂一条「要打分/写评价/推荐就登录」 */
     guestEl.hidden = false;
-    mainEl.hidden = true;
+    mainEl.hidden = false;
   } else {
     guestEl.hidden = true;
     mainEl.hidden = false;
-    setTab(false);
   }
+  setTab(false);
 })();
