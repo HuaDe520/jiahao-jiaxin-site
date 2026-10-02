@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>超豪飞行派对 · 浙江嘉豪嘉欣协会</title>
+<meta name="description" content="浙江嘉豪嘉欣协会嘉盟「超豪飞行派对」：2～4 人开一桌联机飞行棋，房间号一喊就能开局，掷骰子走飞机，四架都到家就赢。">
+<meta name="theme-color" content="#0f5f56">
+<link rel="icon" href="assets/img/logo-main.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="assets/css/style.css?v=6f4eea6e">
+<link rel="stylesheet" href="assets/css/feixing.css?v=dcb29cbb">
+</head>
+<body class="fx-page">
+
+<header class="site-header">
+  <div class="wrap site-header__inner">
+    <a class="brand" href="index.html" aria-label="返回首页">
+      <img class="brand__logo" src="assets/img/logo-main.png" alt="浙江嘉豪嘉欣协会会徽" width="46" height="46" decoding="async">
+      <span class="brand__text">
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <small>ZHEJIANG JIAHAO JIAXIN ASSOCIATION</small>
+      </span>
+    </a>
+<a class="nav-quick" href="friends.html" aria-label="好友与聊天" title="好友与聊天">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15.6 20.5v-1.7a3.7 3.7 0 0 0-3.7-3.7H7.2a3.7 3.7 0 0 0-3.7 3.7v1.7"></path>
+        <circle cx="9.6" cy="7.7" r="3.5"></circle>
+        <path d="M20.6 20.5v-1.7a3.7 3.7 0 0 0-2.8-3.6"></path>
+        <path d="M15.1 4.3a3.5 3.5 0 0 1 0 6.8"></path>
+      </svg>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="siteNav" aria-label="展开导航菜单">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="site-nav site-nav--plain" id="siteNav" aria-label="主导航">
+      <a href="index.html">首页</a>
+      <a href="index.html#departments">部门矩阵</a>
+      <a href="app.html">下载 App</a>
+      <a href="workbench.html">嘉庭工作台</a>
+          <a href="account.html">我的账号</a>
+</nav>
+  </div>
+</header>
+
+<main>
+  <section class="section">
+    <div class="wrap">
+      <header class="section__head">
+        <p class="eyebrow"><span class="eyebrow__line"></span>嘉盟 · 超豪飞行派对</p>
+        <h2>超豪飞行派对</h2>
+        <p class="section__lead">两到四个人开一桌联机飞行棋。掷到 6 才能起飞，绕外圈走一圈，拐进自己那条跑道，四架飞机都到家就赢。骰子在服务器那边掷，谁也别想作弊。</p>
+      </header>
+
+      <!-- 登录前的样子 -->
+      <div class="fx-guest" id="fxGuest" hidden>
+        <p>超豪飞行派对要登录才能联机（房间和座位都记在你名下）。</p>
+        <a class="btn btn--primary" href="account.html">去登录</a>
+      </div>
+
+      <div id="fxMain" hidden>
+        <p class="fx-msg" id="fxMsg"></p>
+
+        <!-- 一、大厅 -->
+        <section class="fx-panel" id="fxLobby" hidden>
+          <h3 class="fx-h">建一桌</h3>
+          <p class="fx-hint">自己开一桌，把房间号发给同学，人齐了就能开局。两个人玩是<b>对角同盟</b>：红 + 蓝 一边，黄 + 绿 一边，谁的两色先全部到家谁赢。</p>
+          <div class="fx-sizes" id="fxSizes">
+            <button class="btn btn--primary fx-size" type="button" data-max="2">2 人</button>
+            <button class="btn btn--primary fx-size" type="button" data-max="3">3 人</button>
+            <button class="btn btn--primary fx-size" type="button" data-max="4">4 人</button>
+          </div>
+          <p class="fx-hint fx-hint--small">3 人一桌是红、黄、蓝各占一边；4 人一桌一人一色。</p>
+
+          <h3 class="fx-h">用房间号加入</h3>
+          <p class="fx-hint">同学把房间号发过来了？填进下面这个框，直接坐进去。</p>
+          <div class="fx-join">
+            <label class="sr-only" for="fxCode">房间号</label>
+            <input class="fx-input" id="fxCode" type="text" inputmode="numeric" maxlength="6" placeholder="6 位房间号" autocomplete="off" enterkeyhint="go">
+            <button class="btn btn--ghost" id="fxJoin" type="button">进这一桌</button>
+          </div>
+          <p class="fx-hint fx-hint--small"><button class="fx-link" id="fxFindMine" type="button">看看我有没有没打完的桌</button></p>
+        </section>
+
+        <!-- 二、等待室 -->
+        <section class="fx-panel" id="fxWait" hidden>
+          <div class="fx-codebox">
+            <p class="fx-codebox__label">房间号（点一下复制，发给同学）</p>
+            <button class="fx-code" id="fxCodeBig" type="button">······</button>
+            <p class="fx-codebox__tip" id="fxCodeTip"></p>
+          </div>
+
+          <h3 class="fx-h">座位</h3>
+          <div class="fx-seats" id="fxSeats"></div>
+          <p class="fx-need" id="fxNeed"></p>
+
+          <div class="fx-acts">
+            <button class="btn btn--primary" id="fxStart" type="button" hidden>开始</button>
+            <button class="btn btn--ghost" id="fxLeaveWait" type="button">离开房间</button>
+          </div>
+
+          <details class="fx-invite" id="fxInviteWrap">
+            <summary>邀请好友</summary>
+            <div class="fx-friends" id="fxInviteList"></div>
+          </details>
+        </section>
+
+        <!-- 三、对局 -->
+        <section class="fx-panel" id="fxPlay" hidden>
+          <div class="fx-top">
+            <div class="fx-you" id="fxYou"></div>
+            <div class="fx-roomchip" id="fxRoomChip"></div>
+          </div>
+
+          <div class="fx-turn" id="fxTurn"></div>
+
+          <div class="fx-boardwrap">
+            <div class="fx-board" id="fxBoard" role="group" aria-label="飞行棋棋盘"></div>
+          </div>
+
+          <div class="fx-dicebar">
+            <div class="fx-dice" id="fxDice" aria-live="polite">—</div>
+            <div class="fx-dicebar__side">
+              <button class="btn btn--primary" id="fxRoll" type="button">掷骰子</button>
+              <p class="fx-dicehint" id="fxDiceHint"></p>
+            </div>
+          </div>
+
+          <p class="fx-note" id="fxNote"></p>
+
+          <div class="fx-acts">
+            <button class="btn btn--primary" id="fxAgain" type="button" hidden>再来一局</button>
+            <button class="btn btn--ghost" id="fxLeavePlay" type="button">离开房间</button>
+          </div>
+
+          <h3 class="fx-h">这一桌</h3>
+          <div class="fx-strip" id="fxStrip"></div>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap site-footer__inner">
+    <div class="site-footer__brand">
+      <img src="assets/img/logo-main.png" alt="" aria-hidden="true" width="56" height="56" loading="lazy" decoding="async">
+      <div>
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <p>浙江高校生兴趣社交社群 · 非营利自组织</p>
+      </div>
+    </div>
+    <nav class="site-footer__nav" aria-label="页面导航">
+      <a href="index.html">首页</a>
+      <a href="workbench.html">嘉庭工作台</a>
+      <a href="fangu.html">番咕咪</a>
+      <a href="xianshi.html">闲事笺</a>
+      <a href="qianci.html">千词奇域</a>
+      <a href="snake.html">贪吃蛇</a>
+      <a href="comfort.html">安慰盲盒</a>
+      <a href="app.html">下载 App</a>
+      <a href="friends.html">好友</a>
+    </nav>
+    <div class="site-footer__meta">
+      <p>飞行棋的对局都在服务器上跑，骰子由服务器掷；房间两小时没人动会自动收掉。</p>
+      <p>&copy; <span id="year">2026</span> 浙江嘉豪嘉欣协会 · 保留所有权利</p>
+    </div>
+  </div>
+</footer>
+
+<!-- 常驻入口：返回首页 -->
+<a class="quick-home" href="index.html" aria-label="返回首页">
+  <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 10.6 12 3.2l9 7.4"></path>
+    <path d="M5.6 9.6V20h12.8V9.6"></path>
+    <path d="M9.7 20v-5.3h4.6V20"></path>
+  </svg>
+  <span>返回首页</span>
+</a>
+
+<script src="assets/js/api.js?v=89db6be2"></script>
+<script src="assets/js/feixing.js?v=164c94f8"></script>
+<script>
+  var y = document.getElementById('year');
+  if (y) { y.textContent = String(new Date().getFullYear()); }
+</script>
+<script src="assets/js/nav.js?v=3e4a4fc6"></script>
+</body>
+</html>

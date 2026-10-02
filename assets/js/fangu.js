@@ -1,41 +1,51 @@
 /* =========================================================
    嘉番 · 番咕咪
    ---------------------------------------------------------
-   搜番 → 点开看简介 / 类型 / 三个评分 → 打分写评价 → 推荐。
-   · 番剧信息是后端从 B 站取的（不是我们编的），封面走后端转发；
-   · 咕咪评分 = 自己人打分的平均分；大众评分 = AniList；B 站评分 = 哔哩哔哩；
-   · 推荐够多（超过协会用户数一半）或管理员推荐过 → 进「豪番推荐」。
+   一栏「全部番剧」（按标签翻页找番 + 按名字搜番），一栏「豪番推荐」。
+   点开一部番 → 简介 / 类型 / 三个评分 → 打分写评价 → 推荐。
+   · 番剧信息是后端从 B 站取的（不是我们编的）；
+   · 封面走 B 站图床的小图直链（图小、页面不卡），取不到再退回后端转发；
+   · 咕咪评分 = 自己人打分的平均分；大众评分 = 几个平台取平均；B 站评分 = 哔哩哔哩；
+   · 推荐多的番会进「豪番推荐」那一栏。
    ========================================================= */
 (function () {
   function $(id) { return document.getElementById(id); }
 
   var guestEl = $('fgGuest');
   var mainEl = $('fgMain');
-  var hallWrap = $('fgHallWrap');
+  var tabAll = $('fgTabAll');
+  var tabHall = $('fgTabHall');
+  var allPane = $('fgAllPane');
+  var hallPane = $('fgHallPane');
   var hallEl = $('fgHall');
   var hallHint = $('fgHallHint');
-  var hotWrap = $('fgHotWrap');
-  var hotEl = $('fgHot');
+  var hallEmpty = $('fgHallEmpty');
   var listEl = $('fgList');
   var emptyEl = $('fgEmpty');
   var msgEl = $('fgMsg');
   var queryEl = $('fgQuery');
   var goBtn = $('fgGo');
-  var moreWrap = $('fgMoreWrap');
-  var moreBtn = $('fgMore');
+  var pagerEl = $('fgPager');
+  var crumbEl = $('fgCrumb');
   var filterWrap = $('fgFilterWrap');
   var tagsEl = $('fgTags');
   var sheet = $('fgSheet');
   var sheetBox = $('fgSheetBox');
 
   var state = {
+    mode: 'browse',    /* browse（翻着看）/ search（按名字搜）/ hall（豪番推荐） */
+    page: 1,
+    pages: 1,
+    total: 0,
+    tag: '',           /* 当前选中的标签 id（空 = 全部） */
+    tags: [],          /* 标签表：后端按 B 站番剧索引的「风格」给的 */
     keyword: '',
-    results: [],       /* 搜回来的（或热门）番剧 */
-    tag: '',           /* 当前按标签筛的那个标签 */
+    results: [],
     need: 0,
     totalUsers: 0,
     open: null,        /* 当前打开的番 */
     lastFocus: null,
+    busy: false,
   };
   var msgTimer = 0;
 
@@ -70,8 +80,30 @@
     return (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日 ' + hm;
   }
 
+  /* 封面：优先用 B 站图床那张裁好的小图（不经我们的服务器，出来得快），
+     直连被挡（有的网络会被图床拦）再退回后端的转发地址，总之要出图。 */
+  function setCover(img, item) {
+    var direct = String(item.coverSmall || '');
+    var fallback = '';
+    if (item.cover) {
+      fallback = (window.JHJX_API && window.JHJX_API.asset) ? window.JHJX_API.asset(item.cover) : item.cover;
+    }
+    img.setAttribute('referrerpolicy', 'no-referrer');
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    var tried = false;
+    img.addEventListener('error', function () {
+      if (tried || !fallback) return;
+      tried = true;
+      img.src = fallback;
+    });
+    if (direct) img.src = direct;
+    else if (fallback) img.src = fallback;
+    else img.hidden = true;
+  }
+
   /* 三档评分徽章：没有的就写「暂无」，别空着让人以为坏了 */
-  function scoresRow(s, small) {
+  function scoresRow(s) {
     var wrap = document.createElement('div');
     wrap.className = 'fg-scores';
     var rows = [
@@ -94,7 +126,6 @@
       }
       wrap.appendChild(span);
     });
-    void small;
     return wrap;
   }
 
@@ -105,15 +136,13 @@
     if (item.hall) {
       var flag = document.createElement('span');
       flag.className = 'fg-card__flag';
-      flag.textContent = item.adminRec ? '管理员推荐' : '豪番推荐';
+      flag.textContent = '豪番推荐';
       el.appendChild(flag);
     }
     var img = document.createElement('img');
     img.className = 'fg-card__cover';
-    img.loading = 'lazy';
-    img.decoding = 'async';
     img.alt = item.title + ' 封面';
-    if (item.cover) img.src = item.cover;
+    setCover(img, item);
     el.appendChild(img);
 
     var body = document.createElement('div');
@@ -122,10 +151,11 @@
     h.className = 'fg-card__title';
     h.textContent = item.title || '（没有名字）';
     body.appendChild(h);
-    if (item.jpTitle) {
+    var sub = item.jpTitle || item.desc || '';
+    if (sub) {
       var jp = document.createElement('p');
       jp.className = 'fg-card__jp';
-      jp.textContent = item.jpTitle;
+      jp.textContent = sub;
       body.appendChild(jp);
     }
     body.appendChild(scoresRow(item));
@@ -150,55 +180,205 @@
     rows.forEach(function (r) { box.appendChild(card(r)); });
   }
 
-  /* 按标签筛：标签来自当前这批结果，选一个就把不含它的收起来 */
+  /* ---------------- 标签 ---------------- */
+  function tagName(id) {
+    var hit = (state.tags || []).filter(function (t) { return String(t.id) === String(id); })[0];
+    return hit ? hit.name : '';
+  }
+
   function renderTags() {
-    var seen = {};
-    var order = [];
-    state.results.forEach(function (r) {
-      (r.styles || []).forEach(function (t) {
-        var k = String(t);
-        if (!k || seen[k]) return;
-        seen[k] = true;
-        order.push(k);
-      });
-    });
+    if (!tagsEl) return;
     tagsEl.innerHTML = '';
-    if (!order.length) { filterWrap.hidden = true; return; }
+    var tags = state.tags || [];
+    if (!tags.length) { filterWrap.hidden = true; return; }
     filterWrap.hidden = false;
-    order.slice(0, 24).forEach(function (t) {
+    function chip(id, name) {
       var b = document.createElement('button');
       b.type = 'button';
-      b.className = 'fg-tag' + (state.tag === t ? ' is-on' : '');
-      b.textContent = t;
+      b.className = 'fg-tag' + (String(state.tag) === String(id) ? ' is-on' : '');
+      b.textContent = name;
       b.addEventListener('click', function () {
-        state.tag = state.tag === t ? '' : t;
-        renderTags();
-        renderList();
+        if (String(state.tag) === String(id) && state.mode === 'browse') return;
+        state.tag = String(id);
+        state.keyword = '';
+        queryEl.value = '';
+        loadBrowse(1);
       });
       tagsEl.appendChild(b);
-    });
+    }
+    chip('', '全部');
+    tags.forEach(function (t) { chip(t.id, t.name); });
   }
 
-  function shownRows() {
-    if (!state.tag) return state.results;
-    return state.results.filter(function (r) {
-      return (r.styles || []).some(function (t) { return String(t) === state.tag; });
-    });
-  }
-
+  /* ---------------- 列表与翻页 ---------------- */
   function renderList() {
-    var rows = shownRows();
+    var rows = state.results || [];
     renderGrid(listEl, rows);
     emptyEl.hidden = rows.length > 0;
     if (!rows.length) {
-      emptyEl.textContent = state.tag
-        ? '这批结果里没有「' + state.tag + '」标签的番，换个标签或者再搜搜。'
-        : '还没有结果。上面搜一个番名试试，比如「孤独摇滚」。';
+      emptyEl.textContent = state.mode === 'search'
+        ? '没搜到。换个写法试试，日文原名也行。'
+        : '这一页没取到番，翻回去看看别页。';
     }
   }
 
-  function loadHome() {
-    return window.JHJX_API.fanguHome().then(function (res) {
+  /* 页码：两头固定，中间跟着当前页走，中间断档用省略号 */
+  function pageNumbers(cur, pages) {
+    var keep = [];
+    var add = function (n) { if (n >= 1 && n <= pages && keep.indexOf(n) < 0) keep.push(n); };
+    add(1);
+    for (var i = cur - 2; i <= cur + 2; i++) add(i);
+    add(pages);
+    keep.sort(function (a, b) { return a - b; });
+    var out = [];
+    for (var k = 0; k < keep.length; k++) {
+      if (k && keep[k] - keep[k - 1] > 1) out.push('gap');
+      out.push(keep[k]);
+    }
+    return out;
+  }
+
+  function renderPager() {
+    if (!pagerEl) return;
+    var pages = Number(state.pages) || 1;
+    pagerEl.innerHTML = '';
+    if (state.mode === 'hall' || pages <= 1) { pagerEl.hidden = true; return; }
+    pagerEl.hidden = false;
+    function btn(label, page, cls, disabled) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'fg-page-btn' + (cls ? ' ' + cls : '');
+      b.textContent = label;
+      if (disabled) b.disabled = true;
+      else b.addEventListener('click', function () { goPage(page); });
+      pagerEl.appendChild(b);
+    }
+    btn('上一页', state.page - 1, 'fg-page-btn--nav', state.page <= 1);
+    pageNumbers(state.page, pages).forEach(function (p) {
+      if (p === 'gap') {
+        var s = document.createElement('span');
+        s.className = 'fg-page-gap';
+        s.textContent = '…';
+        pagerEl.appendChild(s);
+        return;
+      }
+      btn(String(p), p, p === state.page ? 'is-on' : '', false);
+    });
+    btn('下一页', state.page + 1, 'fg-page-btn--nav', state.page >= pages);
+    var info = document.createElement('span');
+    info.className = 'fg-page-info';
+    info.textContent = '第 ' + state.page + ' / ' + pages + ' 页 · 共 ' + (state.total || 0) + ' 部';
+    pagerEl.appendChild(info);
+  }
+
+  function renderCrumb() {
+    if (!crumbEl) return;
+    crumbEl.innerHTML = '';
+    var text = '';
+    if (state.mode === 'search') {
+      text = '搜「' + state.keyword + '」找到 ' + (state.total || 0) + ' 部';
+    } else if (state.tag) {
+      text = '标签「' + (tagName(state.tag) || state.tag) + '」· 共 ' + (state.total || 0) + ' 部';
+    } else {
+      text = '全部番剧 · 按追番人数排 · 共 ' + (state.total || 0) + ' 部';
+    }
+    var span = document.createElement('span');
+    span.textContent = text;
+    crumbEl.appendChild(span);
+    if (state.mode === 'search' || state.tag) {
+      var back = document.createElement('button');
+      back.type = 'button';
+      back.className = 'fg-crumb__back';
+      back.textContent = state.mode === 'search' ? '回到全部番剧' : '取消标签';
+      back.addEventListener('click', function () {
+        state.tag = '';
+        state.keyword = '';
+        queryEl.value = '';
+        loadBrowse(1);
+      });
+      crumbEl.appendChild(back);
+    }
+    crumbEl.hidden = false;
+  }
+
+  function goPage(p) {
+    var pages = Number(state.pages) || 1;
+    if (p < 1 || p > pages || p === state.page) return;
+    if (state.mode === 'search') doSearch(state.keyword, p);
+    else loadBrowse(p);
+    try {
+      var top = listEl.getBoundingClientRect().top + window.pageYOffset - 130;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    } catch (e) { /* 老浏览器不支持平滑滚动就算了 */ }
+  }
+
+  /* 翻着看：一页 20 部，带标签筛选 */
+  function loadBrowse(page) {
+    if (state.busy) return;
+    state.busy = true;
+    msg('正在翻…');
+    window.JHJX_API.fanguBrowse(page || 1, state.tag).then(function (res) {
+      state.busy = false;
+      if (res.status !== 200) {
+        msg((res.data && res.data.error) || '列表没取回来，过一会儿再试', true);
+        return;
+      }
+      var d = res.data || {};
+      state.mode = 'browse';
+      state.page = Number(d.page) || 1;
+      state.pages = Number(d.pages) || 1;
+      state.total = Number(d.total) || 0;
+      state.results = d.list || [];
+      state.tag = String(d.tag || '');
+      if (d.tags && d.tags.length) state.tags = d.tags;
+      state.keyword = '';
+      queryEl.value = '';
+      /* 标签没取到时至少把当前这个显示出来，别让人以为自己点丢了 */
+      if (state.tag && !tagName(state.tag)) state.tags = state.tags.concat([{ id: state.tag, name: '已选标签' }]);
+      renderTags();
+      renderList();
+      renderPager();
+      renderCrumb();
+      msg('');
+    }, function () {
+      state.busy = false;
+      msg('网络不太好，列表没取回来', true);
+    });
+  }
+
+  function doSearch(q, page) {
+    var kw = String(q == null ? queryEl.value : q).trim();
+    if (!kw) { msg('想找什么番？写个名字', true); queryEl.focus(); return; }
+    var p = Math.max(1, Math.floor(Number(page) || 1));
+    state.keyword = kw;
+    goBtn.disabled = true;
+    msg('正在找…');
+    window.JHJX_API.fanguSearch(kw, p).then(function (res) {
+      goBtn.disabled = false;
+      if (res.status !== 200) {
+        msg((res.data && res.data.error) || '没搜出来，过一会儿再试', true);
+        return;
+      }
+      var d = res.data || {};
+      state.mode = 'search';
+      state.page = Number(d.page) || 1;
+      state.pages = Number(d.pages) || 1;
+      state.total = Number(d.total) || 0;
+      state.results = d.list || [];
+      renderList();
+      renderPager();
+      renderCrumb();
+      msg(state.results.length ? '' : '没找到这部番，换个写法试试（日文原名也行）');
+    }, function () {
+      goBtn.disabled = false;
+      msg('网络不太好，没搜出来', true);
+    });
+  }
+
+  /* 豪番推荐：点进这一栏才去拉榜 */
+  function loadHall() {
+    msg('');
+    window.JHJX_API.fanguHome().then(function (res) {
       if (res.status !== 200) {
         msg((res.data && res.data.error) || '榜单没取回来', true);
         return;
@@ -206,49 +386,28 @@
       state.need = Number(res.data.need) || 0;
       state.totalUsers = Number(res.data.totalUsers) || 0;
       var rec = res.data.recommend || [];
-      if (rec.length) {
-        hallWrap.hidden = false;
-        renderGrid(hallEl, rec);
-        hallHint.textContent = rec.some(function (r) { return r.adminRec; })
-          ? '管理员推荐过的番会直接放上来；大家推荐够多（超过协会用户数的一半，现在 ' + state.need + ' 票）也会进这里。'
-          : '大家推荐够了就上来：现在协会 ' + state.totalUsers + ' 人，超过一半（' + state.need + ' 票）进榜。';
-      } else {
-        hallWrap.hidden = true;
-        hallHint.textContent = '';
-      }
-      var hot = res.data.hot || [];
-      if (hot.length) {
-        hotWrap.hidden = false;
-        renderGrid(hotEl, hot);
-      } else {
-        hotWrap.hidden = true;
-      }
+      renderGrid(hallEl, rec);
+      hallEmpty.hidden = rec.length > 0;
+      hallHint.textContent = '';
+      hallHint.hidden = true;
     }, function () { msg('网络不太好，榜单没取回来', true); });
   }
 
-  function doSearch(q) {
-    var kw = String(q == null ? queryEl.value : q).trim();
-    if (!kw) { msg('想找什么番？写个名字', true); queryEl.focus(); return; }
-    state.keyword = kw;
-    goBtn.disabled = true;
-    msg('正在找…');
-    window.JHJX_API.fanguSearch(kw).then(function (res) {
-      goBtn.disabled = false;
-      if (res.status !== 200) {
-        msg((res.data && res.data.error) || '没搜出来，过一会儿再试', true);
-        return;
-      }
-      state.results = res.data.list || [];
-      state.tag = '';
-      state.need = Number(res.data.need) || state.need;
-      renderTags();
-      renderList();
-      moreWrap.hidden = true;      /* 搜索接口一次给全，就不做翻页了 */
-      msg(state.results.length ? '找到 ' + state.results.length + ' 部番' : '没找到这部番，换个写法试试（日文原名也行）');
-    }, function () {
-      goBtn.disabled = false;
-      msg('网络不太好，没搜出来', true);
-    });
+  function setTab(hall) {
+    tabAll.className = 'fg-tab' + (hall ? '' : ' is-on');
+    tabAll.setAttribute('aria-selected', hall ? 'false' : 'true');
+    tabHall.className = 'fg-tab' + (hall ? ' is-on' : '');
+    tabHall.setAttribute('aria-selected', hall ? 'true' : 'false');
+    allPane.hidden = hall;
+    hallPane.hidden = !hall;
+    if (hall) {
+      state.mode = 'hall';
+      renderPager();
+      loadHall();
+    } else {
+      state.mode = state.keyword ? 'search' : 'browse';
+      loadBrowse(state.page || 1);
+    }
   }
 
   /* ---------------- 详情抽屉 ---------------- */
@@ -260,6 +419,23 @@
     if (state.lastFocus && state.lastFocus.focus) { try { state.lastFocus.focus(); } catch (e) { /* 忽略 */ } }
   }
 
+  /* 详情里的标签点了就去看这一类：标签表里有它就按标签翻，没有就按名字搜 */
+  function goTag(name) {
+    var hit = (state.tags || []).filter(function (t) { return String(t.name) === String(name); })[0];
+    closeSheet();
+    setTab(false);
+    if (hit) {
+      state.tag = String(hit.id);
+      state.keyword = '';
+      queryEl.value = '';
+      loadBrowse(1);
+    } else {
+      state.tag = '';
+      queryEl.value = name;
+      doSearch(name, 1);
+    }
+  }
+
   function tagChips(sub) {
     var wrap = document.createElement('div');
     wrap.className = 'fg-tags';
@@ -268,28 +444,14 @@
       b.type = 'button';
       b.className = 'fg-tag';
       b.textContent = t;
-      b.addEventListener('click', function () {
-        closeSheet();
-        queryEl.value = t;
-        /* 标签没法当关键词搜（B 站只按名字搜），那就把当前结果按它筛 */
-        if (state.results.some(function (r) { return (r.styles || []).indexOf(t) >= 0; })) {
-          state.tag = t;
-          renderTags();
-          renderList();
-          msg('已经按「' + t + '」把当前这批结果筛出来了');
-          window.scrollTo({ top: listEl.offsetTop - 120, behavior: 'smooth' });
-        } else {
-          doSearch(t);
-        }
-      });
+      b.addEventListener('click', function () { goTag(t); });
       wrap.appendChild(b);
     });
     return wrap;
   }
 
-  /* 大众评分：优先用后端缓存里的（服务器查一次大家都能用）。
-     后端查不到（比如机房出口被 AniList 拦了）就当场从浏览器查一次——
-     AniList 的接口允许跨域，而且走的是用户自己的网络，国内一般能通。 */
+  /* 后端没凑到大众评分时，当场用浏览器查一次 AniList——
+     它允许跨域，而且走的是用户自己的网络，国内一般能通。 */
   function fetchGlobalFromBrowser(sub) {
     var titles = [sub.jpTitle, sub.title].filter(Boolean);
     if (!titles.length) return;
@@ -309,7 +471,7 @@
         signal: ctrl ? ctrl.signal : undefined,
       }).then(function (r) { return r.json(); }).then(function (data) {
         clearTimeout(timer);
-        var m = data && data.data && data.Media;
+        var m = data && data.data && data.data.Media;
         if (!m || m.isAdult || !m.averageScore) { tryOne(i + 1); return; }
         var names = [m.title && m.title.native, m.title && m.title.romaji].map(norm).filter(Boolean);
         var want = norm(t);
@@ -319,12 +481,19 @@
         var cell = document.querySelector('#fgSheetBox .fg-score-big > div[data-big="global"]');
         if (cell) {
           cell.querySelector('b').textContent = fmtScore(score);
-          cell.querySelector('span').textContent = '大众评分 · 来自 AniList（本机实时查的）';
+          cell.querySelector('span').textContent = '大众评分 · 本机现查的 AniList';
           cell.className = 'is-live';
         }
       }).catch(function () { clearTimeout(timer); tryOne(i + 1); });
     }
     tryOne(0);
+  }
+
+  /* 「大众评分是哪几个平台平均出来的」写清楚，别让人以为是瞎编的 */
+  function globalNote(sub) {
+    var src = Array.isArray(sub.globalSources) ? sub.globalSources : [];
+    if (src.length) return src.map(function (s) { return s.name + ' ' + fmtScore(s.score); }).join(' · ');
+    return '几个平台的平均分';
   }
 
   function renderDetail(sub, reviews) {
@@ -335,7 +504,7 @@
     var img = document.createElement('img');
     img.className = 'fg-detail__cover';
     img.alt = sub.title + ' 封面';
-    if (sub.cover) img.src = sub.cover;
+    setCover(img, sub);
     head.appendChild(img);
 
     var meta = document.createElement('div');
@@ -381,7 +550,7 @@
     big.className = 'fg-score-big';
     [
       ['咕咪评分', sub.scoreGu, (sub.guCount || 0) + ' 人打过', 'gu'],
-      ['大众评分', sub.scoreGlobal, sub.scoreGlobalSrc === 'anilist' ? '来自 AniList' : '网上的一般评分', 'global'],
+      ['大众评分', sub.scoreGlobal, globalNote(sub), 'global'],
       ['B 站评分', sub.scoreBili, sub.scoreBiliCount ? sub.scoreBiliCount + ' 人打过' : 'B 站评分', 'bili'],
     ].forEach(function (r) {
       var d = document.createElement('div');
@@ -484,10 +653,8 @@
         var d = res.data;
         recBtn.textContent = d.on ? '已推荐（点一下取消）' : '推荐这部番';
         recWrap.className = 'fg-rec' + (d.on ? ' is-on' : '');
-        updateRecLine(d.recCount, d.need, d.hall, sub.adminRec);
-        msg(d.on
-          ? (d.hall ? '推荐成功，已经进「豪番推荐」了' : '推荐成功：现在 ' + d.recCount + ' 票，够 ' + d.need + ' 票就进豪番推荐')
-          : '取消推荐了');
+        updateRecLine(d.recCount, d.hall);
+        msg(d.on ? (d.hall ? '推荐成功，已经进「豪番推荐」了' : '推荐成功') : '取消推荐了');
       }, function () { recBtn.disabled = false; msg('网络不太好，没点上', true); });
     });
     recWrap.appendChild(recBtn);
@@ -546,19 +713,17 @@
     });
     sheetBox.appendChild(secRev);
 
-    updateRecLine(sub.recCount, sub.needRecs, sub.hall, sub.adminRec);
+    updateRecLine(sub.recCount, sub.hall);
     /* 后端没拿到大众评分时，当场用浏览器查一次 */
     if (sub.scoreGlobal == null) fetchGlobalFromBrowser(sub);
   }
 
-  function updateRecLine(count, need, hall, adminRec) {
+  function updateRecLine(count, hall) {
     var el = $('fgDetailRec');
     if (!el) return;
     var n = Number(count) || 0;
     var parts = ['已经有 ' + n + ' 人推荐'];
-    if (need) parts.push('够 ' + need + ' 票进「豪番推荐」');
-    if (adminRec) parts.push('管理员推荐过，已经上榜');
-    else if (hall) parts.push('已经进「豪番推荐」了');
+    if (hall) parts.push('已经在「豪番推荐」里了');
     el.textContent = parts.join(' · ');
   }
 
@@ -573,7 +738,7 @@
     loading.id = 'fgLoading';
     loading.textContent = '正在取这部番的信息…';
     sheetBox.appendChild(loading);
-    /* 把搜索结果里的日文原名带过去：大众评分按原名才找得准（B 站详情里有时没有原名） */
+    /* 把列表里的日文原名带过去：大众评分按原名才找得准（B 站详情里有时没有原名） */
     window.JHJX_API.fanguSubject(seasonId, jpTitle).then(function (res) {
       if (res.status !== 200) {
         sheetBox.innerHTML = '';
@@ -603,11 +768,12 @@
   }
 
   /* ---------------- 起来 ---------------- */
-  goBtn.addEventListener('click', function () { doSearch(); });
+  goBtn.addEventListener('click', function () { doSearch(null, 1); });
   queryEl.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+    if (e.key === 'Enter') { e.preventDefault(); doSearch(null, 1); }
   });
-  if (moreBtn) moreBtn.addEventListener('click', function () { msg('这个数据源一次就把结果给全了，换个关键词试试'); });
+  if (tabAll) tabAll.addEventListener('click', function () { if (state.mode !== 'hall') return; setTab(false); });
+  if (tabHall) tabHall.addEventListener('click', function () { if (state.mode === 'hall') return; setTab(true); });
   sheet.addEventListener('click', function (e) { if (e.target === sheet) closeSheet(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !sheet.hidden) closeSheet(); });
   window.addEventListener('jhjx:session', function () { location.reload(); });
@@ -618,6 +784,6 @@
   } else {
     guestEl.hidden = true;
     mainEl.hidden = false;
-    loadHome();
+    setTab(false);
   }
 })();

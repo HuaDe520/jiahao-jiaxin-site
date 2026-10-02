@@ -164,6 +164,93 @@
 
 .fg-empty { margin: 22px 0 0; color: var(--ink-mute); font-size: 14.5px; }
 .fg-more { margin: 18px 0 0; text-align: center; }
+
+/* ---------------- 两个栏目：全部番剧 / 豪番推荐 ---------------- */
+.fg-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(18, 101, 90, .07);
+  border: 1px solid rgba(18, 101, 90, .1);
+}
+.fg-tab {
+  flex: 1;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 10px 12px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--jade-800);
+  cursor: pointer;
+  transition: background .18s, box-shadow .18s, color .18s;
+}
+.fg-tab:hover { color: var(--jade-900); }
+.fg-tab.is-on {
+  background: #fff;
+  color: var(--jade-900);
+  box-shadow: 0 10px 22px -16px rgba(11, 63, 57, .8);
+}
+
+.fg-crumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 0;
+  font-size: 13px;
+  color: var(--ink-mute);
+}
+.fg-crumb__back {
+  appearance: none;
+  border: 1px solid rgba(18, 101, 90, .22);
+  background: #fff;
+  color: var(--jade-800);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.fg-crumb__back:hover { border-color: var(--gold-500); }
+
+/* ---------------- 数字翻页 ---------------- */
+.fg-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 22px 0 4px;
+}
+.fg-page-btn {
+  appearance: none;
+  min-width: 38px;
+  padding: 8px 10px;
+  border-radius: 11px;
+  border: 1px solid rgba(18, 101, 90, .18);
+  background: #fff;
+  color: var(--jade-800);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color .16s, background .16s, color .16s;
+}
+.fg-page-btn:hover { border-color: var(--gold-500); }
+.fg-page-btn.is-on {
+  background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
+  border-color: rgba(201, 162, 75, .7);
+  color: #2b2109;
+  font-weight: 700;
+}
+.fg-page-btn--nav { font-size: 13px; padding: 8px 12px; }
+.fg-page-btn[disabled] { opacity: .45; cursor: not-allowed; }
+.fg-page-gap { color: var(--ink-mute); padding: 0 2px; }
+.fg-page-info { flex-basis: 100%; text-align: center; font-size: 12.5px; color: var(--ink-mute); margin-top: 4px; }
 .fg-guest { margin: 20px 0; padding: 18px; border-radius: 16px; background: #fff; border: 1px dashed rgba(18, 101, 90, .3); }
 .fg-guest p { margin: 0 0 12px; color: var(--ink-soft); }
 

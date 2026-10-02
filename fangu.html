@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>番咕咪 · 浙江嘉豪嘉欣协会</title>
-<meta name="description" content="浙江嘉豪嘉欣协会嘉庭工作台·嘉番「番咕咪」：搜日番、看简介和类型标签，给分给评价；推荐够多就进豪番推荐。">
+<meta name="description" content="浙江嘉豪嘉欣协会嘉庭工作台·嘉番「番咕咪」：按名字搜番、按标签翻着找番，看简介和类型标签，给分给评价；推荐够多就进豪番推荐。">
 <meta name="theme-color" content="#0f5f56">
 <link rel="icon" href="assets/img/logo-main.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=6f4eea6e">
-<link rel="stylesheet" href="assets/css/fangu.css?v=923e921a">
+<link rel="stylesheet" href="assets/css/fangu.css?v=6e9c5b38">
 </head>
 <body class="fg-page">
 
@@ -50,7 +50,7 @@
       <header class="section__head">
         <p class="eyebrow"><span class="eyebrow__line"></span>嘉番 · 番咕咪</p>
         <h2>番咕咪</h2>
-        <p class="section__lead">搜日番、看简介和类型标签，按标签挑；每部番三个分数——咕咪评分（咱们自己打的）、大众评分、B 站评分，都是 10 分制。推荐的人够多，就进「豪番推荐」。</p>
+        <p class="section__lead">按名字搜，或者按「热血 / 奇幻 / 搞笑」这样的标签一页一页翻着找。每部番三个分数——咕咪评分（咱们自己打的）、大众评分（AniList、MyAnimeList、Bangumi 几个平台取平均）、B 站评分，都是 10 分制。看得顺眼的，点进去推荐一下。</p>
       </header>
 
       <!-- 登录前的样子 -->
@@ -60,33 +60,36 @@
       </div>
 
       <div id="fgMain" hidden>
-        <section id="fgHallWrap" hidden>
-          <h3 class="fg-h">豪番推荐</h3>
-          <p class="fg-hint" id="fgHallHint"></p>
-          <div class="fg-grid" id="fgHall"></div>
-        </section>
-
-        <div class="fg-search">
-          <label class="sr-only" for="fgQuery">搜番剧</label>
-          <input class="fg-input" id="fgQuery" type="search" placeholder="搜番名，中文、日文都行…" autocomplete="off" enterkeyhint="search">
-          <button class="fg-btn fg-btn--main" id="fgGo" type="button">搜一下</button>
+        <!-- 两个栏目：进来先看「全部番剧」，想看好番再点「豪番推荐」 -->
+        <div class="fg-tabs" role="tablist" aria-label="番咕咪栏目">
+          <button class="fg-tab is-on" id="fgTabAll" type="button" role="tab" aria-selected="true">全部番剧</button>
+          <button class="fg-tab" id="fgTabHall" type="button" role="tab" aria-selected="false">豪番推荐</button>
         </div>
+
         <p class="fg-msg" id="fgMsg"></p>
 
-        <div class="fg-filter" id="fgFilterWrap" hidden>
-          <span class="fg-filter__label">按标签筛：</span>
-          <div class="fg-tags" id="fgTags"></div>
-        </div>
+        <section id="fgAllPane">
+          <div class="fg-search">
+            <label class="sr-only" for="fgQuery">搜番剧</label>
+            <input class="fg-input" id="fgQuery" type="search" placeholder="搜番名，中文、日文都行…" autocomplete="off" enterkeyhint="search">
+            <button class="fg-btn fg-btn--main" id="fgGo" type="button">搜一下</button>
+          </div>
 
-        <div class="fg-grid" id="fgList"></div>
-        <div class="fg-more" id="fgMoreWrap" hidden>
-          <button class="fg-btn fg-btn--ghost" id="fgMore" type="button">再看一些</button>
-        </div>
-        <p class="fg-empty" id="fgEmpty">还没有结果。上面搜一个番名试试，比如「孤独摇滚」。</p>
+          <div class="fg-filter" id="fgFilterWrap">
+            <span class="fg-filter__label">按标签找番：</span>
+            <div class="fg-tags" id="fgTags"></div>
+          </div>
 
-        <section id="fgHotWrap" hidden>
-          <h3 class="fg-h">当季热门</h3>
-          <div class="fg-grid" id="fgHot"></div>
+          <p class="fg-crumb" id="fgCrumb" hidden></p>
+          <div class="fg-grid" id="fgList"></div>
+          <p class="fg-empty" id="fgEmpty" hidden></p>
+          <nav class="fg-pager" id="fgPager" hidden aria-label="翻页"></nav>
+        </section>
+
+        <section id="fgHallPane" hidden>
+          <p class="fg-hint" id="fgHallHint" hidden></p>
+          <div class="fg-grid" id="fgHall"></div>
+          <p class="fg-empty" id="fgHallEmpty" hidden>这里还空着。</p>
         </section>
       </div>
     </div>
@@ -119,7 +122,7 @@
       <a href="friends.html">好友</a>
     </nav>
     <div class="site-footer__meta">
-      <p>番剧信息与 B 站评分来自哔哩哔哩公开接口，大众评分来自 AniList，版权归原作者所有。</p>
+      <p>番剧信息、封面与 B 站评分来自哔哩哔哩公开接口，大众评分是 AniList、MyAnimeList、Bangumi 几个平台的平均分，版权归原作者所有。</p>
       <p>&copy; <span id="year">2026</span> 浙江嘉豪嘉欣协会 · 保留所有权利</p>
     </div>
   </div>
@@ -135,8 +138,8 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/api.js?v=7fa27886"></script>
-<script src="assets/js/fangu.js?v=f01f0b3c"></script>
+<script src="assets/js/api.js?v=89db6be2"></script>
+<script src="assets/js/fangu.js?v=aef77c36"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }

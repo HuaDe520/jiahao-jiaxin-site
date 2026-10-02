@@ -370,7 +370,12 @@
     qianciBoard: function (bank) { return call('GET', '/api/qianci/leaderboard?bank=' + encodeURIComponent(bank || 'cet4')); },
 
     /* ---------------- 番咕咪 ---------------- */
-    fanguSearch: function (q) { return call('GET', '/api/fangu/search?q=' + encodeURIComponent(q || '')); },
+    fanguSearch: function (q, page) {
+      return call('GET', '/api/fangu/search?q=' + encodeURIComponent(q || '') + '&page=' + encodeURIComponent(page || 1));
+    },
+    fanguBrowse: function (page, tag) {
+      return call('GET', '/api/fangu/browse?page=' + encodeURIComponent(page || 1) + '&tag=' + encodeURIComponent(tag || ''));
+    },
     fanguHome: function () { return call('GET', '/api/fangu/home'); },
     fanguSubject: function (seasonId, jpTitle) {
       var q = jpTitle ? '?jp=' + encodeURIComponent(jpTitle) : '';
@@ -382,6 +387,18 @@
     fanguRecommend: function (seasonId) {
       return call('POST', '/api/fangu/recommend', { seasonId: String(seasonId) });
     },
+
+    /* ---------------- 超豪飞行派对（联机飞行棋） ---------------- */
+    flightBoard: function () { return call('GET', '/api/flight/board'); },
+    flightCreate: function (maxPlayers) { return call('POST', '/api/flight/create', { maxPlayers: maxPlayers }); },
+    flightJoin: function (code) { return call('POST', '/api/flight/join', { code: String(code == null ? '' : code).trim() }); },
+    flightStart: function (code) { return call('POST', '/api/flight/start', { code: String(code) }); },
+    flightRoll: function (code) { return call('POST', '/api/flight/roll', { code: String(code) }); },
+    flightMove: function (code, plane) { return call('POST', '/api/flight/move', { code: String(code), plane: plane }); },
+    flightRoom: function (code) { return call('GET', '/api/flight/room?code=' + encodeURIComponent(code)); },
+    flightMine: function () { return call('GET', '/api/flight/mine'); },
+    flightLeave: function (code) { return call('POST', '/api/flight/leave', { code: String(code) }); },
+    flightAgain: function (code) { return call('POST', '/api/flight/again', { code: String(code) }); },
 
     /* 把接口返回的相对路径（头像）拼成完整地址 */
     asset: function (path) {
