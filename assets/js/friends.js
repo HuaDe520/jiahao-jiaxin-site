@@ -219,12 +219,17 @@
     v.appendChild(meta);
     b.appendChild(v);
 
-    /* 语音转文字：有就显示成气泡下面一行小字（重新渲染时也照原样画出来） */
+    /* 语音转文字：有就显示成气泡下面一行小字（重新渲染时也照原样画出来），
+       前面挂个「文字」小标，免得被当成消息正文 */
     var said = m.media ? String(m.media.text || '').trim() : '';
     if (said) {
       var line = document.createElement('span');
       line.className = 'fr-voice__text';
-      line.textContent = said;
+      var tag = document.createElement('span');
+      tag.className = 'fr-voice__tag';
+      tag.textContent = '文字';
+      line.appendChild(tag);
+      line.appendChild(document.createTextNode(said));
       b.appendChild(line);
     }
 
@@ -1565,11 +1570,22 @@
     if (rec.timer) { clearInterval(rec.timer); rec.timer = null; }
   }
 
+  function hideRecBar() {
+    var bar = $('frRecBar');
+    if (bar) bar.hidden = true;
+    var box = $('frRecText');
+    if (box) { box.textContent = ''; box.hidden = true; }
+    var note = $('frRecNote');
+    if (note) { note.textContent = ''; note.hidden = true; }
+  }
+
   function showRecBar() {
     var bar = $('frRecBar');
     if (bar) bar.hidden = false;
     var t = $('frRecTime');
     if (t) t.textContent = '0:00';
+    /* 开关状态和「能不能转」都摆在录音条上，别让用户找了半天找不到 */
+    paintStt();
     clearRecTimer();
     rec.timer = setInterval(recTicks, 250);
   }
@@ -1600,45 +1616,119 @@
     return s > 0 ? Math.round(s * 10) / 10 : 0;
   }
 
-  /* ---------------- 语音转文字（只在网页录音时试） ----------------
-     手机上点了「语音」就同时在录音和识别；识别不可用、被拒、报错都当没这回事，
-     绝不挡着录音和发送。App 原生录音时这边一次都不碰（会跟 App 抢话筒）。 */
-  var speech = { rec: null, text: '', active: false };
+  /* ---------------- 语音转文字（边录边转，只走网页录音那条路） ----------------
+     浏览器里点了「语音」就同时录音 + 识别，转出来的字跟着语音一起发出去，
+     显示在气泡下面。识别不可用、被拒、报错都不会挡着录音和发送。
+     · App 里用的是手机自带录音（原生桥），话筒被它占着，这边一次都不碰；
+     · 录音条上有一个「转文字 开/关」的开关，能看见、能关掉；
+     · 转不了的时候录音条上会写清楚为什么，不装作有这个功能。 */
+  var STT_KEY = 'jhjx-voice-stt';
+  var speech = { rec: null, text: '', live: '', active: false, broken: '' };
+
+  function sttOn() {
+    try { return localStorage.getItem(STT_KEY) !== 'off'; } catch (e) { return true; }
+  }
+
+  function setStt(on) {
+    try { localStorage.setItem(STT_KEY, on ? 'on' : 'off'); } catch (e) { /* 忽略 */ }
+  }
 
   function speechApi() {
     try { return window.SpeechRecognition || window.webkitSpeechRecognition || null; } catch (e) { return null; }
   }
 
+  /* 这台设备现在能不能转：App 里不行；浏览器里还得看有没有这接口 */
+  function sttWhy() {
+    if (window.JHJX_APP && nativeRecAvailable()) {
+      return 'App 里用的是手机自带录音，话筒被它占着，暂时转不了文字；用手机或电脑浏览器打开官网就能边录边转。';
+    }
+    if (!speechApi()) {
+      return '这个浏览器不支持边录边转文字（Chrome / Edge 可以），语音照常能发。';
+    }
+    if (speech.broken) {
+      return '这台设备上的语音识别用不了（' + speech.broken + '），语音照常能发。';
+    }
+    return '';
+  }
+
+  /* 录音条上的那几行：开关 + 转出来的字 + 说不清时的说明 */
+  function paintStt() {
+    var btn = $('frRecStt');
+    var box = $('frRecText');
+    var note = $('frRecNote');
+    var why = sttWhy();
+    var usable = !why;
+    if (btn) {
+      btn.textContent = '转文字 ' + (sttOn() ? '开' : '关');
+      btn.className = 'fr-rec__stt' + (sttOn() && usable ? ' is-on' : '');
+      btn.setAttribute('aria-pressed', sttOn() ? 'true' : 'false');
+      btn.disabled = !usable;
+    }
+    if (box) {
+      var shown = speech.live || speech.text || '';
+      box.textContent = shown;
+      box.hidden = !shown;
+    }
+    if (note) {
+      note.textContent = why;
+      note.hidden = !why;
+    }
+  }
+
   function startSpeech() {
     var Ctor = speechApi();
-    if (!Ctor || speech.active) return;
+    if (!Ctor || speech.active || !sttOn()) return;
+    /* 前面已经试坏过就别再试了，免得每次录音都白跑一趟 */
+    if (speech.broken) return;
     try {
       var r = new Ctor();
       r.lang = 'zh-CN';
       r.continuous = true;
-      r.interimResults = false;
+      r.interimResults = true;      /* 边说边显示，用户才知道真的在转 */
       r.onresult = function (e) {
         try {
-          var out = '';
+          var done = '';
+          var pending = '';
           for (var i = 0; i < e.results.length; i++) {
-            var hit = e.results[i] && e.results[i][0];
-            if (hit && hit.transcript) out += String(hit.transcript);
+            var one = e.results[i];
+            var hit = one && one[0];
+            if (!hit || !hit.transcript) continue;
+            if (one.isFinal) done += String(hit.transcript);
+            else pending += String(hit.transcript);
           }
-          out = out.replace(/\s+/g, ' ').trim();
-          if (out) speech.text = out.slice(0, 300);   /* 后端最多存 300 字 */
+          done = done.replace(/\s+/g, ' ').trim();
+          pending = pending.replace(/\s+/g, ' ').trim();
+          /* 有确定结果就用确定的；一直没有确定结果（有些识别只给临时结果）时，
+             暂时拿临时结果顶上，免得用户说了一路却一个字都没带上 */
+          var text = (done || pending).slice(0, 300);   /* 后端最多存 300 字 */
+          if (text) speech.text = text;
+          speech.live = (done + (pending ? (done ? ' ' : '') + pending : '')).trim().slice(0, 300);
+          paintStt();
         } catch (err) { /* 忽略 */ }
       };
-      r.onerror = function () { /* 转不了就算了，语音照发 */ };
+      r.onerror = function (e) {
+        /* 不是每种失败都值得劝退：no-speech / aborted 只是这一句没听清 */
+        var why = (e && e.error) || '';
+        if (why === 'not-allowed' || why === 'service-not-allowed' || why === 'audio-capture' || why === 'network') {
+          speech.broken = why;
+          paintStt();
+        }
+      };
       r.onend = function () { speech.active = false; };
       /* 先清干净再开：万一识别是同步回调，text 别被这一行盖掉 */
       speech.text = '';
+      speech.live = '';
       speech.rec = r;
       r.start();
       speech.active = true;
+      paintStt();
     } catch (e) {
       speech.rec = null;
       speech.active = false;
       speech.text = '';
+      speech.live = '';
+      speech.broken = (e && e.name) || 'start-failed';
+      paintStt();
     }
   }
 
@@ -1649,10 +1739,12 @@
     speech.rec = null;
     speech.active = false;
     speech.text = '';
+    speech.live = '';
     if (r) {
       try { if (r.stop) r.stop(); } catch (e) { /* 忽略 */ }
       try { if (r.abort) r.abort(); } catch (e) { /* 忽略 */ }
     }
+    if ($('frRecText')) paintStt();
     return text;
   }
 
@@ -3347,6 +3439,17 @@
   $('frChatVoice').addEventListener('click', startRecording);
   $('frRecCancel').addEventListener('click', function () { stopRecording(true); });
   $('frRecSend').addEventListener('click', function () { stopRecording(false); });
+  $('frRecStt').addEventListener('click', function () {
+    var on = !sttOn();
+    setStt(on);
+    if (on) {
+      /* 开着的时候正录着，就立刻补上识别 */
+      if (rec.mode === 'web') startSpeech();
+    } else {
+      stopSpeech();          /* 关掉就不转了，已经转出来的也不再跟着发 */
+    }
+    paintStt();
+  });
 
   /* 看大图：点浮层任意处或按 Esc 关掉 */
   $('frLightbox').addEventListener('click', closeLightbox);

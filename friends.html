@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=6f4eea6e">
-<link rel="stylesheet" href="assets/css/friends.css?v=7d4aa5f2">
+<link rel="stylesheet" href="assets/css/friends.css?v=89386f28">
 </head>
 <body class="fr-page">
 
@@ -142,11 +142,16 @@
                 <button class="fr-btn fr-btn--send" id="frChatSend" type="button">发送</button>
               </div>
               <div class="fr-rec" id="frRecBar" hidden>
-                <span class="fr-rec__dot" aria-hidden="true"></span>
-                <span class="fr-rec__label">正在录音</span>
-                <span class="fr-rec__time" id="frRecTime">0:00</span>
-                <button class="fr-btn fr-btn--ghost" id="frRecCancel" type="button">取消</button>
-                <button class="fr-btn" id="frRecSend" type="button">发送</button>
+                <div class="fr-rec__row">
+                  <span class="fr-rec__dot" aria-hidden="true"></span>
+                  <span class="fr-rec__label">正在录音</span>
+                  <span class="fr-rec__time" id="frRecTime">0:00</span>
+                  <button class="fr-rec__stt" id="frRecStt" type="button" aria-pressed="true" title="边录边转成文字">转文字 开</button>
+                  <button class="fr-btn fr-btn--ghost" id="frRecCancel" type="button">取消</button>
+                  <button class="fr-btn" id="frRecSend" type="button">发送</button>
+                </div>
+                <p class="fr-rec__text" id="frRecText" hidden></p>
+                <p class="fr-rec__note" id="frRecNote" hidden></p>
               </div>
             </div>
           </div>
@@ -233,7 +238,7 @@
 </a>
 
 <script src="assets/js/api.js?v=38ca985b"></script>
-<script src="assets/js/friends.js?v=46b35f61"></script>
+<script src="assets/js/friends.js?v=6eea5cbd"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }

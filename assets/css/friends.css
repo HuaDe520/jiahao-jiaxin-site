@@ -523,17 +523,39 @@
 
 /* 录音条 */
 .fr-rec {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  display: flex; flex-direction: column; gap: 8px;
   margin-top: 10px; padding: 9px 12px;
   border: 1.5px solid rgba(163, 55, 47, .28);
   background: rgba(163, 55, 47, .06);
   border-radius: 14px;
 }
+.fr-rec__row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .fr-rec__dot { width: 10px; height: 10px; border-radius: 50%; background: #a3372f; flex: none; animation: frBlink 1s infinite; }
 @keyframes frBlink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
 .fr-rec__label { font-size: 13px; font-weight: 700; color: #8c2f27; }
 .fr-rec__time { font-size: 14px; font-weight: 800; color: #8c2f27; min-width: 40px; }
-.fr-rec #frRecSend { margin-left: auto; }
+.fr-rec .fr-rec__row #frRecSend { margin-left: auto; }
+
+/* 「转文字」开关：能看到、能关掉，转不了的时候会说清为什么 */
+.fr-rec__stt {
+  font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  min-height: 34px; padding: 5px 11px; border-radius: 999px;
+  border: 1.5px solid rgba(140, 47, 39, .35);
+  background: rgba(255, 255, 255, .85); color: #8c2f27;
+  transition: background .18s, border-color .18s, color .18s;
+}
+.fr-rec__stt.is-on { background: #8c2f27; border-color: #8c2f27; color: #fff; }
+.fr-rec__stt[disabled] { opacity: .5; cursor: not-allowed; }
+
+/* 边录边转出来的字 */
+.fr-rec__text {
+  margin: 0; padding: 7px 10px; border-radius: 10px;
+  background: rgba(255, 255, 255, .8);
+  font-size: 13.5px; line-height: 1.6; color: var(--ink);
+  max-height: 96px; overflow-y: auto; word-break: break-word;
+}
+.fr-rec__text::before { content: "转写 "; color: #8c2f27; font-weight: 700; }
+.fr-rec__note { margin: 0; font-size: 12px; line-height: 1.5; color: #8c2f27; opacity: .85; }
 
 /* =========================================================
    新建群聊 / 拉人进群：页内选择框
@@ -813,6 +835,13 @@
   display: block; margin-top: 5px; padding-left: 7px;
   border-left: 3px solid currentColor; opacity: .9;
   font-size: 12.5px; line-height: 1.5; word-break: break-word;
+}
+/* 给个「文字」小标，一眼看出这行是转写、不是消息正文 */
+.fr-voice__tag {
+  display: inline-block; margin-right: 4px; padding: 0 5px;
+  border-radius: 5px; font-size: 10.5px; font-weight: 700;
+  background: rgba(18, 101, 90, .14); color: inherit; opacity: .95;
+  vertical-align: 1px;
 }
 
 /* ---------- 群设置：整屏抽屉 ---------- */
