@@ -1350,14 +1350,24 @@
     });
   }
 
-  /* 聊天区里的一行提示（比 alert 友好，手机上尤其明显），9 秒后自己收起来 */
+  /* 聊天区里的一行提示（比 alert 友好，手机上尤其明显），9 秒后自己收起来。
+     第三个参数可选：给一个「点一下就能去处理」的按钮，比如「打开设置」。 */
   var chatMsgTimer = 0;
-  function chatMsg(text, kind) {
+  function chatMsg(text, kind, actionLabel, action) {
     var el = $('frChatMsg');
     if (!el) { alert(text); return; }
-    showMsg(el, text, kind);
+    el.textContent = text;
+    el.className = 'fr-msg is-show is-' + (kind || 'ok');
+    if (actionLabel && action) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'fr-msg__act';
+      btn.textContent = actionLabel;
+      btn.addEventListener('click', function () { try { action(); } catch (e) { /* 忽略 */ } });
+      el.appendChild(btn);
+    }
     if (chatMsgTimer) clearTimeout(chatMsgTimer);
-    chatMsgTimer = setTimeout(function () { hideMsg(el); }, 9000);
+    chatMsgTimer = setTimeout(function () { hideMsg(el); }, 12000);
   }
 
   /* 手机 App 1.7 才带麦克风权限桥：更早的版本在 App 里必然录不了音 */
@@ -1369,13 +1379,42 @@
     } catch (e) { return false; }
   }
 
-  /* 录音失败要说清「是哪种失败、下一步怎么办」：
-     只丢一句「没有麦克风权限」，用户不知道去哪儿开。 */
+  /* App 自己知不知道麦克风权限的状态（1.9 起提供）：granted / denied / prompt */
+  function appMicState() {
+    try {
+      if (window.JHJX_APP && typeof window.JHJX_APP.micState === 'function') {
+        return String(window.JHJX_APP.micState() || '');
+      }
+    } catch (e) { /* 忽略 */ }
+    return '';
+  }
+
+  /* 留在页面上方便排查：用户截图/报错时能看到到底哪种失败 */
+  function noteMicDiag(err) {
+    try {
+      window.jhjxMicDiag = {
+        name: (err && err.name) || 'unknown',
+        message: (err && err.message) || '',
+        supported: micSupported,
+        inApp: !!window.JHJX_APP,
+        appVersion: (window.JHJX_APP && window.JHJX_APP.version) ? String(window.JHJX_APP.version()) : '',
+        appMicState: appMicState(),
+        secure: location.protocol === 'https:',
+        at: new Date().toISOString(),
+      };
+    } catch (e) { /* 忽略 */ }
+  }
+
+  /* 录音失败要说清「是哪种失败、下一步怎么办」。
+     踩过的坑：手机上 NotReadableError 大多数不是「别的应用占着」，
+     而是权限没给全 / 系统隐私开关关着，所以别再甩锅给别的应用。 */
   function micFailHint(err) {
     var name = (err && err.name) || '';
     var ua = (navigator && navigator.userAgent) || '';
+    var inApp = !!window.JHJX_APP;
+    var tag = name ? '（' + name + '）' : '';
     if (appTooOldForMic()) {
-      return '手机 App 要更新到 1.7 才能录音：在 App 里点「检查更新」，或到官网下载页装新版；也可以先发文字。';
+      return '手机 App 要更新到 1.8 才能录音：在 App 里点「检查更新」，或到官网下载页装新版；也可以先发文字。';
     }
     if (!micSupported) {
       if (/MicroMessenger/i.test(ua)) {
@@ -1387,24 +1426,37 @@
       return '这个浏览器不支持录音：换 Chrome / Safari / Edge 打开，或者直接发文字。';
     }
     if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'PermissionDeniedError') {
-      if (window.JHJX_APP) {
-        return '麦克风权限被拒了：到手机「设置 → 应用 → 掌上嘉协 → 权限」里打开「麦克风」，回来再点一次「语音」。';
+      if (inApp) {
+        return '麦克风权限还没给：到手机「设置 → 应用 → 掌上嘉协 → 权限」里打开「麦克风」，回来再点一次「语音」。' + tag;
       }
-      return '麦克风权限被拒了：点浏览器地址栏左边的锁图标 → 把「麦克风」改成「允许」，再点一次「语音」。';
+      return '麦克风权限被拒了：点浏览器地址栏左边的锁图标 → 把「麦克风」改成「允许」，再点一次「语音」。' + tag;
     }
     if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-      return '这台设备上没找到麦克风；也可以先发文字。';
+      return '这台设备上没找到麦克风；也可以先发文字。' + tag;
     }
-    if (name === 'NotReadableError' || name === 'TrackStartError') {
-      return '麦克风被别的应用占着了：关掉正在录音或通话的应用，再点一次「语音」。';
+    if (name === 'NotReadableError' || name === 'TrackStartError' || name === 'AbortError') {
+      if (inApp) {
+        var extra = appMicState() === 'denied' ? '（现在设置里是「已拒绝」）' : '';
+        return '麦克风打不开，多半是权限或隐私开关没放开' + extra
+          + '：到「设置 → 应用 → 掌上嘉协 → 权限」打开麦克风（有「隐私保护 / 麦克风」开关的机型也一并打开），再点一次「语音」。' + tag;
+      }
+      return '浏览器打不开麦克风：先看系统隐私设置里有没有允许浏览器用麦克风'
+        + '（Windows：设置 → 隐私 → 麦克风；手机：应用权限），再看有没有别的通话 / 录音 / 会议软件正占着。' + tag;
     }
     if (name === 'NotSupportedError') {
-      return '这个浏览器不认这种录音格式：换 Chrome / Safari 试试，或者先发文字。';
+      return '这个浏览器不认这种录音格式：换 Chrome / Safari 试试，或者先发文字。' + tag;
     }
     return '录音没起来' + (err && err.message ? '（' + err.message + '）' : '') + '；也可以先发文字。';
   }
 
   function startRecording() {
+    startRecordingTry(0);
+  }
+
+  /* 第一次打不开麦克风时先悄悄重试一次：
+     NotReadableError 有相当一部分是「上一秒刚被别的应用放出来」这种瞬时状态，
+     直接弹提示会吓人，也常常第二次就好了。 */
+  function startRecordingTry(attempt) {
     if (!micSupported) {
       chatMsg(micFailHint(null), 'error');
       return;
@@ -1456,6 +1508,20 @@
       if (rec.timer) clearInterval(rec.timer);
       rec.timer = setInterval(recTicks, 250);
     }, function (err) {
+      noteMicDiag(err);
+      var transient = err && (err.name === 'NotReadableError' || err.name === 'TrackStartError' || err.name === 'AbortError');
+      if (transient && attempt === 0) {
+        /* 瞬时占用/刚释放，先自己重试一次，别急着报错 */
+        setTimeout(function () { startRecordingTry(1); }, 700);
+        return;
+      }
+      /* 在 App 里再给一个「打开设置」的按钮，省得用户自己找菜单 */
+      if (window.JHJX_APP && typeof window.JHJX_APP.openMicSettings === 'function') {
+        chatMsg(micFailHint(err), 'error', '打开设置', function () {
+          try { window.JHJX_APP.openMicSettings(); } catch (e) { /* 忽略 */ }
+        });
+        return;
+      }
       chatMsg(micFailHint(err), 'error');
     });
   }

@@ -1,12 +1,12 @@
 {
-    "versionCode":  9,
-    "versionName":  "1.8",
-    "file":  "zhangshang-jiaxie-1.8.apk",
-    "url":  "https://xbc-zjja.com.cn/download/zhangshang-jiaxie-1.8.apk",
-    "urlBackup":  "https://huade520.github.io/jiahao-jiaxin-site/download/zhangshang-jiaxie-1.8.apk",
+    "versionCode":  10,
+    "versionName":  "1.9",
+    "file":  "zhangshang-jiaxie-1.9.apk",
+    "url":  "https://xbc-zjja.com.cn/download/zhangshang-jiaxie-1.9.apk",
+    "urlBackup":  "https://huade520.github.io/jiahao-jiaxin-site/download/zhangshang-jiaxie-1.9.apk",
     "size":  136555,
-    "sha256":  "29df7077a1877894118cabb471b55b8b47626743d5ef05a0750e1ea8b0815570",
-    "notes":  "1.8 版修好了「检查更新」：以前查一次失败也要等 6 小时才会再查（网络一抖就整天不提示），现在查到了一小时一次、没查到 3 分钟就重试，回到前台也会顺便看一眼。下载也换了更稳的做法：每次用新文件名（旧文件会让系统下载器直接失败）、下载失败或卡住 90 秒会自动改用浏览器下载，不会让你干等。",
+    "sha256":  "161dd4465c5cccd1f073734ddd8cf74c628674078c5ab40b79577055ca996d35",
+    "notes":  "1.9 版：录音失败不再乱说是「被别的应用占着」了——现在手机上打不开麦克风，多半是权限或系统隐私开关没放开；录音失败时页面会直接给一个「打开设置」按钮，一点就跳到本应用的权限页。另外第一次打不开会先自己重试一次（很多是刚被别的应用放出来的瞬时状态）。",
     "forceBelow":  1,
     "releasedAt":  "2026-10-02"
 }
