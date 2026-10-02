@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=6f4eea6e">
-<link rel="stylesheet" href="assets/css/fangu.css?v=ce577fb1">
+<link rel="stylesheet" href="assets/css/fangu.css?v=66cdbf95">
 </head>
 <body class="fg-page">
 
@@ -69,6 +69,12 @@
         <p class="fg-msg" id="fgMsg"></p>
 
         <section id="fgAllPane">
+          <!-- 两个片库：B 站上架的，和 AniList 那边更全的（国内没引进的也在） -->
+          <div class="fg-src" role="tablist" aria-label="片库">
+            <button class="fg-src__tab is-on" id="fgSrcBili" type="button" role="tab" aria-selected="true">B 站片库</button>
+            <button class="fg-src__tab" id="fgSrcMore" type="button" role="tab" aria-selected="false">更多番剧</button>
+          </div>
+
           <div class="fg-search">
             <label class="sr-only" for="fgQuery">搜番剧</label>
             <input class="fg-input" id="fgQuery" type="search" placeholder="搜番名，中文、日文都行…" autocomplete="off" enterkeyhint="search">
@@ -144,8 +150,8 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/api.js?v=486afa1b"></script>
-<script src="assets/js/fangu.js?v=8b36965a"></script>
+<script src="assets/js/api.js?v=d5fe53ce"></script>
+<script src="assets/js/fangu.js?v=11b14173"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }

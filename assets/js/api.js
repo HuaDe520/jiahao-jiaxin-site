@@ -378,6 +378,10 @@
       if (score) q += '&score=' + encodeURIComponent(score) + '&min=' + encodeURIComponent(min || 0) + '&max=' + encodeURIComponent(max == null ? 10 : max);
       return call('GET', q);
     },
+    /* 第二个片库（AniList）：国内没引进的番在这儿 */
+    fanguMore: function (page, genre) {
+      return call('GET', '/api/fangu/more?page=' + encodeURIComponent(page || 1) + '&genre=' + encodeURIComponent(genre || ''));
+    },
     fanguHome: function () { return call('GET', '/api/fangu/home'); },
     /* 一页番的大众评分（列表翻完顺手要一次，服务器会边算边记）。
        把名字和 B 站评分一起带过去，服务器就不用为了算分把每部番都抓一遍 */

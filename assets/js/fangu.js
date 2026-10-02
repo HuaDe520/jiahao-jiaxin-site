@@ -32,11 +32,14 @@
   var scoreWrap = $('fgScoreWrap');
   var scoreFiltersEl = $('fgScoreFilters');
   var libHint = $('fgLibHint');
+  var srcBili = $('fgSrcBili');
+  var srcMore = $('fgSrcMore');
   var sheet = $('fgSheet');
   var sheetBox = $('fgSheetBox');
 
   var state = {
     mode: 'browse',    /* browse（翻着看）/ search（按名字搜）/ hall（豪番推荐） */
+    src: 'bili',       /* 片库：bili = B 站上架的；anilist = 更多番剧（国内没引进的也在） */
     page: 1,
     pages: 1,
     total: 0,
@@ -141,6 +144,8 @@
       ['global', '大众', s.scoreGlobal, s.scoreFew ? '来源太少' : ''],
       ['bili', 'B站', s.scoreBili, ''],
     ];
+    /* AniList 片库的番本来就不在 B 站上，别摆一个「B站 暂无」占地方 */
+    if (s.src === 'anilist') rows = rows.slice(0, 2);
     rows.forEach(function (r) {
       var span = document.createElement('span');
       var v = fmtScore(r[2]);
@@ -232,7 +237,8 @@
         state.tag = String(id);
         state.keyword = '';
         queryEl.value = '';
-        loadBrowse(1);
+        if (state.src === 'anilist') loadMore(1);
+        else loadBrowse(1);
       });
       tagsEl.appendChild(b);
     }
@@ -266,6 +272,7 @@
     var startX = 0;
     var startLeft = 0;
     var dragged = false;
+    var dragEndAt = 0;
     box.addEventListener('pointerdown', function (e) {
       if (e.pointerType === 'touch') return;      /* 触摸本来就能滑，不用自己管 */
       down = true;
@@ -284,6 +291,7 @@
     function release(e) {
       if (!down) return;
       down = false;
+      if (dragged) dragEndAt = Date.now();
       box.classList.remove('is-dragging');
       try { box.releasePointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
     }
@@ -298,10 +306,11 @@
       e.preventDefault();
       box.scrollLeft += d;
     }, { passive: false });
-    /* 拖过一下就别当成「点了这个分数段」 */
+    /* 刚拖过的那一下别当成「点了这个分数段」——只挡紧跟着的这一次，
+       拖完过一会儿再点照样好使 */
     box.addEventListener('click', function (e) {
-      if (!dragged) return;
-      dragged = false;
+      if (!dragEndAt || Date.now() - dragEndAt > 350) return;
+      dragEndAt = 0;
       e.preventDefault();
       e.stopPropagation();
     }, true);
@@ -527,7 +536,7 @@
     } else {
       if (state.tag) parts.push('标签「' + (tagName(state.tag) || state.tag) + '」');
       if (state.score) parts.push(scoreLabel());
-      if (!parts.length) parts.push('全部番剧 · 按追番人数排');
+      if (!parts.length) parts.push(state.src === 'anilist' ? '更多番剧 · 按人气排' : '全部番剧 · 按追番人数排');
       parts.push('共 ' + (state.total || 0) + ' 部');
     }
     var span = document.createElement('span');
@@ -545,7 +554,8 @@
         state.max = 10;
         state.keyword = '';
         queryEl.value = '';
-        loadBrowse(1);
+        if (state.src === 'anilist') loadMore(1);
+        else loadBrowse(1);
       });
       crumbEl.appendChild(back);
     }
@@ -556,6 +566,7 @@
     var pages = Number(state.pages) || 1;
     if (p < 1 || p > pages || p === state.page) return;
     if (state.mode === 'search') doSearch(state.keyword, p);
+    else if (state.src === 'anilist') loadMore(p);
     else loadBrowse(p);
     try {
       var top = listEl.getBoundingClientRect().top + window.pageYOffset - 130;
@@ -563,10 +574,33 @@
     } catch (e) { /* 老浏览器不支持平滑滚动就算了 */ }
   }
 
-  /* 翻着看：一页 20 部，带标签 / 评分筛选
-     手快连点几下时，只认最后一次（不然前面的请求还没回来，后面点的就没反应） */
-  var queuedPage = null;
-  function loadBrowse(page) {
+  /* 换片库：B 站上架的那批 / AniList 那边更全的那批 */
+  function setSrc(src) {
+    var more = src === 'anilist';
+    state.src = more ? 'anilist' : 'bili';
+    state.tag = '';
+    state.score = '';
+    state.min = 0;
+    state.max = 10;
+    state.keyword = '';
+    state.span = 2;
+    queryEl.value = '';
+    if (srcBili) {
+      srcBili.className = 'fg-src__tab' + (more ? '' : ' is-on');
+      srcBili.setAttribute('aria-selected', more ? 'false' : 'true');
+    }
+    if (srcMore) {
+      srcMore.className = 'fg-src__tab' + (more ? ' is-on' : '');
+      srcMore.setAttribute('aria-selected', more ? 'true' : 'false');
+    }
+    /* 按评分找番那几行是给 B 站片库用的（评分是服务器按 B 站索引扫出来的） */
+    if (scoreWrap) scoreWrap.hidden = more;
+    if (more) loadMore(1);
+    else loadBrowse(1);
+  }
+
+  /* 「更多番剧」：AniList 的片库，按人气排，也能按类型筛 */
+  function loadMore(page) {
     if (state.busy) { queuedPage = page || 1; return null; }
     state.busy = true;
     msg('正在翻…');
@@ -575,10 +609,68 @@
       if (queuedPage !== null) {
         var p = queuedPage;
         queuedPage = null;
-        loadBrowse(p);
+        if (state.src === 'anilist') loadMore(p);
+        else loadBrowse(p);
+      }
+    }
+    var pending = window.JHJX_API.fanguMore(page || 1, state.tag).then(function (res) {
+      if (res.status !== 200) {
+        settled();
+        msg((res.data && res.data.error) || '列表没取回来，过一会儿再试', true);
+        return;
+      }
+      var d = res.data || {};
+      state.mode = 'browse';
+      state.src = 'anilist';
+      state.page = Number(d.page) || 1;
+      state.pages = Number(d.pages) || 1;
+      state.total = Number(d.total) || 0;
+      state.results = d.list || [];
+      state.tag = String(d.genre || '');
+      state.tags = d.genres || [];
+      state.keyword = '';
+      queryEl.value = '';
+      if (libHint) {
+        libHint.hidden = false;
+        libHint.textContent = '这一份是 AniList 的片库：国内没引进的番（比如「我推的孩子」）也在这儿，共 ' + state.total + ' 部。';
+      }
+      renderTags();
+      renderList();
+      renderPager();
+      renderCrumb();
+      emptyEl.hidden = state.results.length > 0;
+      if (!state.results.length) emptyEl.textContent = '这一档没取到番，换个类型或者翻回去看看。';
+      msg('');
+      settled();
+    }, function () {
+      settled();
+      msg('网络不太好，列表没取回来', true);
+    });
+    return pending;
+  }
+
+  /* 翻着看：一页 20 部，带标签 / 评分筛选
+     手快连点几下时，只认最后一次（不然前面的请求还没回来，后面点的就没反应） */
+  var queuedPage = null;
+  var browseSig = '';      /* 这一次要的是哪一套筛选：过期的响应直接丢掉 */
+  function loadBrowse(page) {
+    if (state.busy) { queuedPage = page || 1; return null; }
+    state.busy = true;
+    var want = [page || 1, state.tag, state.score, state.min, state.max].join('|');
+    browseSig = want;
+    msg('正在翻…');
+    function settled() {
+      state.busy = false;
+      if (queuedPage !== null) {
+        var p = queuedPage;
+        queuedPage = null;
+        if (state.src === 'anilist') loadMore(p);
+        else loadBrowse(p);
       }
     }
     var pending = window.JHJX_API.fanguBrowse(page || 1, state.tag, state.score, state.min, state.max).then(function (res) {
+      /* 手快连点了几下：这份响应已经不是最新那一次要的了，别拿它去盖 */
+      if (browseSig !== want) { settled(); return; }
       if (res.status !== 200) {
         settled();
         msg((res.data && res.data.error) || '列表没取回来，过一会儿再试', true);
@@ -981,6 +1073,16 @@
       out.rel = 'noopener noreferrer';
       out.textContent = '去 B 站看';
       acts.appendChild(out);
+    } else if (sub.out) {
+      /* AniList 片库的番：B 站那边没有，给个去 AniList 看的出口 */
+      var outAl = document.createElement('a');
+      outAl.className = 'fg-btn fg-btn--ghost';
+      outAl.id = 'fgAlLink';
+      outAl.href = sub.out;
+      outAl.target = '_blank';
+      outAl.rel = 'noopener noreferrer';
+      outAl.textContent = '去 AniList 看';
+      acts.appendChild(outAl);
     } else {
       /* B 站那边没有（或者已经下架）：不给外链，点了就说清，别让人白跳一趟 */
       var off = document.createElement('button');
@@ -1099,6 +1201,8 @@
   });
   if (tabAll) tabAll.addEventListener('click', function () { if (state.mode !== 'hall') return; setTab(false); });
   if (tabHall) tabHall.addEventListener('click', function () { if (state.mode === 'hall') return; setTab(true); });
+  if (srcBili) srcBili.addEventListener('click', function () { if (state.src === 'bili' && state.mode !== 'search') return; setSrc('bili'); });
+  if (srcMore) srcMore.addEventListener('click', function () { if (state.src === 'anilist' && state.mode !== 'search') return; setSrc('anilist'); });
   sheet.addEventListener('click', function (e) { if (e.target === sheet) closeSheet(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !sheet.hidden) closeSheet(); });
   window.addEventListener('jhjx:session', function () { location.reload(); });
