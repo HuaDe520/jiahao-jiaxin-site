@@ -463,14 +463,24 @@
     } catch (e) { /* 老浏览器不支持平滑滚动就算了 */ }
   }
 
-  /* 翻着看：一页 20 部，带标签 / 评分筛选 */
+  /* 翻着看：一页 20 部，带标签 / 评分筛选
+     手快连点几下时，只认最后一次（不然前面的请求还没回来，后面点的就没反应） */
+  var queuedPage = null;
   function loadBrowse(page) {
-    if (state.busy) return null;
+    if (state.busy) { queuedPage = page || 1; return null; }
     state.busy = true;
     msg('正在翻…');
-    var pending = window.JHJX_API.fanguBrowse(page || 1, state.tag, state.score, state.min, state.max).then(function (res) {
+    function settled() {
       state.busy = false;
+      if (queuedPage !== null) {
+        var p = queuedPage;
+        queuedPage = null;
+        loadBrowse(p);
+      }
+    }
+    var pending = window.JHJX_API.fanguBrowse(page || 1, state.tag, state.score, state.min, state.max).then(function (res) {
       if (res.status !== 200) {
+        settled();
         msg((res.data && res.data.error) || '列表没取回来，过一会儿再试', true);
         return;
       }
@@ -511,8 +521,9 @@
           : '这一档没挑出番来，换个分数段试试。';
       }
       msg('');
+      settled();
     }, function () {
-      state.busy = false;
+      settled();
       msg('网络不太好，列表没取回来', true);
     });
     return pending;

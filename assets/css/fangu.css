@@ -253,6 +253,33 @@
 .fg-page-btn--nav { font-size: 13px; padding: 8px 12px; }
 .fg-page-btn[disabled] { opacity: .45; cursor: not-allowed; }
 .fg-page-gap { color: var(--ink-mute); padding: 0 2px; }
+/* 省略号是个按钮：点一下多展开十页出来 */
+.fg-page-btn--gap { color: var(--ink-mute); font-weight: 700; letter-spacing: 1px; }
+.fg-page-btn--gap:hover { color: var(--jade-800); border-color: var(--gold-500); }
+/* 直接写页码跳过去 */
+.fg-jump {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ink-mute);
+}
+.fg-jump__input {
+  width: 74px;
+  padding: 7px 9px;
+  border-radius: 10px;
+  border: 1px solid rgba(18, 101, 90, .18);
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  color: var(--jade-900);
+  text-align: center;
+}
+.fg-jump__input:focus { outline: 2px solid rgba(201, 162, 75, .55); outline-offset: 1px; }
+.fg-jump__go { padding: 7px 12px; font-size: 13px; }
 .fg-page-info { flex-basis: 100%; text-align: center; font-size: 12.5px; color: var(--ink-mute); margin-top: 4px; }
 
 /* ---------------- 按评分找番：一行一档评分，一行里往右划 ---------------- */
