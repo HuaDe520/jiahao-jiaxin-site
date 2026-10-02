@@ -131,11 +131,23 @@
     });
   }
 
-  /* ---------------- 成员 ---------------- */
-  function renderUsers(list) {
+  /* ---------------- 成员 ----------------
+     管理员看到的是协会全部成员：列表给出 total/shown，还能按昵称或 #编号搜 */
+  var userQuery = '';
+
+  function renderUsers(data) {
+    var list = (data && data.users) || [];
     usersEl.innerHTML = '';
+    var countEl = $('adUsersCount');
+    if (countEl) {
+      countEl.textContent = userQuery
+        ? ('搜「' + userQuery + '」找到 ' + list.length + ' 位；协会一共 ' + (data.total || 0) + ' 位')
+        : ('协会一共 ' + (data.total || list.length) + ' 位成员，这儿全部列出来了');
+    }
+    var clearBtn = $('adUserClear');
+    if (clearBtn) clearBtn.hidden = !userQuery;
     if (!list.length) {
-      usersEl.appendChild(empty('还没有成员。'));
+      usersEl.appendChild(empty(userQuery ? '没有这个昵称（或者编号）的成员。' : '还没有成员。'));
       return;
     }
     var me = API.user() || {};
@@ -361,7 +373,7 @@
     return Promise.all([
       API.adminSummary(),
       typing ? Promise.resolve({ status: 0, data: {} }) : API.adminReports(showAll ? 'all' : 'open'),
-      API.adminUsers(),
+      API.adminUsers(userQuery),
     ]).then(function (res) {
       var s = res[0], reps = res[1], us = res[2];
       /* 401（凭证过期/被挤下线）和 403（不是管理员）都要有交代，
@@ -382,7 +394,7 @@
       }
       if (s.status === 200) renderSummary(s.data);
       if (reps.status === 200) renderReports(reps.data.reports || []);
-      if (us.status === 200) renderUsers(us.data.users || []);
+      if (us.status === 200) renderUsers(us.data);
       var d = new Date();
       $('adUpdated').textContent = '最后更新 ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
     });
@@ -424,6 +436,21 @@
   titleEl.insertBefore(toggle, titleEl.firstChild);
 
   /* ---------------- 启动 ---------------- */
+  /* 成员那一栏的搜索：按昵称或 #编号找人都行 */
+  (function bindUserSearch() {
+    var input = $('adUserQuery');
+    var go = $('adUserGo');
+    var clear = $('adUserClear');
+    if (!input || !go) return;
+    function run() {
+      userQuery = String(input.value || '').trim();
+      load();
+    }
+    go.addEventListener('click', run);
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); run(); } });
+    if (clear) clear.addEventListener('click', function () { input.value = ''; userQuery = ''; load(); });
+  })();
+
   var user = API.user();
   if (!user || !API.token() || user.role !== 'admin') {
     guard.hidden = false;

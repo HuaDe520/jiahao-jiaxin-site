@@ -146,6 +146,7 @@
   background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
   color: #2b2109;
 }
+.fg-card__flag--film { background: linear-gradient(135deg, #6f8fd8, #3b6fc4); color: #fff; }
 
 /* 三档评分徽章 */
 .fg-scores { display: flex; flex-wrap: wrap; gap: 6px; }

@@ -173,6 +173,12 @@
       flag.className = 'fg-card__flag';
       flag.textContent = '豪番推荐';
       el.appendChild(flag);
+    } else if (item.film) {
+      /* 剧场版 / 动漫电影：B 站把它们放在影视那边，标一下免得以为是漏了集数 */
+      var filmFlag = document.createElement('span');
+      filmFlag.className = 'fg-card__flag fg-card__flag--film';
+      filmFlag.textContent = '剧场版';
+      el.appendChild(filmFlag);
     }
     var img = document.createElement('img');
     img.className = 'fg-card__cover';
@@ -272,20 +278,28 @@
     var startX = 0;
     var startLeft = 0;
     var dragged = false;
+    var captured = false;
     var dragEndAt = 0;
     box.addEventListener('pointerdown', function (e) {
       if (e.pointerType === 'touch') return;      /* 触摸本来就能滑，不用自己管 */
       down = true;
       dragged = false;
+      captured = false;
       startX = e.clientX;
       startLeft = box.scrollLeft;
       box.classList.add('is-dragging');
-      try { box.setPointerCapture(e.pointerId); } catch (err) { /* 老浏览器没有也能用滚轮 */ }
+      /* 注意：这里先**不要**抓 pointer。一抓，后面的 click 就被这一行截走了，
+         分数段那一个个按钮就点不动了；等真的拖起来再抓 */
     });
     box.addEventListener('pointermove', function (e) {
       if (!down) return;
       var dx = e.clientX - startX;
-      if (Math.abs(dx) > 4) dragged = true;
+      if (Math.abs(dx) > 6 && !captured) {
+        dragged = true;
+        captured = true;
+        try { box.setPointerCapture(e.pointerId); } catch (err) { /* 老浏览器没有也能用滚轮 */ }
+      }
+      if (!dragged) return;
       box.scrollLeft = startLeft - dx;
     });
     function release(e) {
@@ -293,7 +307,10 @@
       down = false;
       if (dragged) dragEndAt = Date.now();
       box.classList.remove('is-dragging');
-      try { box.releasePointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+      if (captured) {
+        try { box.releasePointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+        captured = false;
+      }
     }
     box.addEventListener('pointerup', release);
     box.addEventListener('pointercancel', release);
@@ -599,23 +616,45 @@
     else loadBrowse(1);
   }
 
+  /* 翻着看：一页 20 部，带标签 / 评分筛选
+     手快连点几下时，只认最后一次：手上有请求没回来，就把「想要什么」记在 queued 里，
+     等它回来再按最新的那一套拉一趟，中间过期的响应直接丢掉 */
+  var queued = null;       /* 手快又点了一下：把「想要什么」记下来，忙完按它来 */
+  var inFlight = 0;        /* 手上还有几趟列表请求没回来 */
+  var listSeq = 0;         /* 第几趟：只认最后发出去的那一趟 */
+  function settleList() {
+    inFlight = Math.max(0, inFlight - 1);
+    if (inFlight > 0) return;
+    state.busy = false;
+    if (queued === null) return;
+    var q = queued;
+    queued = null;
+    if (state.src === 'anilist') loadMore(q.page);
+    else runBrowse(q);
+  }
+  /* 可以给页码，也可以直接给一份「想要什么」（queued 里存的就是这个） */
+  function browseIntent(page) {
+    if (page && typeof page === 'object') return page;
+    return { page: page || 1, tag: state.tag, score: state.score, min: state.min, max: state.max };
+  }
+  /* 翻着看：一页 20 部，带标签 / 评分筛选 */
+  function loadBrowse(page) {
+    var want = browseIntent(page);
+    if (state.busy) { queued = want; return null; }
+    return runBrowse(want);
+  }
+
   /* 「更多番剧」：AniList 的片库，按人气排，也能按类型筛 */
   function loadMore(page) {
-    if (state.busy) { queuedPage = page || 1; return null; }
+    if (state.busy) { queued = { page: page || 1, genre: state.tag }; return null; }
+    var mySeq = ++listSeq;
+    inFlight++;
     state.busy = true;
     msg('正在翻…');
-    function settled() {
-      state.busy = false;
-      if (queuedPage !== null) {
-        var p = queuedPage;
-        queuedPage = null;
-        if (state.src === 'anilist') loadMore(p);
-        else loadBrowse(p);
-      }
-    }
     var pending = window.JHJX_API.fanguMore(page || 1, state.tag).then(function (res) {
+      if (mySeq !== listSeq) { settleList(); return; }
       if (res.status !== 200) {
-        settled();
+        settleList();
         msg((res.data && res.data.error) || '列表没取回来，过一会儿再试', true);
         return;
       }
@@ -641,41 +680,31 @@
       emptyEl.hidden = state.results.length > 0;
       if (!state.results.length) emptyEl.textContent = '这一档没取到番，换个类型或者翻回去看看。';
       msg('');
-      settled();
+      settleList();
     }, function () {
-      settled();
+      settleList();
       msg('网络不太好，列表没取回来', true);
     });
     return pending;
   }
 
   /* 翻着看：一页 20 部，带标签 / 评分筛选
-     手快连点几下时，只认最后一次（不然前面的请求还没回来，后面点的就没反应） */
-  var queuedPage = null;
-  var browseSig = '';      /* 这一次要的是哪一套筛选：过期的响应直接丢掉 */
-  function loadBrowse(page) {
-    if (state.busy) { queuedPage = page || 1; return null; }
+     手快连点几下时，只认最后一次：手上有请求没回来，就把「想要什么」记在 queued 里，
+     等它回来再按最新的那一套拉一趟，中间过期的响应直接丢掉 */
+  function runBrowse(want) {
+    var mySeq = ++listSeq;
+    inFlight++;
     state.busy = true;
-    var want = [page || 1, state.tag, state.score, state.min, state.max].join('|');
-    browseSig = want;
     msg('正在翻…');
-    function settled() {
-      state.busy = false;
-      if (queuedPage !== null) {
-        var p = queuedPage;
-        queuedPage = null;
-        if (state.src === 'anilist') loadMore(p);
-        else loadBrowse(p);
-      }
-    }
-    var pending = window.JHJX_API.fanguBrowse(page || 1, state.tag, state.score, state.min, state.max).then(function (res) {
+    var pending = window.JHJX_API.fanguBrowse(want.page, want.tag, want.score, want.min, want.max).then(function (res) {
       /* 手快连点了几下：这份响应已经不是最新那一次要的了，别拿它去盖 */
-      if (browseSig !== want) { settled(); return; }
+      if (mySeq !== listSeq) { settleList(); return; }
       if (res.status !== 200) {
-        settled();
+        settleList();
         msg((res.data && res.data.error) || '列表没取回来，过一会儿再试', true);
         return;
       }
+      var lib = state.score === 'gu';
       var d = res.data || {};
       state.mode = 'browse';
       state.page = Number(d.page) || 1;
@@ -702,7 +731,6 @@
       /* 咕咪评分只有咱们自己打过分（点开过）的番才有：这一份是从哪儿来的要说清楚。
          大众评分每部番都有，服务器边挑边算，没算完的会告诉我们还差几部 */
       if (libHint) {
-        var lib = state.score === 'gu';
         var parts = [];
         if (lib) parts.push('咕咪评分只有本站点开过的番才有，所以这一份是从「本站看过的番」里挑的（一共 ' + state.total + ' 部）。');
         if (state.pending > 0) parts.push('这一档还有 ' + state.pending + ' 部的大众评分正在核对，翻下一页或者过会儿再看就会补齐。');
@@ -716,9 +744,9 @@
           : '这一档没挑出番来，换个分数段试试。';
       }
       msg('');
-      settled();
+      settleList();
     }, function () {
-      settled();
+      settleList();
       msg('网络不太好，列表没取回来', true);
     });
     return pending;

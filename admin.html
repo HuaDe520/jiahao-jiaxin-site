@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=6f4eea6e">
-<link rel="stylesheet" href="assets/css/account.css?v=3b43df36">
+<link rel="stylesheet" href="assets/css/account.css?v=a1988bc8">
 </head>
 <body class="ac-page">
 
@@ -100,6 +100,19 @@
           </div>
 
           <div class="ac-card" id="adUsersCard" hidden>
+            <div class="ac-card__head" style="margin-bottom:10px">
+              <span>
+                <h2 style="font-size:16px">协会成员</h2>
+                <p class="ac-card__sub">协会的每一位成员都在这儿（不分是不是你的好友）。</p>
+              </span>
+            </div>
+            <div class="ac-search">
+              <label class="sr-only" for="adUserQuery">搜成员</label>
+              <input class="ac-input" id="adUserQuery" type="search" placeholder="搜昵称，或者填 #编号" autocomplete="off">
+              <button class="ac-btn ac-btn--ghost" id="adUserGo" type="button">搜一下</button>
+              <button class="ac-btn ac-btn--ghost" id="adUserClear" type="button" hidden>看全部</button>
+            </div>
+            <p class="ac-foot" id="adUsersCount"></p>
             <div class="ac-list" id="adUsers"></div>
           </div>
         </div>
@@ -148,8 +161,8 @@
   <span>返回首页</span>
 </a>
 
-<script src="assets/js/api.js?v=e1337de1"></script>
-<script src="assets/js/admin.js?v=584acd7a"></script>
+<script src="assets/js/api.js?v=34a63fe5"></script>
+<script src="assets/js/admin.js?v=90c27996"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }
