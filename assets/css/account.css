@@ -118,6 +118,8 @@
 }
 .ac-me__name { font-size: 22px; font-weight: 800; color: var(--jade-900); letter-spacing: .02em; }
 .ac-me__meta { font-size: 13px; color: var(--ink-mute); margin-top: 5px; }
+/* 头像被管理员代换过时，跟本人说一声是谁换的（没这回事的时候是空的，不占位置） */
+.ac-me__by { display: block; margin-top: 2px; color: var(--jade-800); }
 
 .ac-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .ac-chip {

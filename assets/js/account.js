@@ -46,6 +46,11 @@
     }
     $('acName2').textContent = user.name;
     $('acMeta').textContent = '加入于 ' + fmtDate(user.createdAt);
+    /* 头像是管理员代换的：跟本人说一声是谁换的、什么时候 */
+    var byAdmin = user.avatarByAdmin;
+    $('acAvatarBy').textContent = (byAdmin && user.avatar)
+      ? '头像由管理员 ' + byAdmin.name + ' 于 ' + fmtDate(byAdmin.at) + ' 更换'
+      : '';
 
     var chips = $('acChips');
     chips.innerHTML = '';
