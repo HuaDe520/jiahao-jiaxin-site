@@ -135,6 +135,24 @@
      管理员看到的是协会全部成员：列表给出 total/shown，还能按昵称或 #编号搜 */
   var userQuery = '';
 
+  /* 「登录设备」那一行：最近用过哪个端 + 各端用过几次（电脑网页 / 手机网页 / 手机 App） */
+  function platformLine(u) {
+    var CN = { web: '电脑网页', mobile: '手机网页', app: '手机 App' };
+    var d = u.devices || {};
+    var parts = [];
+    ['web', 'mobile', 'app'].forEach(function (k) {
+      var n = Number(d[k] || 0);
+      if (n > 0) parts.push(CN[k] + ' ' + n + ' 次');
+    });
+    var last = CN[u.platform] || '';
+    if (!parts.length) return last || '还不清楚（没记录到）';
+    if (!last) return parts.join(' · ');
+    /* 把「最近用的那个」放最前面，一眼能看到他是不是在用电脑 */
+    var first = parts.filter(function (s) { return s.indexOf(last) === 0; })[0];
+    var rest = parts.filter(function (s) { return s !== first; });
+    return [first || parts[0]].concat(rest).join(' · ');
+  }
+
   function renderUsers(data) {
     var list = (data && data.users) || [];
     usersEl.innerHTML = '';
@@ -179,6 +197,12 @@
       if (!u.hasPassword) bits.push('还没设密码（得用邀请码重新进来）');
       info.textContent = bits.join(' · ');
       item.appendChild(info);
+
+      /* 他从哪个端来的：电脑网页 / 手机网页 / 手机 App（用过的都列一遍次数） */
+      var dev = document.createElement('div');
+      dev.className = 'ac-item__note';
+      dev.textContent = '登录设备：' + platformLine(u) + '（最近 ' + fmtTime(u.platformAt || u.lastSeenAt) + '）';
+      item.appendChild(dev);
 
       var seen = document.createElement('div');
       seen.className = 'ac-item__note';
@@ -326,6 +350,7 @@
       sec1.appendChild(line('昵称', d.name));
       sec1.appendChild(line('性别', d.genderText + (d.gender === 'custom' && d.genderCustom ? '（' + d.genderCustom + '）' : '')));
       sec1.appendChild(line('个性签名', d.signature));
+      sec1.appendChild(line('登录设备', platformLine(d) + (d.platformAt ? '（最近 ' + fmtTime(d.platformAt) + '）' : '')));
       sec1.appendChild(line('加入时间', fmtTime(d.createdAt)));
       sec1.appendChild(line('最近出现', fmtTime(d.lastSeenAt)));
       sheetBox.appendChild(sec1);

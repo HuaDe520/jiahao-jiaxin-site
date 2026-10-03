@@ -57,6 +57,16 @@
     try { return localStorage.getItem(DEVICE_KEY) || ''; } catch (e) { return ''; }
   }
 
+  /* 这一趟是从哪个端来的：网页一律报 web（是手机浏览器还是电脑浏览器，后端按 UA 再细判）；
+     App 里的 WebView 会带「; wv)」的 UA，这里也顺手认一下。 */
+  function clientHint() {
+    try {
+      var ua = String(navigator.userAgent || '').toLowerCase();
+      if (/;\s*wv\)|zhangshang|jiaxie/.test(ua)) return 'app';
+      return 'web';
+    } catch (e) { return 'web'; }
+  }
+
   /* 退出登录：只清登录状态，保留设备凭证（否则同一台设备就回不来了） */
   function clearSession() {
     try {
@@ -120,6 +130,9 @@
     var headers = { 'Content-Type': 'application/json' };
     var tok = token();
     if (tok) headers.Authorization = 'Bearer ' + tok;
+    /* 告诉后端「这一趟是从哪个端来的」：管理员在成员名单上要看谁在用电脑。
+       没这个头也能靠 UA 判，但 UA 有时候被改得认不出来，所以双保险。 */
+    headers['X-JHJX-Client'] = clientHint();
     try {
       var res = await fetch(base() + path, {
         method: method,
