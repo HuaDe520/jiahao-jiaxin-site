@@ -379,6 +379,87 @@
       sec2.appendChild(line('飞行棋', (a.flightRooms || []).length ? (a.flightRooms.length + ' 桌（' + a.flightRooms.map(function (r) { return r.code + '/' + r.status; }).join('、') + '）') : '没开过桌'));
       sec2.appendChild(line('被举报 / 举报别人', a.reportsAgainst + ' 次 / ' + a.reportsFiled + ' 次'));
       sheetBox.appendChild(sec2);
+
+      /* 管理员权限：强制给这个成员换头像（本人不用上线），或者恢复成默认头像 */
+      var sec3 = document.createElement('div');
+      sec3.className = 'ac-sec';
+      var t3 = document.createElement('div');
+      t3.className = 'ac-sec__title';
+      t3.textContent = '头像（管理员可以强制修改）';
+      sec3.appendChild(t3);
+      sec3.appendChild(line('当前头像', d.avatar ? '已设置' : '默认（昵称首字）'));
+      if (d.avatarByAdmin) {
+        sec3.appendChild(line('上一次改头像', '管理员 ' + d.avatarByAdmin.name + ' · ' + fmtTime(d.avatarByAdmin.at)));
+      }
+      var avRow = document.createElement('div');
+      avRow.className = 'ac-actions';
+      var pick = document.createElement('button');
+      pick.type = 'button';
+      pick.className = 'ac-btn';
+      pick.textContent = '换这个人的头像';
+      var file = document.createElement('input');
+      file.type = 'file';
+      file.accept = 'image/*';
+      file.hidden = true;
+      pick.addEventListener('click', function () { file.click(); });
+      file.addEventListener('change', function () {
+        var f = (this.files || [])[0];
+        this.value = '';
+        if (!f) return;
+        if (f.type && !/^image\//.test(f.type)) { showMsg('请选一张图片', 'error'); return; }
+        if (f.size > 12 * 1024 * 1024) { showMsg('图片太大了，换一张小一点的', 'error'); return; }
+        showMsg('正在处理这张头像…', 'info');
+        /* 缩成 256×256 的方形 JPEG，压到 400KB 以内再传（跟账号页那套一样） */
+        var url = URL.createObjectURL(f);
+        var img = new Image();
+        img.onload = function () {
+          var size = 256;
+          var canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          var ctx = canvas.getContext('2d');
+          var s = Math.min(img.width, img.height);
+          if (!s) { URL.revokeObjectURL(url); showMsg('这张图打不开，换一张', 'error'); return; }
+          ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+          var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          if (dataUrl.length > 300 * 1024) dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          URL.revokeObjectURL(url);
+          API.adminUserAction(d.id, 'set_avatar', { dataUrl: dataUrl }).then(function (res) {
+            if (res.status === 200 && res.data && res.data.ok) {
+              showMsg('头像已经换成新的了', 'ok');
+              load();
+              openUser({ id: d.id, name: d.name });
+            } else {
+              showMsg((res.data && res.data.error) || '没换上，再试一次', 'error');
+            }
+          });
+        };
+        img.onerror = function () { URL.revokeObjectURL(url); showMsg('这张图打不开，换一张', 'error'); };
+        img.src = url;
+      });
+      var clear = document.createElement('button');
+      clear.type = 'button';
+      clear.className = 'ac-btn ac-btn--ghost';
+      clear.textContent = '恢复默认头像';
+      clear.addEventListener('click', function () {
+        if (!window.confirm('把「' + d.name + '」的头像恢复成默认的吗？')) return;
+        clear.disabled = true;
+        API.adminUserAction(d.id, 'clear_avatar').then(function (res) {
+          clear.disabled = false;
+          if (res.status === 200 && res.data && res.data.ok) {
+            showMsg('头像是默认的了', 'ok');
+            load();
+            openUser({ id: d.id, name: d.name });
+          } else {
+            showMsg((res.data && res.data.error) || '没改上，再试一次', 'error');
+          }
+        });
+      });
+      avRow.appendChild(pick);
+      avRow.appendChild(clear);
+      avRow.appendChild(file);
+      sec3.appendChild(avRow);
+      sheetBox.appendChild(sec3);
     }, function () {
       sheetBox.innerHTML = '';
       var err = document.createElement('p');

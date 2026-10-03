@@ -188,8 +188,11 @@
     },
     /* 管理员看某个成员的完整情况（资料 + 活动） */
     adminUser: function (id) { return call('GET', '/api/admin/users/' + encodeURIComponent(id)); },
-    adminUserAction: function (id, action) {
-      return call('POST', '/api/admin/users/' + id, { action: action });
+    adminUserAction: function (id, action, extra) {
+      /* extra 目前用于「管理员强制换头像」（set_avatar 要带一张图的 dataUrl） */
+      var body = { action: action };
+      if (extra) for (var k in extra) if (Object.prototype.hasOwnProperty.call(extra, k)) body[k] = extra[k];
+      return call('POST', '/api/admin/users/' + id, body);
     },
 
     /* ---- 好友与聊天 ---- */
