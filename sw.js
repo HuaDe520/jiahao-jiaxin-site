@@ -14,7 +14,7 @@
  *   · 后端接口（另一个域名）不拦，直接放行。
  */
 
-const CACHE = 'jhjx-site-v202610031213';
+const CACHE = 'jhjx-site-v202611061228';
 
 /* 首屏必需的东西，装完 SW 就悄悄缓存好；注意别放 512 图标这类大文件 */
 const SHELL = [
@@ -118,6 +118,10 @@ self.addEventListener('fetch', (event) => {
   let url;
   try { url = new URL(req.url); } catch (e) { return; }
   if (url.origin !== self.location.origin) return;   /* 接口在别的域名，不拦 */
+  /* 本机调试时接口和页面同源（127.0.0.1:port/api/…）：接口的 JSON 一律不缓存 ——
+     缓存了会看到「服务器都停了，管理台还显示着上一次的数据」，
+     而且 ignoreSearch 兜底会把上一个搜索词的结果当成新查询的答案 */
+  if (url.pathname.indexOf('/api/') === 0) return;
 
   if (req.mode === 'navigate') {
     if (ALWAYS_FRESH.indexOf(url.pathname) >= 0) {

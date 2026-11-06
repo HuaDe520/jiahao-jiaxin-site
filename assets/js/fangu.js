@@ -744,8 +744,17 @@
     if (queued === null) return;
     var q = queued;
     queued = null;
-    if (state.src === 'anilist') loadMore(q.page);
+    /* 按排队时记下的那一套来：不能读「现在」的 state.tag ——
+       刚才那趟响应可能刚把它改回旧值，用户最后点的那一下就被吃掉了 */
+    if (state.src === 'anilist') loadMore(q.page, q.genre);
     else runBrowse(q);
+  }
+  /* 两个「想要什么」是不是一回事（连点同一个标签时用来去重） */
+  function sameIntent(a, b) {
+    if (!a || !b) return false;
+    return ['page', 'tag', 'score', 'min', 'max', 'genre'].every(function (k) {
+      return String(a[k] === undefined ? '' : a[k]) === String(b[k] === undefined ? '' : b[k]);
+    });
   }
   /* 可以给页码，也可以直接给一份「想要什么」（queued 里存的就是这个） */
   function browseIntent(page) {
@@ -755,21 +764,32 @@
   /* 翻着看：一页 20 部，带标签 / 评分筛选 */
   function loadBrowse(page) {
     var want = browseIntent(page);
-    if (state.busy) { queued = want; return null; }
+    if (state.busy) {
+      /* 跟排队里那次一模一样就别再排一遍（连点同一个标签会白发一趟请求） */
+      if (!sameIntent(queued, want)) queued = want;
+      return null;
+    }
     return runBrowse(want);
   }
 
-  /* 「更多番剧」：AniList 的片库，按人气排，也能按类型筛 */
-  function loadMore(page) {
-    if (state.busy) { queued = { page: page || 1, genre: state.tag }; return null; }
+  /* 「更多番剧」：AniList 的片库，按人气排，也能按类型筛。
+     genre 不给就用当前选中的那个（settleList 补队时会把它一起带回来） */
+  function loadMore(page, genre) {
+    var want = (genre === undefined) ? String(state.tag || '') : String(genre || '');
+    if (state.busy) {
+      var q = { page: page || 1, genre: want };
+      if (!sameIntent(queued, q)) queued = q;
+      return null;
+    }
     var mySeq = ++listSeq;
     inFlight++;
     state.busy = true;
     msg('正在翻…');
-    var pending = window.JHJX_API.fanguMore(page || 1, state.tag).then(function (res) {
+    var pending = window.JHJX_API.fanguMore(page || 1, want).then(function (res) {
       if (mySeq !== listSeq) { settleList(); return; }
       if (res.status !== 200) {
         settleList();
+        renderList();    /* 出错时把「正在翻」那块骨架换成原来那一屏，别一直转圈 */
         msg((res.data && res.data.error) || '列表没取回来，过一会儿再试', true);
         return;
       }
@@ -891,6 +911,8 @@
     if (!kw) { msg('想找什么番？写个名字', true); queryEl.focus(); return; }
     var p = Math.max(1, Math.floor(Number(page) || 1));
     var mySeq = ++listSeq;      /* 搜完之后要是又点了筛选，这份结果就别往回盖了 */
+    /* 手上排着的「翻页」意图也作废：不然那一趟回来会把搜索结果又盖掉 */
+    queued = null;
     state.keyword = kw;
     goBtn.disabled = true;
     msg('正在找…');
@@ -939,7 +961,10 @@
     }, function () { msg('网络不太好，榜单没取回来', true); });
   }
 
-  function setTab(hall) {
+  /* 只切栏目、发请求的事交给调用方。
+     切栏目也要把手上的那趟翻页作废（listSeq++）：不然旧响应回来会把
+     state.mode 又写回 'browse'，点「全部番剧」的那一下就被下面那个判断吞掉了 */
+  function showPane(hall) {
     tabAll.className = 'fg-tab' + (hall ? '' : ' is-on');
     tabAll.setAttribute('aria-selected', hall ? 'false' : 'true');
     tabHall.className = 'fg-tab' + (hall ? ' is-on' : '');
@@ -949,6 +974,13 @@
     if (hall) {
       state.mode = 'hall';
       renderPager();
+    }
+  }
+
+  function setTab(hall) {
+    listSeq++;                 /* 换栏目了：手上那趟翻页的结果别再往回盖 */
+    showPane(hall);
+    if (hall) {
       loadHall();
       return null;
     }
@@ -958,7 +990,10 @@
   }
 
   /* ---------------- 详情抽屉 ---------------- */
+  var sheetSeq = 0;      /* 第几次点开详情：只认最后那一次，晚到的响应丢掉 */
+
   function closeSheet() {
+    sheetSeq++;          /* 关掉了：还在路上的那份详情回来也别再画进来 */
     sheet.hidden = true;
     sheetBox.innerHTML = '';
     state.open = null;
@@ -966,25 +1001,42 @@
     if (state.lastFocus && state.lastFocus.focus) { try { state.lastFocus.focus(); } catch (e) { /* 忽略 */ } }
   }
 
-  /* 详情里的标签点了就去看这一类：标签表里有它就按标签翻，没有就按名字搜 */
+  /* 详情里的标签点了就去看这一类：标签表里有它就按标签翻，没有就按名字搜。
+     注意「全部番剧」和「更多番剧」是两套片库，标签 id 各是各的
+     （B 站是数字 id，AniList 是 Action / Comedy 这种英文类型），
+     所以按当前片库派发，别把 AniList 的类型名丢给 B 站那套接口。 */
   function goTag(name) {
     var hit = (state.tags || []).filter(function (t) { return String(t.name) === String(name); })[0];
     closeSheet();
-    /* 先把筛选条件摆好，再切回「全部番剧」——
-       不然切栏目时先拉一次、设完条件又拉一次，第二次会被「正在忙」挡掉，标签就没生效 */
+    /* 先把筛选条件摆好，再切回「全部番剧」
+       （不先摆好，切栏目时会先按旧条件拉一次，第二趟会被「正在忙」挡掉） */
     state.score = '';
     state.min = 0;
     state.max = 10;
     state.keyword = '';
+    state.page = 1;                 /* 换了筛选条件就回到第一页，别停在旧页码上翻出个空页 */
+    var byGenre = state.src === 'anilist';
+    listSeq++;                      /* 手上那趟翻页作废 */
+    showPane(false);
     if (hit) {
       state.tag = String(hit.id);
+      state.mode = 'browse';
       queryEl.value = '';
-      setTab(false);
+      if (byGenre) {
+        renderLoading('正在翻「更多番剧」（AniList 的片库）…');
+        loadMore(1);
+      } else {
+        renderLoading('正在把全部番剧翻出来…');
+        loadBrowse(1);
+      }
       return;
     }
+    /* 标签表里没有这个名字：按名字搜（搜索两套片库都会找一遍），
+       不要等翻页回来再搜 —— 手上有请求时 setTab 返回 null，等就等丢了 */
     state.tag = '';
-    var pend = setTab(false);
-    if (pend && pend.then) pend.then(function () { queryEl.value = name; doSearch(name, 1); });
+    queryEl.value = name;
+    renderLoading('正在找「' + name + '」…', 'B 站那边没有的，会顺手去 AniList 片库再找一遍。');
+    doSearch(name, 1);
   }
 
   function tagChips(sub) {
@@ -1029,6 +1081,9 @@
         var hit = names.some(function (n) { return n && (n === want || n.indexOf(want) >= 0 || want.indexOf(n) >= 0); });
         if (!hit) { tryOne(i + 1); return; }
         var score = Math.round(m.averageScore / 10 * 10) / 10;
+        /* 这一份结果是给「哪一部番」查的：查的这几秒里用户可能已经翻到别的番了，
+           别把这部番的分数写进别人那一格里 */
+        if (!state.open || String(state.open.seasonId) !== String(sub.seasonId)) return;
         var cell = document.querySelector('#fgSheetBox .fg-score-big > div[data-big="global"]');
         if (cell) {
           cell.querySelector('b').textContent = fmtScore(score);
@@ -1328,6 +1383,9 @@
 
   function openSubject(seasonId, jpTitle) {
     if (!seasonId) return;
+    /* 点开一部番取详情要等服务器（要打数据源，有时好几秒）。
+       等的过程中用户可能又点开了别的、或者关掉了 —— 只认最后那一次 */
+    var mySeq = ++sheetSeq;
     state.lastFocus = document.activeElement;
     sheet.hidden = false;
     document.body.style.overflow = 'hidden';
@@ -1339,6 +1397,7 @@
     sheetBox.appendChild(loading);
     /* 把列表里的日文原名带过去：大众评分按原名才找得准（B 站详情里有时没有原名） */
     window.JHJX_API.fanguSubject(seasonId, jpTitle).then(function (res) {
+      if (mySeq !== sheetSeq) return;      /* 已经不是当前这部番了，别往回盖 */
       if (res.status !== 200) {
         sheetBox.innerHTML = '';
         var err = document.createElement('p');

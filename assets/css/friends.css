@@ -705,11 +705,26 @@
 .fr-page.is-chatting #frPaneChat { padding: 10px; }
 .fr-page:has(#frPaneChat:not([hidden])) .fr-chat__bar,
 .fr-page.is-chatting .fr-chat__bar { padding: 5px 2px 4px; }
-/* 手机上聊天要「大」：气泡风格那一行先收起来，把高度全留给消息列表
-   （风格还是记在本机、下次打开照旧生效） */
+/* 手机上聊天要「大」：只把「2 分钟内可撤回」那句提示收起来，
+   气泡风格那排小圆点必须留着 —— 那是换风格的唯一入口，整条藏起来手机上就没法换了 */
 @media (max-width: 720px) {
   .fr-page:has(#frPaneChat:not([hidden])) .fr-chat__bar,
-  .fr-page.is-chatting .fr-chat__bar { display: none; }
+  .fr-page.is-chatting .fr-chat__bar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 2px 2px 0;
+  }
+  .fr-page:has(#frPaneChat:not([hidden])) .fr-chat__bar .fr-chat__tip,
+  .fr-page.is-chatting .fr-chat__bar .fr-chat__tip { display: none; }
+  /* 小圆点收小一点、挤紧一点：一行放得下，也不抢消息区的高度 */
+  .fr-page:has(#frPaneChat:not([hidden])) .fr-chat__styles,
+  .fr-page.is-chatting .fr-chat__styles { gap: 5px; margin-left: 0; }
+  .fr-page:has(#frPaneChat:not([hidden])) .fr-chat__style-name,
+  .fr-page.is-chatting .fr-chat__style-name { font-size: 11px; }
+  .fr-page:has(#frPaneChat:not([hidden])) .fr-style-dot,
+  .fr-page.is-chatting .fr-style-dot { width: 30px; height: 30px; }
+  .fr-page:has(#frPaneChat:not([hidden])) .fr-style-dot::before,
+  .fr-page.is-chatting .fr-style-dot::before { width: 18px; height: 18px; margin: -9px 0 0 -9px; }
   /* 聊天卡片的上下内边距再收一点，把高度留给消息列表 */
   .fr-page:has(#frPaneChat:not([hidden])) #frPaneChat,
   .fr-page.is-chatting #frPaneChat { padding: 10px 10px 8px; }

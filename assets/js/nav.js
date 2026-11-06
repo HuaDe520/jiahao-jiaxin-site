@@ -45,27 +45,35 @@
   'use strict';
   var link = document.querySelector('.site-nav a[href="account.html"]');
   if (!link) return;
-  try {
-    var raw = localStorage.getItem('jhjx-account-user');
-    if (!raw) return;
-    var u = JSON.parse(raw);
-    if (!u || !u.name) return;
 
-    link.textContent = '';
-    link.title = '我的账号：' + u.name;
-    if (u.avatar) {
-      var img = document.createElement('img');
-      img.className = 'site-nav__avatar';
-      img.alt = '';
-      img.width = 22;
-      img.height = 22;
-      img.decoding = 'async';
-      img.src = u.avatar;
-      img.onerror = function () { this.style.display = 'none'; };
-      link.appendChild(img);
-    }
-    link.appendChild(document.createTextNode(u.name));
-  } catch (e) { /* 忽略 */ }
+  function paint() {
+    try {
+      var raw = localStorage.getItem('jhjx-account-user');
+      if (!raw) return;
+      var u = JSON.parse(raw);
+      if (!u || !u.name) return;
+
+      link.textContent = '';
+      link.title = '我的账号：' + u.name;
+      if (u.avatar) {
+        var img = document.createElement('img');
+        img.className = 'site-nav__avatar';
+        img.alt = '';
+        img.width = 22;
+        img.height = 22;
+        img.decoding = 'async';
+        img.src = u.avatar;
+        img.onerror = function () { this.style.display = 'none'; };
+        link.appendChild(img);
+      }
+      link.appendChild(document.createTextNode(u.name));
+    } catch (e) { /* 忽略 */ }
+  }
+
+  paint();
+  /* 本机缓存被清掉、凭证还在时，api.js 会把资料取回来再发这个事件：
+     收到要重画一次，不然页头一直停在「我的账号」，得手动刷新才对 */
+  window.addEventListener('jhjx:session', paint);
 })();
 
 /* =========================================================

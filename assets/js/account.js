@@ -33,7 +33,8 @@
     loginCard.hidden = logged;
     mineCard.hidden = !logged;
     reportCard.hidden = !logged;
-    if (logged) titleEl.textContent = '我的账号';
+    /* 退出登录之后标题也要跟着回去，不然卡片写着「我的账号」底下却是登录框 */
+    titleEl.textContent = logged ? '我的账号' : '进来坐坐';
 
     if (!logged) return;
 
@@ -46,11 +47,16 @@
     }
     $('acName2').textContent = user.name;
     $('acMeta').textContent = '加入于 ' + fmtDate(user.createdAt);
-    /* 头像是管理员代换的：跟本人说一声是谁换的、什么时候 */
+    /* 头像是管理员代换的：跟本人说一声是谁换的、什么时候
+       （这一行是后加的，万一浏览器里缓存着旧版 account.html，取不到就先跳过，
+         别让这一句把整页的渲染带崩） */
     var byAdmin = user.avatarByAdmin;
-    $('acAvatarBy').textContent = (byAdmin && user.avatar)
-      ? '头像由管理员 ' + byAdmin.name + ' 于 ' + fmtDate(byAdmin.at) + ' 更换'
-      : '';
+    var byEl = $('acAvatarBy');
+    if (byEl) {
+      byEl.textContent = (byAdmin && user.avatar)
+        ? '头像由管理员 ' + byAdmin.name + ' 于 ' + fmtDate(byAdmin.at) + ' 更换'
+        : '';
+    }
 
     var chips = $('acChips');
     chips.innerHTML = '';

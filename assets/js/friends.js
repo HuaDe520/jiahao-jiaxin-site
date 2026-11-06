@@ -346,6 +346,12 @@
     audioNow.el = null; audioNow.row = null; audioNow.btn = null;
   }
 
+  /* 这一行里正在播的语音就停下（撤回、或者整行被换掉时用） */
+  function stopAudioIn(rowEl) {
+    if (!audioNow.el || !rowEl || !audioNow.row) return;
+    if (rowEl.contains(audioNow.row)) stopOthers();
+  }
+
   /* 文件：图标 + 名字 + 大小 + 下载；名字一律走 textContent，绝不拼 HTML */
   function fileBubble(b, m) {
     var name = mediaName(m);
@@ -719,7 +725,10 @@
       : API.recallMessage(m.id);
     req.then(function (res) {
       if (res.status === 200) {
-        markRecalled(rowEl, true);
+        /* 是谁撤的要看这条消息本来是谁发的：管理员撤回别人的消息时
+           写「你撤回了一条消息」就不对了 */
+        var me = API.user() ? API.user().id : 0;
+        markRecalled(rowEl, m.from === me, m);
       } else {
         chatMsg((res.data && res.data.error) || '撤回失败', 'error');
       }
@@ -770,6 +779,9 @@
 
   /* 把一条消息行变成「已撤回」的样子 */
   function markRecalled(rowEl, mine, m) {
+    /* 正在放的语音先停掉：撤回之后内容就不该再出声了，
+       而 Audio 对象不在页面里（是 new 出来的），清空 innerHTML 停不住它 */
+    stopAudioIn(rowEl);
     rowEl.classList.add('is-recalled');
     rowEl.classList.remove('is-mine', 'is-theirs', 'is-grouped');
     rowEl.innerHTML = '';
@@ -941,6 +953,12 @@
     if (empty) empty.style.display = 'none';
 
     list.forEach(function (m) {
+      /* 同一条消息只画一次：轮询比网络还快的时候（3G、或者刚发完消息那一下），
+         两趟请求会带回同一批消息，不去重就会出现两个一样的气泡 */
+      var key = String(m.id);
+      if (state.ids && state.ids[key]) return;
+      if (!state.ids) state.ids = {};
+      state.ids[key] = 1;
       var prev = box.lastElementChild;
       var prevTime = 0;
       var prevMine = null;
@@ -1004,7 +1022,7 @@
       }
       var wasNearBottom = nearBottom(box);
       var keepTop = box.scrollTop;
-      if (!since) { box.innerHTML = ''; state.lastAt = 0; }
+      if (!since) { box.innerHTML = ''; state.lastAt = 0; state.ids = {}; }
       if (list.length) {
         appendMessages(list);
         if (wasNearBottom) {
@@ -1194,6 +1212,8 @@
     state.current = group;
     state.lastAt = 0;
     state.polls = 0;
+    state.polling = false;
+    state.ids = {};
     state.noticeOpen = false;
     closeMemberPanel();
     closeGroupSheet();
@@ -1225,10 +1245,14 @@
     state.timer = setInterval(function () {
       /* 页面在后台（切到别的 App）就别一直请求了，回来看时再拉 */
       if (document.hidden) return;
+      /* 上一趟还没回来就跳过这一拍：网络慢的时候两趟请求会带回同一批消息，
+         而且各自都以为自己是新的（画两遍、还把 state.lastAt 推来推去） */
+      if (state.polling) return;
+      state.polling = true;
       state.polls = (state.polls || 0) + 1;
       /* 每 4 次（约 16 秒）整体重拉一遍：这样对方撤回、已读状态也能跟着更新 */
-      if (state.polls % 4 === 0) loadChat(0);
-      else loadChat(state.lastAt);
+      var job = (state.polls % 4 === 0) ? loadChat(0) : loadChat(state.lastAt);
+      Promise.resolve(job).then(function () { state.polling = false; }, function () { state.polling = false; });
     }, 4000);
   }
 
@@ -1237,6 +1261,8 @@
     state.current = friend;
     state.lastAt = 0;
     state.polls = 0;
+    state.polling = false;
+    state.ids = {};
     closeMemberPanel();
     closeGroupSheet();
     setChatting(true);
@@ -1329,11 +1355,20 @@
     } catch (e) { /* 忽略 */ }
   }
 
+  /* 发消息给谁：默认是当前打开的那个会话。
+     上传 / 录音这种「要等一会儿」的活，得在开始的时候就把它记下来 ——
+     不然等的过程中用户切了会话，东西就发到另一个人那儿去了。 */
+  function chatTarget() {
+    if (!state.current) return null;
+    return { id: state.current.id, kind: state.chatKind === 'group' ? 'group' : 'friend' };
+  }
+
   /* 发送：一对一和群聊共用，发完把消息画进当前会话 */
-  function sendPayload(payload) {
-    if (!state.current) return Promise.resolve(null);
-    var id = state.current.id;
-    var kind = state.chatKind === 'group' ? 'group' : 'friend';
+  function sendPayload(payload, target) {
+    var t = target || chatTarget();
+    if (!t) return Promise.resolve(null);
+    var id = t.id;
+    var kind = t.kind;
     var req = kind === 'group' ? API.sendGroupMessage(id, payload) : API.sendMessage(id, payload);
     return req.then(function (res) {
       /* 发完切走了会话的话，就别把这条画到别人头上（消息其实已经发出去了） */
@@ -1364,8 +1399,11 @@
       state.sending = false;
       if (btn) btn.disabled = false;
     };
-    sendPayload({ body: text, kind: 'text' }).then(function () {
-      if (input.value === text) { input.value = ''; updateComposer(); }
+    sendPayload({ body: text, kind: 'text' }).then(function (res) {
+      /* 只有真发出去了才清空输入框：发失败（断网 / 被限流）时把刚打的字留着，
+         不然用户看到的是一条红色报错 + 空输入框，写的字白丢了 */
+      var sent = res && res.status === 200 && res.data && res.data.message;
+      if (sent && input.value === text) { input.value = ''; updateComposer(); }
       done();
     }, done);
   }
@@ -1379,11 +1417,12 @@
     }
   }
 
-  function sendMedia(kind, media, name) {
+  function sendMedia(kind, media, name, target) {
+    var t = target || chatTarget();
     var done = function () { setComposerBusy(false); };
-    if (!state.current) { done(); return; }
+    if (!t) { done(); return; }
     setComposerBusy(true);
-    sendPayload({ body: name || '', kind: kind, media: media }).then(done, done);
+    sendPayload({ body: name || '', kind: kind, media: media }, t).then(done, done);
   }
 
   /* ---- 图片：先压一压再传（太大传不上去，也费流量） ---- */
@@ -1467,6 +1506,9 @@
   function handleImageFile(file) {
     if (!file) return;
     if (!/^image\//.test(file.type || '')) { chatMsg('这个文件看起来不是图片', 'error'); return; }
+    /* 先记住这张图是发给谁的：压图 + 上传要好几秒，这期间切了会话也别发错人 */
+    var target = chatTarget();
+    if (!target) return;
     setComposerBusy(true);
     prepareImage(file).then(function (out) {
       return API.uploadMedia('image', out.blob, out.name);
@@ -1474,7 +1516,7 @@
       setComposerBusy(false);
       if (res.status === 200 && res.data && res.data.media) {
         var media = res.data.media;
-        sendMedia('image', media, media.name || '');
+        sendMedia('image', media, media.name || '', target);
       } else {
         chatMsg((res.data && res.data.error) || '图片发不出去，换一张试试', 'error');
       }
@@ -1487,12 +1529,14 @@
       chatMsg('文件请控制在 4MB 以内，大文件先压一压再发', 'error');
       return;
     }
+    var target = chatTarget();
+    if (!target) return;
     setComposerBusy(true);
     API.uploadMedia('file', file, file.name || '文件').then(function (res) {
       setComposerBusy(false);
       if (res.status === 200 && res.data && res.data.media) {
         var media = res.data.media;
-        sendMedia('file', media, media.name || file.name || '文件');
+        sendMedia('file', media, media.name || file.name || '文件', target);
       } else {
         chatMsg((res.data && res.data.error) || '文件发不出去，稍后再试', 'error');
       }
@@ -1527,8 +1571,9 @@
 
   /* 这一轮录音的「实际秒数」和「转出来的文字」：
      resetRecState 会把录音状态清干净，所以先存这儿，上传完再合并进 media。
-     后端只负责存（normalizeIncomingMedia 会收 dur / text），显示时再用 */
-  var lastTake = { dur: 0, text: '' };
+     后端只负责存（normalizeIncomingMedia 会收 dur / text），显示时再用。
+     target 也是同一回事：录音开始时是发给谁，就一直发给谁 */
+  var lastTake = { dur: 0, text: '', target: null };
 
   function pickRecMime() {
     var list = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
@@ -1889,7 +1934,7 @@
            时长是因为 webm 常常读不出 duration，文字是「语音转文字」那一条 */
         if (lastTake.dur > 0) media.dur = lastTake.dur;
         if (lastTake.text) media.text = lastTake.text;
-        sendMedia('voice', media, media.name || '');
+        sendMedia('voice', media, media.name || '', lastTake.target);
       } else {
         chatMsg((res.data && res.data.error) || '语音发不出去，稍后再试', 'error');
       }
@@ -2026,6 +2071,8 @@
       /* 已经在录了：当没事发生，别把录音条弄乱 */
       return;
     }
+    /* 录之前先记住这段是发给谁的：录 + 传要好几十秒，中途切了会话也别发错人 */
+    lastTake.target = chatTarget();
     /* 上一轮的提示（含「自检 / 打开设置」按钮）先收掉，免得点错 */
     hideMsg($('frChatMsg'));
     /* 上一轮留下的残骸先清干净，否则会被挡住 */
@@ -2622,26 +2669,31 @@
     if (sheetOpen()) renderGroupSheet();
   }
 
-  /* 危险操作的两步确认：第一下换成「确认…」，5 秒内再点一下才真的执行 */
+  /* 危险操作的两步确认：第一下换成「确认…」，5 秒内再点一下才真的执行。
+     真执行之后如果失败了（断网、登录过期），要把按钮还原回「未确认」的样子 ——
+     不然它就一直灰着、还写着「确认退出」，用户点不动也看不出为什么。 */
   function twoStep(btn, label, confirmLabel, run) {
     var armed = false;
     var timer = 0;
+    function reset() {
+      clearTimeout(timer);
+      armed = false;
+      btn.disabled = false;
+      btn.classList.remove('is-armed');
+      btn.textContent = label;
+    }
     btn.addEventListener('click', function () {
       if (!armed) {
         armed = true;
         btn.textContent = confirmLabel;
         btn.classList.add('is-armed');
-        timer = setTimeout(function () {
-          armed = false;
-          btn.textContent = label;
-          btn.classList.remove('is-armed');
-        }, 5000);
+        timer = setTimeout(reset, 5000);
         return;
       }
       clearTimeout(timer);
       armed = false;
       btn.disabled = true;
-      run();
+      run(reset);
     });
   }
 
@@ -2847,7 +2899,7 @@
     var leave = mk('button', 'fr-btn fr-btn--danger', '退出群聊');
     leave.type = 'button';
     leave.id = 'frSetLeave';
-    twoStep(leave, '退出群聊', '确认退出', function () { leaveGroup(gid); });
+    twoStep(leave, '退出群聊', '确认退出', function (recover) { leaveGroup(gid, recover); });
     leaveSet.appendChild(leave);
     leaveSet.appendChild(mk('div', 'fr-set__help', '退群之后群聊和记录就不在这儿了（群主退群会把群交给管理员）。'));
     box.appendChild(leaveSet);
@@ -2885,7 +2937,7 @@
       var tb = mk('button', 'fr-btn fr-btn--ghost', '转让群主');
       tb.type = 'button';
       tb.setAttribute('data-act', 'transfer');
-      twoStep(tb, '转让群主', '确认转让', function () { transferGroup(gid, mem.id); });
+      twoStep(tb, '转让群主', '确认转让', function (recover) { transferGroup(gid, mem.id, recover); });
       acts.appendChild(tb);
       row.appendChild(acts);
     }
@@ -3002,9 +3054,13 @@
     });
   }
 
-  function transferGroup(gid, targetId) {
+  function transferGroup(gid, targetId, recover) {
     API.groupTransfer(gid, targetId).then(function (res) {
-      if (res.status !== 200 || !res.data.group) { sheetMsg((res.data && res.data.error) || '转让失败', 'error'); return; }
+      if (res.status !== 200 || !res.data.group) {
+        if (recover) recover();   /* 没转成 → 按钮还原，别一直灰着 */
+        sheetMsg((res.data && res.data.error) || '转让失败', 'error');
+        return;
+      }
       applyGroup(res.data.group);
       /* 转让之后我的身份变了，重新拉一遍最稳 */
       if (state.sheet) loadGroupSheet(state.sheet.seq, gid);
@@ -3025,9 +3081,13 @@
     });
   }
 
-  function leaveGroup(gid) {
+  function leaveGroup(gid, recover) {
     API.groupLeave(gid).then(function (res) {
-      if (res.status !== 200) { sheetMsg((res.data && res.data.error) || '退群失败，稍后再试', 'error'); return; }
+      if (res.status !== 200) {
+        if (recover) recover();   /* 没退成 → 按钮还原，别一直灰着写着「确认退出」 */
+        sheetMsg((res.data && res.data.error) || '退群失败，稍后再试', 'error');
+        return;
+      }
       closeGroupSheet();
       closeChat();
       showMsg($('frGroupMsg'), '已经退出群聊', 'ok');
@@ -3330,6 +3390,10 @@
     });
     $('frPaneChat').hidden = true;
     if (state.timer) { clearInterval(state.timer); state.timer = null; }
+    /* 离开聊天界面了：还在录音就停下、这一段直接丢掉。
+       不然话筒一直开着（系统上还亮着录音标志），录到 60 秒会自己发出去，
+       发到那时候随便开着的那个会话里 */
+    if (rec.mode) stopRecording(true);
     state.current = null;
     setChatting(false);
     closeMemberPanel();

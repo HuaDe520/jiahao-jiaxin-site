@@ -99,7 +99,9 @@
       var row = document.createElement('div');
       row.className = 'ac-item__row';
       var note = document.createElement('input');
-      note.className = 'ac-input';
+      /* 专门加个类：自动刷新时要认「是不是正在备注框里打字」，
+         只按 ac-input 认的话，成员搜索框（也是 ac-input）一聚焦就把举报列表冻住了 */
+      note.className = 'ac-input ac-input--note';
       note.type = 'text';
       note.maxLength = 200;
       note.placeholder = '处理备注（可不填）';
@@ -485,7 +487,7 @@
     /* 30 秒一次的自动刷新会把列表整段重建（备注框里正在打的字就没了），
        所以正在某个备注框里打字时，这一轮先不乱动列表 */
     var typing = document.activeElement && document.activeElement.classList
-      && document.activeElement.classList.contains('ac-input');
+      && document.activeElement.classList.contains('ac-input--note');
     return Promise.all([
       API.adminSummary(),
       typing ? Promise.resolve({ status: 0, data: {} }) : API.adminReports(showAll ? 'all' : 'open'),
@@ -495,17 +497,14 @@
       /* 401（凭证过期/被挤下线）和 403（不是管理员）都要有交代，
          不然页面就是一片空白，只有「最后更新」在跳 */
       if (s.status === 401 || reps.status === 401 || us.status === 401) {
-        guard.hidden = false;
-        main.hidden = true;
-        $('adFoot').hidden = true;
-        var g = $('adGuardMsg');
-        if (g) g.textContent = '登录已过期，重新登录一下再看管理台。';
+        /* 凭证已经没用了：留着一副「还登着」的样子最坑 —— 别的页面还显示登录中，
+           这里还每 30 秒拿死凭证敲一次接口。清掉本机凭证、停掉轮询 */
+        try { API.clearSession(); } catch (e) { /* 忽略 */ }
+        showGuard('登录已过期，重新登录一下再看管理台。');
         return;
       }
       if (s.status === 403 || reps.status === 403 || us.status === 403) {
-        guard.hidden = false;
-        main.hidden = true;
-        $('adFoot').hidden = true;
+        showGuard('');
         return;
       }
       if (s.status === 200) renderSummary(s.data);
@@ -567,18 +566,52 @@
     if (clear) clear.addEventListener('click', function () { input.value = ''; userQuery = ''; load(); });
   })();
 
-  var user = API.user();
-  if (!user || !API.token() || user.role !== 'admin') {
+  var pollTimer = 0;
+  function stopPolling() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = 0; }
+  }
+  function showGuard(text) {
+    stopPolling();
     guard.hidden = false;
     main.hidden = true;
     $('adFoot').hidden = true;
-    return;
+    if (text) {
+      var g = $('adGuardMsg');
+      if (g) g.textContent = text;
+    }
   }
-  guard.hidden = true;
-  main.hidden = false;
-  $('adFoot').hidden = false;
-  $('adWho').textContent = user.name;
+  /* 进来（或者会话恢复之后）确认一次：本机缓存里的角色算不得数 */
+  function enter() {
+    var me = API.user();
+    if (!me || !API.token() || me.role !== 'admin') return false;
+    guard.hidden = true;
+    main.hidden = false;
+    $('adFoot').hidden = false;
+    $('adWho').textContent = me.name;
+    load();
+    if (!pollTimer) pollTimer = window.setInterval(load, 30000);   /* 有新的举报会自动出现 */
+    return true;
+  }
 
-  load();
-  window.setInterval(load, 30000);   /* 有新的举报会自动出现 */
+  if (!enter()) {
+    /* 缓存里没有（或者不是管理员）先别急着说「只有管理员能进」：
+       api.js 会把资料补回来再发 jhjx:session，这里也自己问一次服务器 ——
+       缓存丢了不等于登录没了 */
+    if (API.token()) {
+      API.me().then(function (r) {
+        if (r.status === 200 && r.data && r.data.user && r.data.user.role === 'admin') {
+          API.saveSession(null, r.data.user);
+          enter();
+        } else if (r.status === 401) {
+          try { API.clearSession(); } catch (e) { /* 忽略 */ }
+          showGuard('登录已过期，重新登录一下再看管理台。');
+        } else {
+          showGuard('');
+        }
+      });
+    } else {
+      showGuard('');
+    }
+  }
+  window.addEventListener('jhjx:session', function () { if (main.hidden) enter(); });
 })();

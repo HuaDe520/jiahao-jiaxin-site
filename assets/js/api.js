@@ -110,6 +110,35 @@
     try { URL.revokeObjectURL(url); } catch (e) { /* 忽略 */ }
   }
 
+  /* 这个本地地址现在还挂在页面上吗（某个 <img>/<audio>/<video> 正用它） */
+  function mediaUrlInUse(url) {
+    if (!url) return false;
+    try {
+      return !!document.querySelector(
+        'img[src="' + url + '"], audio[src="' + url + '"], video[src="' + url + '"], source[src="' + url + '"]'
+      );
+    } catch (e) { return false; }
+  }
+
+  /* 命中也算「刚用过」：把 key 挪到队尾。不然它一直是 FIFO ——
+     一屏图片来回看，先取回来的那几个反而先被撤掉，点开大图就是一片白 */
+  function touchMediaKey(key) {
+    var i = mediaKeys.indexOf(key);
+    if (i >= 0) mediaKeys.splice(i, 1);
+    mediaKeys.push(key);
+  }
+
+  /* 腾地方：从最旧的那个开始撤，但还挂在页面上的不能撤（撤了图就白了），
+     整体都在用就先算了，下次再说 */
+  function trimMediaCache() {
+    var guard = 0;
+    while (mediaKeys.length > MEDIA_CACHE_MAX && guard++ < MEDIA_CACHE_MAX * 2) {
+      var oldest = mediaKeys.shift();
+      if (mediaUrlInUse(mediaUrls[oldest])) { mediaKeys.push(oldest); continue; }
+      dropMediaUrl(oldest);
+    }
+  }
+
   /* 只把二进制取回来，调用方自己决定是播还是下载 */
   async function mediaBlob(key) {
     if (!key) return null;
@@ -310,17 +339,17 @@
     /* 把媒体取回来变成一个本地 blob 地址（带 token，所以 <img src> 直接用接口地址是不行的） */
     mediaObjectUrl: function (key) {
       if (!key) return Promise.resolve('');
-      if (mediaUrls[key]) return Promise.resolve(mediaUrls[key]);
+      if (mediaUrls[key]) { touchMediaKey(key); return Promise.resolve(mediaUrls[key]); }
       return mediaBlob(key).then(function (blob) {
         if (!blob) return '';
-        if (mediaUrls[key]) return mediaUrls[key];
+        if (mediaUrls[key]) { touchMediaKey(key); return mediaUrls[key]; }
         var url = '';
         try { url = URL.createObjectURL(blob); } catch (e) { url = ''; }
         if (!url) return '';
         mediaUrls[key] = url;
         mediaKeys.push(key);
-        /* 页面上待着的时候不主动释放，只把最老的挤出去，免得越攒越多 */
-        while (mediaKeys.length > MEDIA_CACHE_MAX) dropMediaUrl(mediaKeys.shift());
+        /* 页面上待着的时候不主动释放，只把最老的那几个挤出去，免得越攒越多 */
+        trimMediaCache();
         return url;
       });
     },
@@ -331,7 +360,13 @@
        万一哪天接口改成公开可读，取不到时退回原地址，图照样显示。 */
     groupAvatarObjectUrl: function (url) {
       if (!url) return Promise.resolve('');
-      if (groupAvatars[url]) return Promise.resolve(groupAvatars[url]);
+      if (groupAvatars[url]) {
+        /* 命中也算刚用过：挪到队尾（不然也是 FIFO，翻回上面的群头像会白掉） */
+        var at = groupAvatarKeys.indexOf(url);
+        if (at >= 0) groupAvatarKeys.splice(at, 1);
+        groupAvatarKeys.push(url);
+        return Promise.resolve(groupAvatars[url]);
+      }
       var full = /^https?:\/\//.test(url) ? url : base() + url;
       return fetch(full, {
         headers: token() ? { Authorization: 'Bearer ' + token() } : {},
@@ -345,10 +380,13 @@
           if (!local) return url;
           groupAvatars[url] = local;
           groupAvatarKeys.push(url);
-          /* 群列表里很多群：只留最近用到的那些，别把 blob 攒爆 */
-          while (groupAvatarKeys.length > GROUP_AVATAR_MAX) {
+          /* 群列表里很多群：只留最近用到的那些，别把 blob 攒爆。
+             还挂在页面上的那个不能撤（撤了头像就白了） */
+          var guard = 0;
+          while (groupAvatarKeys.length > GROUP_AVATAR_MAX && guard++ < GROUP_AVATAR_MAX * 2) {
             var old = groupAvatarKeys.shift();
             var dead = groupAvatars[old];
+            if (mediaUrlInUse(dead)) { groupAvatarKeys.push(old); continue; }
             delete groupAvatars[old];
             try { URL.revokeObjectURL(dead); } catch (e) { /* 忽略 */ }
           }
@@ -461,7 +499,10 @@
      取回来之后发个事件，好友页 / 主页可以重新渲染一次（不然会停在「请先登录」）。 */
   try {
     if (token() && (!user() || !user().name)) {
+      var restoreTok = token();
       call('GET', '/api/me').then(function (r) {
+        /* 这中间要是重新登录过（凭证换了），这份结果就过期了，别拿它去盖新登录 */
+        if (token() !== restoreTok) return;
         if (r.status === 200 && r.data && r.data.user) {
           saveSession(null, r.data.user);
           try { window.dispatchEvent(new Event('jhjx:session')); } catch (e) { /* 忽略 */ }

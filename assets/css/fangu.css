@@ -456,6 +456,9 @@
 }
 .fg-score-big b { display: block; font-size: 23px; font-weight: 800; color: var(--jade-900); line-height: 1.2; }
 .fg-score-big span { font-size: 11.5px; color: var(--ink-mute); }
+/* 大众评分是本机当场查回来的那几个（不是服务器算好的）：描个边，
+   让人一眼看出「这一格是刚刚现查的」 */
+.fg-score-big > div.is-live { border-color: rgba(18, 101, 90, .42); background: rgba(18, 101, 90, .05); }
 
 .fg-pick { display: flex; flex-wrap: wrap; gap: 6px; }
 .fg-pick button {
