@@ -254,3 +254,7 @@
 @media (max-width: 1080px) {
   .oj-diff { grid-template-columns: 1fr; }
 }
+
+/* 这一页是专心做题的工作区：左下角那个悬浮的「返回首页」会压住题目列表，
+   在这儿收起来（页头和页脚都有回首页的入口） */
+.oj-page .quick-home { display: none !important; }
