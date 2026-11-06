@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>0还是1? · 浙江嘉豪嘉欣协会</title>
+<meta name="description" content="浙江嘉豪嘉欣协会嘉庭工作台·嘉学「0还是1?」：在网页里写 Python、当场运行与判题，300 道面向初学者的入门题库，做错的题自动收进「自分谬误样本」。">
+<meta name="theme-color" content="#0f5f56">
+<link rel="icon" href="assets/img/logo-main.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="assets/css/style.css?v=6f4eea6e">
+<link rel="stylesheet" href="assets/css/oj.css?v=83d1f4d2">
+</head>
+<body class="oj-page">
+
+<header class="site-header">
+  <div class="wrap site-header__inner">
+    <a class="brand" href="index.html" aria-label="返回首页">
+      <img class="brand__logo" src="assets/img/logo-main.png" alt="浙江嘉豪嘉欣协会会徽" width="46" height="46" decoding="async">
+      <span class="brand__text">
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <small>ZHEJIANG JIAHAO JIAXIN ASSOCIATION</small>
+      </span>
+    </a>
+<a class="nav-quick" href="friends.html" aria-label="好友与聊天" title="好友与聊天">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15.6 20.5v-1.7a3.7 3.7 0 0 0-3.7-3.7H7.2a3.7 3.7 0 0 0-3.7 3.7v1.7"></path>
+        <circle cx="9.6" cy="7.7" r="3.5"></circle>
+        <path d="M20.6 20.5v-1.7a3.7 3.7 0 0 0-2.8-3.6"></path>
+        <path d="M15.1 4.3a3.5 3.5 0 0 1 0 6.8"></path>
+      </svg>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="siteNav" aria-label="展开导航菜单">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="site-nav site-nav--plain" id="siteNav" aria-label="主导航">
+      <a href="index.html">首页</a>
+      <a href="index.html#departments">部门矩阵</a>
+      <a href="app.html">下载 App</a>
+      <a href="workbench.html">嘉庭工作台</a>
+          <a href="account.html">我的账号</a>
+</nav>
+  </div>
+</header>
+
+<main>
+  <section class="section">
+    <div class="wrap">
+      <header class="section__head">
+        <p class="eyebrow"><span class="eyebrow__line"></span>嘉学 · 0还是1?</p>
+        <h2>写 Python，当场判</h2>
+        <p class="section__lead">左边写代码，右边看结果。题库里 300 道入门题，判题只看你的程序能不能把输入算成对的输出；做错的题会收进「自分谬误样本」，方便回头再练。</p>
+      </header>
+
+      <!-- 手机端：这个功能只在电脑上用 -->
+      <div class="oj-block" id="ojBlock" hidden>
+        <div class="oj-block__icon" aria-hidden="true">🖥️</div>
+        <h3>这个功能仅电脑端开放</h3>
+        <p>在线判题要开一个代码编辑器、还要跑 Python 解释器，手机屏幕上挤不开。请用电脑打开这个页面（输入框、按钮、题目列表在电脑上才顺手）。</p>
+        <p class="oj-block__note">手机上也能用的学习工具：<a href="qianci.html">千词奇域</a>、<a href="calc.html">学习计算器</a>。</p>
+        <a class="oj-btn oj-btn--ghost" href="workbench.html#qingtan">回嘉庭工作台</a>
+      </div>
+
+      <div class="oj-shell" id="ojShell" hidden>
+        <nav class="oj-tabs" role="tablist" aria-label="0还是1? 的功能">
+          <button type="button" class="oj-tab is-active" id="ojTabRun" role="tab" aria-selected="true" data-pane="run">写代码</button>
+          <button type="button" class="oj-tab" id="ojTabBank" role="tab" aria-selected="false" data-pane="bank">题库 <span class="oj-tab__n" id="ojBankCount">—</span></button>
+          <button type="button" class="oj-tab" id="ojTabWrong" role="tab" aria-selected="false" data-pane="wrong">自分谬误样本 <span class="oj-tab__n" id="ojWrongCount">0</span></button>
+        </nav>
+
+        <!-- ============ 写代码 ============ -->
+        <section class="oj-pane" id="ojPaneRun" role="tabpanel" aria-labelledby="ojTabRun">
+          <div class="oj-bar">
+            <label class="oj-field oj-field--lang" for="ojLang">
+              <span>语言</span>
+              <select id="ojLang">
+                <option value="python">Python 3</option>
+                <option value="python" disabled>其他语言陆续加</option>
+              </select>
+            </label>
+            <span class="oj-state" id="ojState">运行环境：还没加载</span>
+            <span class="oj-bar__spacer"></span>
+            <button type="button" class="oj-btn" id="ojRun">运行</button>
+            <button type="button" class="oj-btn oj-btn--ghost" id="ojRunClear">清空</button>
+          </div>
+
+          <div class="oj-workspace">
+            <div class="oj-editor" id="ojEditor">
+              <div class="oj-gutter" id="ojGutter" aria-hidden="true">1</div>
+              <textarea id="ojCode" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="代码编辑区"></textarea>
+            </div>
+
+            <div class="oj-side">
+              <label class="oj-field" for="ojStdin">
+                <span>输入（程序里 input() 读的就是这里的内容）</span>
+                <textarea id="ojStdin" class="oj-stdin" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+              </label>
+
+              <div class="oj-result" id="ojRunResult">
+                <div class="oj-result__head">
+                  <span class="oj-result__title">输出</span>
+                  <span class="oj-result__meta" id="ojRunMeta"></span>
+                </div>
+                <pre class="oj-out" id="ojRunOut">点「运行」，这里会显示程序打印出来的内容。</pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 题库 ============ -->
+        <section class="oj-pane" id="ojPaneBank" role="tabpanel" aria-labelledby="ojTabBank" hidden>
+          <div class="oj-bankbar">
+            <label class="oj-field oj-field--grow" for="ojSearch">
+              <span>找题</span>
+              <input id="ojSearch" type="search" placeholder="输入编号或标题里的字，比如 1101、闰年" autocomplete="off">
+            </label>
+            <label class="oj-field" for="ojStatus">
+              <span>状态</span>
+              <select id="ojStatus">
+                <option value="all">全部</option>
+                <option value="todo">还没通过</option>
+                <option value="solved">已通过</option>
+                <option value="wrong">做错过</option>
+              </select>
+            </label>
+          </div>
+          <div class="oj-filter">
+            <span class="oj-filter__label">知识点</span>
+            <div class="oj-chips" id="ojCats" role="group" aria-label="按知识点筛选"></div>
+          </div>
+          <div class="oj-filter">
+            <span class="oj-filter__label">难度</span>
+            <div class="oj-chips" id="ojLevels" role="group" aria-label="按难度筛选"></div>
+          </div>
+          <p class="oj-bankinfo" id="ojBankInfo" aria-live="polite">正在读题库…</p>
+          <ol class="oj-list" id="ojList"></ol>
+
+          <!-- 单题 -->
+          <div class="oj-problem" id="ojProblem" hidden>
+            <div class="oj-bar">
+              <button type="button" class="oj-btn oj-btn--ghost" id="ojProbBack">← 回题库</button>
+              <span class="oj-problem__id" id="ojProbId"></span>
+              <span class="oj-problem__meta" id="ojProbMeta"></span>
+            </div>
+            <h3 class="oj-problem__title" id="ojProbTitle">—</h3>
+            <div class="oj-problem__body">
+              <p class="oj-problem__text" id="ojProbStatement"></p>
+              <dl class="oj-spec">
+                <dt>输入格式</dt><dd id="ojProbIn"></dd>
+                <dt>输出格式</dt><dd id="ojProbOut"></dd>
+                <dt>输入样例</dt><dd><pre class="oj-sample" id="ojProbSampleIn"></pre></dd>
+                <dt>输出样例</dt><dd><pre class="oj-sample" id="ojProbSampleOut"></pre></dd>
+              </dl>
+              <p class="oj-problem__hint" id="ojProbHint" hidden></p>
+            </div>
+
+            <div class="oj-editor oj-editor--prob" id="ojProbEditor">
+              <div class="oj-gutter" id="ojProbGutter" aria-hidden="true">1</div>
+              <textarea id="ojProbCode" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="这道题的代码"></textarea>
+            </div>
+
+            <div class="oj-bar oj-bar--actions">
+              <button type="button" class="oj-btn oj-btn--ghost" id="ojProbRunSample">运行样例</button>
+              <button type="button" class="oj-btn oj-btn--ghost" id="ojProbRunSelf">用下面的输入自测</button>
+              <span class="oj-bar__spacer"></span>
+              <button type="button" class="oj-btn oj-btn--gold" id="ojProbSubmit">提交判题</button>
+              <button type="button" class="oj-btn oj-btn--ghost" id="ojProbReset">还原成初始代码</button>
+            </div>
+            <div class="oj-split">
+              <label class="oj-field" for="ojProbStdin">
+                <span>自测输入（只在「用下面的输入自测」时用）</span>
+                <textarea id="ojProbStdin" class="oj-stdin oj-stdin--sm" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+              </label>
+
+              <div class="oj-result" id="ojProbResult">
+                <div class="oj-result__head">
+                  <span class="oj-result__title" id="ojProbVerdict">还没交</span>
+                  <span class="oj-result__meta" id="ojProbMeta2"></span>
+                </div>
+                <div class="oj-probout" id="ojProbOutBody"></div>
+              </div>
+            </div>
+
+            <div class="oj-solution" id="ojProbSolutionBox" hidden>
+              <div class="oj-bar">
+                <span class="oj-result__title">参考解法</span>
+                <span class="oj-bar__spacer"></span>
+                <button type="button" class="oj-btn oj-btn--ghost" id="ojProbSolutionBtn">看参考解法</button>
+              </div>
+              <pre class="oj-code-ref" id="ojProbSolution" hidden></pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 自分谬误样本 ============ -->
+        <section class="oj-pane" id="ojPaneWrong" role="tabpanel" aria-labelledby="ojTabWrong" hidden>
+          <div class="oj-bar">
+            <span class="oj-state" id="ojWrongHint">交上去没通过的题会自己收进来。</span>
+            <span class="oj-bar__spacer"></span>
+            <button type="button" class="oj-btn oj-btn--ghost" id="ojWrongClear">清空这个本子</button>
+          </div>
+          <ol class="oj-list oj-list--wrong" id="ojWrongList"></ol>
+          <p class="oj-empty" id="ojWrongEmpty" hidden>本子是空的：还没做错过题。</p>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap site-footer__inner">
+    <div class="site-footer__brand">
+      <img src="assets/img/logo-main.png" alt="" aria-hidden="true" width="56" height="56" loading="lazy" decoding="async">
+      <div>
+        <strong>浙江嘉豪嘉欣协会</strong>
+        <p>浙江高校学生兴趣社群 · 非营利自组织</p>
+      </div>
+    </div>
+    <nav class="site-footer__nav" aria-label="页面导航">
+      <a href="index.html">首页</a>
+      <a href="workbench.html">嘉庭工作台</a>
+      <a href="qianci.html">千词奇域</a>
+      <a href="calc.html">学习计算器</a>
+      <a href="index.html#departments">部门矩阵</a>
+      <a href="app.html">下载 App</a>
+      <a href="account.html">我的账号</a>
+      <a href="friends.html">好友</a>
+    </nav>
+    <div class="site-footer__meta">
+      <p>判题在你自己浏览器里跑，代码不会上传到服务器。</p>
+      <p>&copy; <span id="year">2026</span> 浙江嘉豪嘉欣协会 · 保留所有权利</p>
+    </div>
+  </div>
+</footer>
+
+<a class="quick-home" href="index.html" aria-label="返回首页">
+  <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 10.6 12 3.2l9 7.4"></path>
+    <path d="M5.6 9.6V20h12.8V9.6"></path>
+    <path d="M9.7 20v-5.3h4.6V20"></path>
+  </svg>
+  <span>返回首页</span>
+</a>
+
+<script src="assets/js/oj-runner.js?v=4affc567"></script>
+<script src="assets/js/oj.js?v=5a45f77c"></script>
+<script>
+  var y = document.getElementById('year');
+  if (y) { y.textContent = String(new Date().getFullYear()); }
+</script>
+<script src="assets/js/nav.js?v=a4a20631"></script>
+</body>
+</html>

@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=6f4eea6e">
-<link rel="stylesheet" href="assets/css/workbench.css?v=b98aa8bd">
+<link rel="stylesheet" href="assets/css/workbench.css?v=affb5635">
 </head>
 <body class="wb-page">
 
@@ -137,6 +137,13 @@
       ] },
     { key: 'qingtan', name: '嘉学', logo: 'assets/img/dept-08-qingtan.png', tools: [
         {
+          name: '0还是1?',
+          desc: '写 Python、当场判题；300 道入门题库，做错的自动收进「自分谬误样本」',
+          href: 'zeroone.html',
+          icon: '🐍',
+          desktopOnly: true
+        },
+        {
           name: '学习计算器',
           desc: '基础运算、求导、不定积分、定积分、极限、解方程',
           href: 'calc.html',
@@ -167,6 +174,29 @@
 
   var grid = document.getElementById('wbGrid');
   var detail = document.getElementById('wbDetail');
+
+  /* 只在电脑上能用的工具（比如要开代码编辑器的判题）：手机上点一下就说明白，
+     别让人点进去看到一半发现用不了 */
+  function isDesktop() {
+    var ua = '';
+    try { ua = navigator.userAgent || ''; } catch (e) { ua = ''; }
+    if (/Android|iPhone|iPad|iPod|Mobile|HarmonyOS|Windows Phone|MicroMessenger/i.test(ua)) return false;
+    try { if (window.matchMedia('(max-width: 860px)').matches) return false; } catch (e) { /* 忽略 */ }
+    return true;
+  }
+  var toastTimer = 0;
+  function toast(text) {
+    var el = document.getElementById('wbToast');
+    if (!el) { alert(text); return; }
+    el.textContent = text;
+    el.hidden = false;
+    el.classList.add('is-show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      el.classList.remove('is-show');
+      toastTimer = setTimeout(function () { el.hidden = true; }, 260);
+    }, 3200);
+  }
 
   function find(key) {
     for (var i = 0; i < MODULES.length; i++) { if (MODULES[i].key === key) return MODULES[i]; }
@@ -234,8 +264,9 @@
       wrap.className = 'wb-tools';
       d.tools.forEach(function (t) {
         var a = document.createElement('a');
-        a.className = 'wb-tool';
+        a.className = 'wb-tool' + (t.desktopOnly ? ' wb-tool--desktop' : '');
         a.href = t.href;
+        a.setAttribute('data-tool', t.name);
 
         var icon = document.createElement('span');
         icon.className = 'wb-tool__icon';
@@ -246,6 +277,12 @@
         body.className = 'wb-tool__body';
         var strong = document.createElement('strong');
         strong.textContent = t.name;
+        if (t.desktopOnly) {
+          var badge = document.createElement('span');
+          badge.className = 'wb-tool__badge';
+          badge.textContent = '仅电脑端';
+          strong.appendChild(badge);
+        }
         var desc = document.createElement('span');
         desc.textContent = t.desc;
         body.appendChild(strong);
@@ -256,6 +293,15 @@
         arrow.className = 'wb-tool__arrow';
         arrow.textContent = '→';
         a.appendChild(arrow);
+
+        if (t.desktopOnly) {
+          /* 手机上点了不进页面，就在原地告诉他为什么 */
+          a.addEventListener('click', function (e) {
+            if (isDesktop()) return;
+            e.preventDefault();
+            toast('「' + t.name + '」仅电脑端开放：要开代码编辑器、还要跑 Python 解释器，手机上用不了。');
+          });
+        }
 
         wrap.appendChild(a);
       });
@@ -294,6 +340,10 @@
   </svg>
   <span>返回首页</span>
 </a>
+
+<!-- 「仅电脑端」的工具在手机上点了用这里说一声 -->
+<div class="wb-toast" id="wbToast" role="status" aria-live="polite" hidden></div>
+
 <script src="assets/js/nav.js?v=a4a20631"></script>
 </body>
 </html>

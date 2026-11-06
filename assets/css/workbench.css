@@ -82,3 +82,25 @@
   .wb-dept em { font-size: 10.5px; padding: 1px 8px; }
   .wb-tools { grid-template-columns: 1fr; }
 }
+
+/* 工具条目上的「仅电脑端」小标 */
+.wb-tool__badge {
+  display: inline-block; vertical-align: 2px;
+  margin-left: 8px; padding: 1px 7px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .02em;
+  color: #7a5a14; background: rgba(201, 162, 75, .2);
+  border: 1px solid rgba(201, 162, 75, .5);
+}
+.wb-tool--desktop { position: relative; }
+
+/* 「这个工具只在电脑上能用」的提示条 */
+.wb-toast {
+  position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 12px);
+  max-width: min(92vw, 460px); z-index: 80;
+  padding: 12px 18px; border-radius: 14px;
+  background: #123c37; color: #f2fbf8;
+  font-size: 13.5px; line-height: 1.65; text-align: center;
+  box-shadow: 0 18px 40px -18px rgba(11, 63, 57, .8);
+  opacity: 0; transition: opacity .24s ease, transform .24s ease;
+}
+.wb-toast.is-show { opacity: 1; transform: translate(-50%, 0); }
