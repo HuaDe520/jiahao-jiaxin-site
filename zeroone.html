@@ -65,10 +65,10 @@
       <!-- 进来先选语言 -->
       <div class="oj-langs" id="ojLangPick" hidden>
         <h3 class="oj-langs__title">选一门语言开始</h3>
-        <p class="oj-langs__lead">题库按语言分开练。现在开放 <b>Python</b>，其余几门正在接入，开放后这里就能直接点。</p>
+        <p class="oj-langs__lead" id="ojLangsLead">题库按语言分开练。现在开放 Python 和 C，其余几门正在接入，开放后这里就能直接点。</p>
         <div class="oj-langs__grid" id="ojLangGrid"></div>
         <p class="oj-langs__msg" id="ojLangMsg" aria-live="polite" hidden></p>
-        <p class="oj-langs__foot">不用装任何环境：解释器就在网页里跑，代码不会上传。</p>
+        <p class="oj-langs__foot" id="ojLangsFoot">Python 不用装环境：解释器就在网页里跑，代码不上传；C 要编译：代码发到协会的判题服务器上跑，判完就删。</p>
       </div>
 
       <div class="oj-shell" id="ojShell" hidden>
@@ -243,7 +243,7 @@
       <a href="friends.html">好友</a>
     </nav>
     <div class="site-footer__meta">
-      <p>判题在你自己浏览器里跑，代码不会上传到服务器。</p>
+      <p>Python 的判题在你自己的浏览器里跑，代码不上传；C 要编译，代码会发到协会的判题服务器，判完就删。</p>
       <p>&copy; <span id="year">2026</span> 浙江嘉豪嘉欣协会 · 保留所有权利</p>
     </div>
   </div>
@@ -259,8 +259,8 @@
 </a>
 
 <script src="assets/js/api.js?v=de2d8dfd"></script>
-<script src="assets/js/oj-runner.js?v=4affc567"></script>
-<script src="assets/js/oj.js?v=93ba2f2f"></script>
+<script src="assets/js/oj-runner.js?v=562c6ef5"></script>
+<script src="assets/js/oj.js?v=8a91f15f"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }

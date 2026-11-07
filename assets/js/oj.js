@@ -1,8 +1,10 @@
 /* =========================================================
    「0还是1?」—— 编程语言题库：选语言、写代码、当场运行、按测试点评判
    ---------------------------------------------------------
-   · 语言下拉里现在只有 Python 这一门，别的以后再往里加
-   · 代码不上传：解释器（目前是 Skulpt）和判题都在浏览器里跑
+   · 语言是一门一门接进来的：LANGUAGES 里 ready 为 true 的才是能点的，
+     页面上的「现在开放 xx」也照这个列表生成，不写死
+   · Python 不上传：解释器（Skulpt）和判题都在浏览器里跑；
+     C 要编译，代码发到协会的判题服务器上编译运行，判完就删
    · 判题只看输出：每道题有几个测试点，全部对上才算通过
      比较时按「词」比，数字允许极小误差（浮点数在小数最后一位上
      各引擎可能不同，别为这个卡住初学者）
@@ -14,20 +16,38 @@
 
   var R = global.JHJX_OJ_RUNNER;
   var BANK_URL = 'assets/data/oj-bank.json';
-  var RUN_TIMEOUT = 4000;      /* 自由运行的执行预算 */
-  var CASE_TIMEOUT = 2500;     /* 判题时每个测试点的预算 */
-  var JUDGE_TOTAL_BUDGET = 20000;  /* 判一整题的总预算，超了就停下 */
+  var RUN_TIMEOUT = 8000;      /* 自由运行的执行预算 */
+  var CASE_TIMEOUT = 6000;     /* 判题时每个测试点的预算 */
+  var JUDGE_TOTAL_BUDGET = 28000;  /* 判一整题的总预算，超了就停下 */
 
   var $ = function (id) { return document.getElementById(id); };
   var el = {};
 
-  /* 目前支持的语言：Python 和 C 已开放，C++/Java 先把位置留着 */
+  /* 目前支持的语言：Python 和 C 已开放，C++/Java 先把位置留着。
+     note 只是没开放那几门的占位文字，开放的那几门按实际题库数生成。 */
   var LANGUAGES = [
-    { key: 'python', name: 'Python', mono: 'Py', ready: true, note: '已开放 · 300 道题' },
-    { key: 'c', name: 'C', mono: 'C', ready: true, note: '已开放 · 300 道题' },
+    { key: 'python', name: 'Python', mono: 'Py', ready: true },
+    { key: 'c', name: 'C', mono: 'C', ready: true },
     { key: 'cpp', name: 'C++', mono: 'C++', ready: false, note: '还没开放' },
     { key: 'java', name: 'Java', mono: 'Java', ready: false, note: '还没开放' }
   ];
+  /* 已开放的语言名，用中文顿号连起来：「Python、C」 */
+  function readyNames() {
+    var out = [];
+    for (var i = 0; i < LANGUAGES.length; i++) if (LANGUAGES[i].ready) out.push(LANGUAGES[i].name);
+    return out.join('、');
+  }
+  /* 每门语言多少道题：读过一次就记住，语言选择界面直接用，
+     不用为了显示个数字把两个题库都先下载下来 */
+  function countOf(lang) {
+    try {
+      var v = localStorage.getItem('jhjx-oj-count-' + lang);
+      return v && Number(v) > 0 ? Number(v) : 0;
+    } catch (e) { return 0; }
+  }
+  function rememberCount(lang, n) {
+    try { localStorage.setItem('jhjx-oj-count-' + lang, String(n)); } catch (e) { /* 忽略 */ }
+  }
   function langByKey(k) {
     for (var i = 0; i < LANGUAGES.length; i++) if (LANGUAGES[i].key === k) return LANGUAGES[i];
     return LANGUAGES[0];
@@ -37,12 +57,16 @@
   /* 每门语言怎么跑：Python 在浏览器里（Skulpt），C 发到服务器编译 */
   function runnerKindOf(lang) { return lang === 'c' ? 'server' : 'browser'; }
 
-  /* 四档难度：名字 + 星级 + 一句话说明（筛选条和标签都用这一套） */
+  /* 四档难度：按「要不要动脑」分，不是按代码长短/耗时
+     · 入门：套一个语法点就能写
+     · 基础：把两三个知识点串起来，照着写就行
+     · 进阶：得自己设计做法（多步逻辑、多条规则、边界）
+     · 挑战：得想到一个不显然的办法，光会语法不知道从哪下手 */
   var LEVELS = {
-    1: { name: '入门', stars: '★☆☆☆', tip: '认识语法就能写，照着示例来' },
-    2: { name: '基础', stars: '★★☆☆', tip: '要把两三个知识点串起来' },
-    3: { name: '进阶', stars: '★★★☆', tip: '先想清步骤，注意边界情况' },
-    4: { name: '挑战', stars: '★★★★', tip: '需要一点算法或模拟的思路' }
+    1: { name: '入门', stars: '★☆☆☆', tip: '套一个语法点就能写' },
+    2: { name: '基础', stars: '★★☆☆', tip: '把两三个知识点串起来，照着写就行' },
+    3: { name: '进阶', stars: '★★★☆', tip: '要自己设计做法：多步逻辑、几条规则、边界得理清' },
+    4: { name: '挑战', stars: '★★★★', tip: '要想到一个不显然的办法（算法或技巧），光会语法不知道从哪下手' }
   };
   function levelMeta(n) {
     return LEVELS[Number(n)] || { name: '难度未知', stars: '☆☆☆☆', tip: '' };
@@ -667,10 +691,11 @@
      ========================================================= */
   var CAT_ORDER = ['输入输出', '运算与类型', '条件分支', '循环', '列表', '字符串', '字典与集合', '函数与递归', '排序与综合', '模拟与实战'];
 
-  /* 各语言的分类顺序（C 没有「列表/字典」这些，换成了数组/指针/结构体） */
+  /* 各语言的分类顺序（C 没有「列表/字典」这些，换成了数组/指针/结构体）
+     「算法入门」是重构题库时新加的一档：二分答案/双指针/贪心/DP/栈队列这些 */
   var CAT_ORDER_BY_LANG = {
-    python: ['输入输出', '运算与类型', '条件分支', '循环', '列表', '字符串', '字典与集合', '函数与递归', '排序与综合', '模拟与实战'],
-    c: ['输入输出', '运算与类型', '条件分支', '循环', '数组与矩阵', '字符串', '函数与递归', '指针与结构体', '排序与查找', '模拟与综合']
+    python: ['输入输出', '运算与类型', '条件分支', '循环', '列表', '字符串', '字典与集合', '函数与递归', '排序与综合', '模拟与实战', '算法入门'],
+    c: ['输入输出', '运算与类型', '条件分支', '循环', '数组与矩阵', '字符串', '函数与递归', '指针与结构体', '排序与查找', '模拟与综合', '算法入门']
   };
   function catOrder() { return CAT_ORDER_BY_LANG[state.lang] || CAT_ORDER_BY_LANG.python; }
 
@@ -686,6 +711,9 @@
         var list = (data && data.problems) || [];
         if (!list.length) throw new Error('题库是空的');
         state.bank = { problems: list };
+        rememberCount(state.lang, list.length);
+        /* 记住题数之后把语言选择页重画一遍，下次回去就能看到「已开放 · 400 道题」 */
+        if (el.langGrid && el.langPick && !el.langPick.hidden) renderLangPick();
         state.byId = {};
         var counts = {};
         list.forEach(function (p) {
@@ -1087,6 +1115,24 @@
     if (!el.langGrid) return;
     var last = '';
     try { last = localStorage.getItem(PREFIX + 'lang') || ''; } catch (e) { last = ''; }
+    /* 上面那句「现在开放 …」跟着实际开放情况走，别写死 */
+    if (el.langsLead) {
+      el.langsLead.textContent = '题库按语言分开练。现在开放 ' + readyNames() + '，其余几门正在接入，开放后这里就能直接点。';
+    }
+    if (el.langsFoot) {
+      /* 这句也得跟着语言走：Python 在浏览器里跑，C 要发去服务器编译 */
+      var local = [];
+      var remote = [];
+      LANGUAGES.forEach(function (l) {
+        if (!l.ready) return;
+        if (runnerKindOf(l.key) === 'server') remote.push(l.name);
+        else local.push(l.name);
+      });
+      var bits = [];
+      if (local.length) bits.push(local.join('、') + ' 不用装环境：解释器就在网页里跑，代码不上传');
+      if (remote.length) bits.push(remote.join('、') + ' 要编译：代码发到协会的判题服务器上跑，判完就删');
+      el.langsFoot.textContent = bits.join('；') + '。';
+    }
     el.langGrid.innerHTML = '';
     LANGUAGES.forEach(function (lang) {
       var b = document.createElement('button');
@@ -1107,7 +1153,9 @@
       body.appendChild(name);
       var note = document.createElement('span');
       note.className = 'oj-lang__note';
-      note.textContent = lang.note;
+      note.textContent = lang.ready
+        ? ('已开放' + (countOf(lang.key) ? ' · ' + countOf(lang.key) + ' 道题' : ' · 点进去看题'))
+        : (lang.note || '还没开放');
       body.appendChild(note);
       b.appendChild(body);
 
@@ -1120,7 +1168,7 @@
         if (!lang.ready) {
           if (el.langMsg) {
             el.langMsg.hidden = false;
-            el.langMsg.textContent = '「' + lang.name + '」还没开放。现在能练的是 Python，开放之后这里就能直接点。';
+            el.langMsg.textContent = '「' + lang.name + '」还没开放。现在能练的是 ' + readyNames() + '，开放之后这里就能直接点。';
           }
           return;
         }
@@ -1209,6 +1257,8 @@
       langPick: $('ojLangPick'),
       langGrid: $('ojLangGrid'),
       langMsg: $('ojLangMsg'),
+      langsLead: $('ojLangsLead'),
+      langsFoot: $('ojLangsFoot'),
       langNow: $('ojLangNow'),
       langTag: $('ojLangTag'),
       note: $('ojNote'),
