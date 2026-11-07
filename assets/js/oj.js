@@ -21,6 +21,29 @@
   var $ = function (id) { return document.getElementById(id); };
   var el = {};
 
+  /* 目前支持的语言：先只开放 Python，别的先把位置留着，开放后就能点 */
+  var LANGUAGES = [
+    { key: 'python', name: 'Python', mono: 'Py', ready: true, note: '已开放 · 300 道题' },
+    { key: 'c', name: 'C', mono: 'C', ready: false, note: '还没开放' },
+    { key: 'cpp', name: 'C++', mono: 'C++', ready: false, note: '还没开放' },
+    { key: 'java', name: 'Java', mono: 'Java', ready: false, note: '还没开放' }
+  ];
+  function langByKey(k) {
+    for (var i = 0; i < LANGUAGES.length; i++) if (LANGUAGES[i].key === k) return LANGUAGES[i];
+    return LANGUAGES[0];
+  }
+
+  /* 四档难度：名字 + 星级 + 一句话说明（筛选条和标签都用这一套） */
+  var LEVELS = {
+    1: { name: '入门', stars: '★☆☆☆', tip: '认识语法就能写，照着示例来' },
+    2: { name: '基础', stars: '★★☆☆', tip: '要把两三个知识点串起来' },
+    3: { name: '进阶', stars: '★★★☆', tip: '先想清步骤，注意边界情况' },
+    4: { name: '挑战', stars: '★★★★', tip: '需要一点算法或模拟的思路' }
+  };
+  function levelMeta(n) {
+    return LEVELS[Number(n)] || { name: '难度未知', stars: '☆☆☆☆', tip: '' };
+  }
+
   /* ---------------- 电脑端判断 ---------------- */
   function isDesktop() {
     var ua = '';
@@ -56,13 +79,15 @@
   /* ---------------- 状态 ---------------- */
   var state = {
     pane: 'run',
+    lang: '',            /* 选中的语言；空着就先显示语言选择页 */
     bank: null,
     byId: {},
     cats: [],
     cat: 'all',
     q: '',
     status: 'all',
-    level: '0',
+    level: '0',          /* 难度筛选：'0' 全部 / '1'~'4' */
+    sort: 'easy',        /* 列表顺序：由浅入深（默认）/ 按编号 */
     problem: null,
     judging: false,
     judgingList: false
@@ -433,6 +458,8 @@
           if (wrongListVisible()) renderWrongList();
           renderBankInfo();
           showSolutionAvailable(p);
+          /* 过了就顺手给个「下一题」，顺着难度往下走 */
+          if (el.probNext) el.probNext.hidden = false;
         } else {
           var key = String(p.id);
           var rec = wrong[key] || { tries: 0 };
@@ -569,15 +596,15 @@
   function solvedCount() { return Object.keys(solved).length; }
 
   /* 难度标签：每道题都有，列表里、题目页里、错题本里都带着 */
-  function makeLevelTag(level) {
+  function makeLevelTag(level, withStars) {
+    var m = levelMeta(level);
     var span = document.createElement('span');
-    var isHard = Number(level) === 2;
-    span.className = 'oj-tag ' + (isHard ? 'oj-tag--l2' : 'oj-tag--l1');
-    span.textContent = isHard ? '进阶' : '入门';
-    span.title = isHard ? '难度：进阶（需要多绕一步）' : '难度：入门（基础语法就够）';
+    span.className = 'oj-tag oj-tag--l' + (LEVELS[Number(level)] ? Number(level) : 0);
+    span.textContent = withStars ? (m.stars + ' ' + m.name) : m.name;
+    span.title = '难度：' + m.name + (m.tip ? '（' + m.tip + '）' : '');
     return span;
   }
-  function levelText(level) { return Number(level) === 2 ? '进阶' : '入门'; }
+  function levelText(level) { return levelMeta(level).name; }
 
   function renderCats() {
     el.cats.innerHTML = '';
@@ -602,18 +629,19 @@
     state.cats.forEach(function (c) { chip(c.cat, c.cat, c.count); });
   }
 
-  /* 难度筛选：入门 / 进阶 各有多少道，点一下就只看那一档 */
+  /* 难度筛选：入门 / 基础 / 进阶 / 挑战 各有多少道，点一下就只看那一档 */
   function renderLevels() {
     if (!el.levels) return;
     var list = (state.bank && state.bank.problems) || [];
-    var n1 = 0, n2 = 0;
-    list.forEach(function (p) { if (Number(p.level) === 2) n2++; else n1++; });
+    var counts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    list.forEach(function (p) { if (counts[Number(p.level)] != null) counts[Number(p.level)]++; });
     el.levels.innerHTML = '';
-    function chip(label, value, count, tagCls) {
+    function chip(label, value, count, tagCls, tip) {
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'oj-chip' + (tagCls ? ' ' + tagCls : '') + (state.level === value ? ' is-active' : '');
       b.textContent = label;
+      if (tip) b.title = tip;
       if (count != null) {
         var s = document.createElement('small');
         s.textContent = String(count);
@@ -627,14 +655,16 @@
       el.levels.appendChild(b);
     }
     chip('全部难度', '0', list.length);
-    chip('入门', '1', n1, 'oj-chip--l1');
-    chip('进阶', '2', n2, 'oj-chip--l2');
+    [1, 2, 3, 4].forEach(function (lv) {
+      var m = levelMeta(lv);
+      chip(m.name, String(lv), counts[lv], 'oj-chip--l' + lv, m.stars + ' · ' + m.tip);
+    });
   }
 
   function filteredProblems() {
     var list = (state.bank && state.bank.problems) || [];
     var q = state.q.trim().toLowerCase();
-    return list.filter(function (p) {
+    var out = list.filter(function (p) {
       if (state.cat !== 'all' && p.cat !== state.cat) return false;
       if (state.level !== '0' && String(p.level) !== state.level) return false;
       var st = statusOf(p.id);
@@ -647,6 +677,18 @@
       }
       return true;
     });
+    /* 默认「由浅入深」：先按难度、再按编号，初学者从最前面的做起 */
+    if (state.sort === 'easy') {
+      out.sort(function (a, b) {
+        var la = Number(a.level) || 9;
+        var lb = Number(b.level) || 9;
+        if (la !== lb) return la - lb;
+        return a.id - b.id;
+      });
+    } else {
+      out.sort(function (a, b) { return a.id - b.id; });
+    }
+    return out;
   }
 
   function renderBankInfo() {
@@ -740,7 +782,7 @@
     var mcat = document.createElement('span');
     mcat.textContent = p.cat + ' · ';
     el.probMeta.appendChild(mcat);
-    el.probMeta.appendChild(makeLevelTag(p.level));
+    el.probMeta.appendChild(makeLevelTag(p.level, true));   /* 题目页带星级 */
     var mst = document.createElement('span');
     mst.textContent = ' · ' + (st === 'solved' ? '已通过' : (st === 'wrong' ? '做错过' : '没做过'));
     el.probMeta.appendChild(mst);
@@ -762,8 +804,33 @@
     el.probVerdict.className = 'oj-result__title oj-verdict is-wait';
     el.probMeta2.textContent = '';
     el.probOutBody.innerHTML = '<p class="oj-line">点「运行样例」先看看示例能不能对上，或者直接「提交判题」跑全部测试点。</p>';
+    if (el.probNext) el.probNext.hidden = true;   /* 通过之后才出现 */
     showSolutionAvailable(p);
     try { el.problem.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { /* 忽略 */ }
+  }
+
+  /* 按当前筛选顺序找下一题：做完一道顺着往下走。
+     要是当前筛选只剩这一道（比如按编号搜出来的一道），就退回整库的顺序，
+     别让「下一题」点了跟没点一样 */
+  function openNextProblem() {
+    var list = filteredProblems();
+    if (list.length < 2) {
+      list = ((state.bank && state.bank.problems) || []).slice();
+      if (state.sort === 'easy') {
+        list.sort(function (a, b) {
+          var la = Number(a.level) || 9;
+          var lb = Number(b.level) || 9;
+          return la !== lb ? la - lb : a.id - b.id;
+        });
+      } else {
+        list.sort(function (a, b) { return a.id - b.id; });
+      }
+    }
+    if (!list.length) return;
+    var at = -1;
+    for (var i = 0; i < list.length; i++) if (String(list[i].id) === String(state.problem && state.problem.id)) at = i;
+    var next = list[(at + 1) % list.length];
+    openProblem(next.id);
   }
 
   function closeProblem() {
@@ -898,19 +965,96 @@
   }
 
   /* =========================================================
+     语言选择页
+     ========================================================= */
+  function renderLangPick() {
+    if (!el.langGrid) return;
+    var last = '';
+    try { last = localStorage.getItem(PREFIX + 'lang') || ''; } catch (e) { last = ''; }
+    el.langGrid.innerHTML = '';
+    LANGUAGES.forEach(function (lang) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'oj-lang' + (lang.ready ? ' is-ready' : ' is-locked') + (last === lang.key ? ' is-last' : '');
+      b.setAttribute('data-lang', lang.key);
+
+      var badge = document.createElement('span');
+      badge.className = 'oj-lang__badge';
+      badge.textContent = lang.mono;
+      b.appendChild(badge);
+
+      var body = document.createElement('span');
+      body.className = 'oj-lang__body';
+      var name = document.createElement('strong');
+      name.className = 'oj-lang__name';
+      name.textContent = lang.name;
+      body.appendChild(name);
+      var note = document.createElement('span');
+      note.className = 'oj-lang__note';
+      note.textContent = lang.note;
+      body.appendChild(note);
+      b.appendChild(body);
+
+      var arrow = document.createElement('span');
+      arrow.className = 'oj-lang__arrow';
+      arrow.textContent = lang.ready ? '→' : '·';
+      b.appendChild(arrow);
+
+      b.addEventListener('click', function () {
+        if (!lang.ready) {
+          if (el.langMsg) {
+            el.langMsg.hidden = false;
+            el.langMsg.textContent = '「' + lang.name + '」还没开放。现在能练的是 Python，开放之后这里就能直接点。';
+          }
+          return;
+        }
+        chooseLang(lang.key);
+      });
+      el.langGrid.appendChild(b);
+    });
+  }
+
+  /* 选好语言 → 进主界面 */
+  function chooseLang(key) {
+    var lang = langByKey(key);
+    if (!lang.ready) return;
+    state.lang = lang.key;
+    try { localStorage.setItem(PREFIX + 'lang', lang.key); } catch (e) { /* 忽略 */ }
+    if (el.langPick) el.langPick.hidden = true;
+    if (el.shell) el.shell.hidden = false;
+    if (el.langNow) el.langNow.textContent = lang.name;
+    if (el.langTag) el.langTag.textContent = lang.name;
+    goPane('run');
+    ensureRunner();   /* 既然选了语言，就先把解释器热起来 */
+  }
+
+  /* 回语言选择页（进度都还在，只是换个语言） */
+  function backToLangs() {
+    if (el.shell) el.shell.hidden = true;
+    if (el.langPick) el.langPick.hidden = false;
+    if (el.langMsg) el.langMsg.hidden = true;
+    renderLangPick();
+  }
+
+  /* =========================================================
      起
      ========================================================= */
   function boot() {
     if (!isDesktop()) {
       $('ojBlock').hidden = false;
+      $('ojLangPick').hidden = true;
       $('ojShell').hidden = true;
       return;
     }
     $('ojBlock').hidden = true;
-    $('ojShell').hidden = false;
 
     el = {
       shell: $('ojShell'),
+      langPick: $('ojLangPick'),
+      langGrid: $('ojLangGrid'),
+      langMsg: $('ojLangMsg'),
+      langNow: $('ojLangNow'),
+      langTag: $('ojLangTag'),
       state: $('ojState'),
       run: $('ojRun'),
       runClear: $('ojRunClear'),
@@ -922,6 +1066,7 @@
       wrongCount: $('ojWrongCount'),
       search: $('ojSearch'),
       status: $('ojStatus'),
+      sort: $('ojSort'),
       cats: $('ojCats'),
       levels: $('ojLevels'),
       filters: document.querySelectorAll('.oj-filter'),
@@ -945,6 +1090,7 @@
       probRunSample: $('ojProbRunSample'),
       probRunSelf: $('ojProbRunSelf'),
       probReset: $('ojProbReset'),
+      probNext: $('ojProbNext'),
       probVerdict: $('ojProbVerdict'),
       probMeta2: $('ojProbMeta2'),
       probResult: $('ojProbResult'),
@@ -964,6 +1110,7 @@
     $('ojTabRun').addEventListener('click', function () { goPane('run'); });
     $('ojTabBank').addEventListener('click', function () { goPane('bank'); });
     $('ojTabWrong').addEventListener('click', function () { goPane('wrong'); });
+    $('ojTabLang').addEventListener('click', backToLangs);
 
     /* 写代码 */
     var playSaved = null;
@@ -987,6 +1134,7 @@
     /* 题库筛选 */
     el.search.addEventListener('input', function () { state.q = el.search.value; renderBankList(); });
     el.status.addEventListener('change', function () { state.status = el.status.value; renderBankList(); });
+    if (el.sort) el.sort.addEventListener('change', function () { state.sort = el.sort.value; renderBankList(); });
 
     /* 单题 */
     $('ojProbBack').addEventListener('click', closeProblem);
@@ -1016,6 +1164,7 @@
       el.probSolution.hidden = false;
       el.probSolution.textContent = p.solution;
     });
+    if (el.probNext) el.probNext.addEventListener('click', openNextProblem);
 
     /* 错题本 */
     el.wrongClear.addEventListener('click', function () {
@@ -1042,9 +1191,11 @@
     renderWrongCounts();
     renderWrongList();
 
-    /* 解释器懒加载：第一次点运行/提交时再取；闲的时候也可以先偷偷热起来 */
+    /* 先停在语言选择页：选好语言才进主界面（进度都存在本机，换语言不会丢） */
     setState('运行环境：还没加载（点「运行」时加载）');
-    global.setTimeout(function () { if (!runnerReady) ensureRunner(); }, 2500);
+    renderLangPick();
+    $('ojLangPick').hidden = false;
+    $('ojShell').hidden = true;
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="assets/css/style.css?v=6f4eea6e">
-<link rel="stylesheet" href="assets/css/oj.css?v=cb765a5d">
+<link rel="stylesheet" href="assets/css/oj.css?v=89b40c3c">
 </head>
 <body class="oj-page">
 
@@ -62,28 +62,35 @@
         <a class="oj-btn oj-btn--ghost" href="workbench.html#qingtan">回嘉庭工作台</a>
       </div>
 
+      <!-- 进来先选语言 -->
+      <div class="oj-langs" id="ojLangPick" hidden>
+        <h3 class="oj-langs__title">选一门语言开始</h3>
+        <p class="oj-langs__lead">题库按语言分开练。现在开放 <b>Python</b>，其余几门正在接入，开放后这里就能直接点。</p>
+        <div class="oj-langs__grid" id="ojLangGrid"></div>
+        <p class="oj-langs__msg" id="ojLangMsg" aria-live="polite" hidden></p>
+        <p class="oj-langs__foot">不用装任何环境：解释器就在网页里跑，代码不会上传。</p>
+      </div>
+
       <div class="oj-shell" id="ojShell" hidden>
         <nav class="oj-tabs" role="tablist" aria-label="0还是1? 的功能">
           <button type="button" class="oj-tab is-active" id="ojTabRun" role="tab" aria-selected="true" data-pane="run">写代码</button>
           <button type="button" class="oj-tab" id="ojTabBank" role="tab" aria-selected="false" data-pane="bank">题库 <span class="oj-tab__n" id="ojBankCount">—</span></button>
           <button type="button" class="oj-tab" id="ojTabWrong" role="tab" aria-selected="false" data-pane="wrong">自分谬误样本 <span class="oj-tab__n" id="ojWrongCount">0</span></button>
+          <span class="oj-tabs__spacer"></span>
+          <span class="oj-langnow" id="ojLangNow">Python</span>
+          <button type="button" class="oj-tab oj-tab--back" id="ojTabLang">换语言</button>
         </nav>
 
         <!-- ============ 写代码 ============ -->
         <section class="oj-pane" id="ojPaneRun" role="tabpanel" aria-labelledby="ojTabRun">
           <div class="oj-bar">
-            <label class="oj-field oj-field--lang" for="ojLang">
-              <span>语言</span>
-              <select id="ojLang">
-                <option value="python">Python 3</option>
-                <option value="python" disabled>其他语言陆续加</option>
-              </select>
-            </label>
+            <span class="oj-langtag" id="ojLangTag">Python</span>
             <span class="oj-state" id="ojState">运行环境：还没加载</span>
             <span class="oj-bar__spacer"></span>
             <button type="button" class="oj-btn" id="ojRun">运行</button>
             <button type="button" class="oj-btn oj-btn--ghost" id="ojRunClear">清空</button>
           </div>
+          <p class="oj-note">不用装任何环境：解释器就在这个网页里跑，代码只在你自己的浏览器里，不上传。</p>
 
           <div class="oj-workspace">
             <div class="oj-editor" id="ojEditor">
@@ -122,6 +129,13 @@
                 <option value="todo">还没通过</option>
                 <option value="solved">已通过</option>
                 <option value="wrong">做错过</option>
+              </select>
+            </label>
+            <label class="oj-field" for="ojSort">
+              <span>排序</span>
+              <select id="ojSort">
+                <option value="easy">由浅入深</option>
+                <option value="id">按编号</option>
               </select>
             </label>
           </div>
@@ -164,6 +178,7 @@
               <button type="button" class="oj-btn oj-btn--ghost" id="ojProbRunSample">运行样例</button>
               <button type="button" class="oj-btn oj-btn--ghost" id="ojProbRunSelf">用下面的输入自测</button>
               <span class="oj-bar__spacer"></span>
+              <button type="button" class="oj-btn oj-btn--ghost" id="ojProbNext" hidden>下一题 →</button>
               <button type="button" class="oj-btn oj-btn--gold" id="ojProbSubmit">提交判题</button>
               <button type="button" class="oj-btn oj-btn--ghost" id="ojProbReset">还原成初始代码</button>
             </div>
@@ -244,7 +259,7 @@
 </a>
 
 <script src="assets/js/oj-runner.js?v=4affc567"></script>
-<script src="assets/js/oj.js?v=7a6cd497"></script>
+<script src="assets/js/oj.js?v=74e9d1cb"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }
