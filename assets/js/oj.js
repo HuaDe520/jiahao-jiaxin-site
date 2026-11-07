@@ -233,11 +233,11 @@
     });
   }
 
-  /* 发到判题服务器。这个函数闲下来会被平台回收，刚被叫醒的那一两秒里网关
-     会直接回一个「连不上」，所以要自动重试：一共四次，铺开大约 7 秒，
-     足够熬过冷启动。 */
+  /* 发到判题服务器。阿里云那个函数闲下来会被回收，回收/重启的那几秒里
+     平台直接回 502（连 CORS 头都没有，浏览器里就是「连不上」）。
+     所以网络层失败（status 0）一律自动重试：五次，铺开约 20 秒。 */
   function postC(payload) {
-    var wait = [0, 900, 2200, 4000];
+    var wait = [0, 1200, 3000, 6000, 10000];
     var tries = 0;
     function attempt() {
       return window.JHJX_API.ojRunC(payload).then(function (res) {
