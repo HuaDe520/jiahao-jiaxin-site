@@ -138,9 +138,9 @@
     { key: 'qingtan', name: '嘉学', logo: 'assets/img/dept-08-qingtan.png', tools: [
         {
           name: '0还是1?',
-          desc: '写 Python、当场判题；300 道入门题库，做错的自动收进「自分谬误样本」',
+          desc: '编程语言题库，写完当场判对错',
           href: 'zeroone.html',
-          icon: '🐍',
+          icon: '⌨️',
           desktopOnly: true
         },
         {
@@ -299,7 +299,7 @@
           a.addEventListener('click', function (e) {
             if (isDesktop()) return;
             e.preventDefault();
-            toast('「' + t.name + '」仅电脑端开放：要开代码编辑器、还要跑 Python 解释器，手机上用不了。');
+            toast('「' + t.name + '」仅电脑端开放：要开代码编辑器、还要跑代码解释器，手机上用不了。');
           });
         }
 

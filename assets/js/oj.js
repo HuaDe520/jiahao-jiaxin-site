@@ -1,7 +1,8 @@
 /* =========================================================
-   「0还是1?」—— 写 Python、当场运行、按测试点评判
+   「0还是1?」—— 编程语言题库：选语言、写代码、当场运行、按测试点评判
    ---------------------------------------------------------
-   · 代码不上传：解释器（Skulpt）和判题都在浏览器里跑
+   · 语言下拉里现在只有 Python 这一门，别的以后再往里加
+   · 代码不上传：解释器（目前是 Skulpt）和判题都在浏览器里跑
    · 判题只看输出：每道题有几个测试点，全部对上才算通过
      比较时按「词」比，数字允许极小误差（浮点数在小数最后一位上
      各引擎可能不同，别为这个卡住初学者）
@@ -150,7 +151,7 @@
   }
   function ensureRunner() {
     if (runnerReady) return Promise.resolve(true);
-    setState('运行环境：正在加载 Python（第一次约 1MB，之后走缓存）…');
+    setState('运行环境：正在加载解释器（第一次约 1MB，之后走缓存）…');
     return R.ensure().then(function () {
       runnerReady = true;
       setState('运行环境：已就绪 · Python 3', 'ok');
@@ -219,7 +220,7 @@
     showRunOut('正在跑…', false, true);
     if (el.runMeta) el.runMeta.textContent = '';
     ensureRunner().then(function (ok) {
-      if (!ok) { el.run.disabled = false; showRunOut('Python 运行环境没加载下来：检查一下网络，再点一次运行。', true); return; }
+      if (!ok) { el.run.disabled = false; showRunOut('运行环境没加载下来：检查一下网络，再点一次运行。', true); return; }
       return R.run(code, el.stdin.value, RUN_TIMEOUT).then(function (res) {
         el.run.disabled = false;
         if (!res.ok && res.setupFailed) { showRunOut(res.stderr || '运行环境没起来', true); return; }
@@ -396,7 +397,7 @@
       el.probVerdict.textContent = '还没写代码';
       el.probVerdict.className = 'oj-result__title oj-verdict is-wait';
       el.probMeta2.textContent = '';
-      el.probOutBody.innerHTML = '<p class="oj-line">先在下面写点 Python，再提交。</p>';
+      el.probOutBody.innerHTML = '<p class="oj-line">先在下面写点代码，再提交。</p>';
       return;
     }
     state.judging = true;
@@ -414,7 +415,7 @@
         el.probRunSample.disabled = false;
         el.probVerdict.textContent = '运行环境没起来';
         el.probVerdict.className = 'oj-result__title oj-verdict is-bad';
-        el.probOutBody.innerHTML = '<p class="oj-line">Python 运行环境没加载下来：检查一下网络，刷新页面再试。</p>';
+        el.probOutBody.innerHTML = '<p class="oj-line">运行环境没加载下来：检查一下网络，刷新页面再试。</p>';
         return;
       }
       return runCases(p, code, false).then(function (judge) {
@@ -469,7 +470,7 @@
         el.probRunSelf.disabled = false;
         el.probVerdict.textContent = '运行环境没起来';
         el.probVerdict.className = 'oj-result__title oj-verdict is-bad';
-        el.probOutBody.innerHTML = '<p class="oj-line">Python 运行环境没加载下来：检查一下网络。</p>';
+        el.probOutBody.innerHTML = '<p class="oj-line">运行环境没加载下来：检查一下网络。</p>';
         return;
       }
       return R.run(code, stdin, RUN_TIMEOUT).then(function (res) {
