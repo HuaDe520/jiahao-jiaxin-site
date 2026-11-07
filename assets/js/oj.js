@@ -21,10 +21,10 @@
   var $ = function (id) { return document.getElementById(id); };
   var el = {};
 
-  /* 目前支持的语言：先只开放 Python，别的先把位置留着，开放后就能点 */
+  /* 目前支持的语言：Python 和 C 已开放，C++/Java 先把位置留着 */
   var LANGUAGES = [
     { key: 'python', name: 'Python', mono: 'Py', ready: true, note: '已开放 · 300 道题' },
-    { key: 'c', name: 'C', mono: 'C', ready: false, note: '还没开放' },
+    { key: 'c', name: 'C', mono: 'C', ready: true, note: '已开放 · 300 道题' },
     { key: 'cpp', name: 'C++', mono: 'C++', ready: false, note: '还没开放' },
     { key: 'java', name: 'Java', mono: 'Java', ready: false, note: '还没开放' }
   ];
@@ -32,6 +32,10 @@
     for (var i = 0; i < LANGUAGES.length; i++) if (LANGUAGES[i].key === k) return LANGUAGES[i];
     return LANGUAGES[0];
   }
+  /* 每门语言的题库文件 */
+  function bankUrlOf(lang) { return 'assets/data/oj-bank-' + lang + '.json'; }
+  /* 每门语言怎么跑：Python 在浏览器里（Skulpt），C 发到服务器编译 */
+  function runnerKindOf(lang) { return lang === 'c' ? 'server' : 'browser'; }
 
   /* 四档难度：名字 + 星级 + 一句话说明（筛选条和标签都用这一套） */
   var LEVELS = {
@@ -61,7 +65,11 @@
     } catch (e) { /* 忽略 */ }
     return 'guest';
   })();
+  /* 本机存储按「账号 + 语言」分开：Python 的错题本和 C 的错题本互不干扰 */
   var PREFIX = 'jhjx-oj-' + uid + '-';
+  function setLangPrefix(lang) {
+    PREFIX = 'jhjx-oj-' + uid + '-' + (lang || 'x') + '-';
+  }
   function readJSON(key, dflt) {
     try {
       var raw = localStorage.getItem(PREFIX + key);
@@ -73,8 +81,13 @@
   function writeJSON(key, v) {
     try { localStorage.setItem(PREFIX + key, JSON.stringify(v)); } catch (e) { /* 存不下就算了 */ }
   }
+  /* 以下三份状态在「换语言」时按新语言的存储键重新读 */
   var solved = readJSON('solved', {});
   var wrong = readJSON('wrong', {});
+  function reloadProgress() {
+    solved = readJSON('solved', {});
+    wrong = readJSON('wrong', {});
+  }
 
   /* ---------------- 状态 ---------------- */
   var state = {
@@ -174,7 +187,15 @@
     el.state.textContent = text;
     el.state.className = 'oj-state' + (cls ? ' is-' + cls : '');
   }
+  /* 这门语言是在浏览器里跑（Python）还是发到服务器编译（C） */
+  function isServerLang() { return runnerKindOf(state.lang) === 'server'; }
+
   function ensureRunner() {
+    if (isServerLang()) {
+      /* C 由服务器编译，前端不用准备什么，只提示一下 */
+      setState('运行环境：C 代码会发到协会的判题服务器上编译运行');
+      return Promise.resolve(true);
+    }
     if (runnerReady) return Promise.resolve(true);
     setState('运行环境：正在加载解释器（第一次约 1MB，之后走缓存）…');
     return R.ensure().then(function () {
@@ -184,6 +205,27 @@
     }, function (err) {
       setState('运行环境加载失败：' + ((err && err.message) || '检查网络后刷新一下'), 'bad');
       return false;
+    });
+  }
+
+  /* 统一的「跑一次」：Python 走浏览器里的解释器，C 走服务器 */
+  function runOnce(code, stdin, timeoutMs) {
+    if (!isServerLang()) return R.run(code, stdin, timeoutMs);
+    return window.JHJX_API.ojRunC({
+      code: String(code == null ? '' : code),
+      stdin: String(stdin == null ? '' : stdin)
+    }).then(function (res) {
+      var d = res.data || {};
+      if (res.status !== 200) {
+        return { ok: false, stdout: '', stderr: String(d.error || '判题服务没响应，过一会儿再试'), ms: 0, setupFailed: true };
+      }
+      return {
+        ok: !!d.ok,
+        stdout: String(d.stdout || ''),
+        stderr: String(d.stderr || ''),
+        ms: Number(d.ms) || 0,
+        timeout: d.phase === 'timeout'
+      };
     });
   }
 
@@ -246,7 +288,7 @@
     if (el.runMeta) el.runMeta.textContent = '';
     ensureRunner().then(function (ok) {
       if (!ok) { el.run.disabled = false; showRunOut('运行环境没加载下来：检查一下网络，再点一次运行。', true); return; }
-      return R.run(code, el.stdin.value, RUN_TIMEOUT).then(function (res) {
+      return runOnce(code, el.stdin.value, RUN_TIMEOUT).then(function (res) {
         el.run.disabled = false;
         if (!res.ok && res.setupFailed) { showRunOut(res.stderr || '运行环境没起来', true); return; }
         var head = '';
@@ -268,7 +310,52 @@
   /* =========================================================
      判题
      ========================================================= */
+  /* C：服务器编译一次、按测试点跑完，结果一次拿回来 */
+  function judgeOnServer(problem, code, onlyFirst) {
+    var all = problem.tests || [];
+    var tests = onlyFirst ? all.slice(0, 1) : all;
+    return window.JHJX_API.ojRunC({
+      code: String(code == null ? '' : code),
+      tests: tests.map(function (t) { return t.in; })
+    }).then(function (res) {
+      var d = res.data || {};
+      if (res.status !== 200) {
+        return { error: String(d.error || '判题服务没响应，过一会儿再试') };
+      }
+      if (d.phase === 'compile' || d.phase === 'compile-timeout' || d.phase === 'toolchain') {
+        return { compileError: String(d.stderr || '编译失败'), phase: d.phase };
+      }
+      var list = (d.cases || []).map(function (c, i) {
+        var t = tests[i] || {};
+        var cmp = c.ok ? compareOut(c.stdout, t.out) : null;
+        return {
+          index: i,
+          isSample: i === 0,
+          input: String(t.in || ''),
+          expected: String(t.out || ''),
+          stdout: String(c.stdout || ''),
+          stderr: String(c.stderr || ''),
+          ms: Number(c.ms) || 0,
+          timeout: c.phase === 'timeout',
+          ok: !!(c.ok && cmp && cmp.ok),
+          reason: c.ok ? ((cmp && cmp.reason) || '') : (c.phase === 'timeout' ? '运行超时' : '运行出错')
+        };
+      });
+      var passed = 0;
+      for (var i = 0; i < list.length; i++) if (list[i].ok) passed++;
+      return {
+        caseResults: list,
+        passed: passed,
+        total: tests.length,
+        allPass: passed === tests.length && tests.length > 0,
+        stopped: false,
+        ms: Number(d.ms) || 0
+      };
+    });
+  }
+
   function runCases(problem, code, onlyFirst) {
+    if (isServerLang()) return judgeOnServer(problem, code, onlyFirst);
     var tests = (problem.tests || []).slice();
     if (onlyFirst) tests = tests.slice(0, 1);
     var results = [];
@@ -281,7 +368,7 @@
         stopped = true;
         return Promise.resolve(results);
       }
-      return R.run(code, tests[i].in, CASE_TIMEOUT).then(function (res) {
+      return runOnce(code, tests[i].in, CASE_TIMEOUT).then(function (res) {
         var cmp = null;
         if (res.ok) cmp = compareOut(res.stdout, tests[i].out);
         results.push({
@@ -447,6 +534,24 @@
         state.judging = false;
         el.probSubmit.disabled = false;
         el.probRunSample.disabled = false;
+        /* C 是服务器编译的：编译不过就先说清是哪一行什么错，别当成「答案不对」 */
+        if (judge && (judge.compileError || judge.error)) {
+          el.probVerdict.textContent = judge.compileError ? '编译不过' : '判题服务没响应';
+          el.probVerdict.className = 'oj-result__title oj-verdict is-bad';
+          el.probMeta2.textContent = '';
+          el.probOutBody.innerHTML = '';
+          var pMsg = document.createElement('p');
+          pMsg.className = 'oj-line';
+          pMsg.textContent = judge.compileError ? '编译器这样说（改完再交一次）：' : '这一趟没跑成：';
+          el.probOutBody.appendChild(pMsg);
+          var pre = document.createElement('pre');
+          pre.className = 'oj-out is-bad';
+          pre.style.margin = '6px 0 0';
+          pre.textContent = judge.compileError || judge.error;
+          el.probOutBody.appendChild(pre);
+          saveCode(p.id, code);
+          return;
+        }
         renderJudge(judge);
         saveCode(p.id, code);
         /* 判完把结果滚进视野：编辑器挺高的，不然还得自己往下找 */
@@ -500,7 +605,7 @@
         el.probOutBody.innerHTML = '<p class="oj-line">运行环境没加载下来：检查一下网络。</p>';
         return;
       }
-      return R.run(code, stdin, RUN_TIMEOUT).then(function (res) {
+      return runOnce(code, stdin, RUN_TIMEOUT).then(function (res) {
         el.probRunSample.disabled = false;
         el.probRunSelf.disabled = false;
         saveCode(p.id, code);
@@ -562,10 +667,17 @@
      ========================================================= */
   var CAT_ORDER = ['输入输出', '运算与类型', '条件分支', '循环', '列表', '字符串', '字典与集合', '函数与递归', '排序与综合', '模拟与实战'];
 
+  /* 各语言的分类顺序（C 没有「列表/字典」这些，换成了数组/指针/结构体） */
+  var CAT_ORDER_BY_LANG = {
+    python: ['输入输出', '运算与类型', '条件分支', '循环', '列表', '字符串', '字典与集合', '函数与递归', '排序与综合', '模拟与实战'],
+    c: ['输入输出', '运算与类型', '条件分支', '循环', '数组与矩阵', '字符串', '函数与递归', '指针与结构体', '排序与查找', '模拟与综合']
+  };
+  function catOrder() { return CAT_ORDER_BY_LANG[state.lang] || CAT_ORDER_BY_LANG.python; }
+
   function loadBank() {
     if (state.bank) return Promise.resolve(state.bank);
     if (el.bankInfo) el.bankInfo.textContent = '正在读题库…';
-    return fetch(BANK_URL, { cache: 'no-cache' })
+    return fetch(bankUrlOf(state.lang), { cache: 'no-cache' })
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
@@ -580,7 +692,7 @@
           state.byId[String(p.id)] = p;
           counts[p.cat] = (counts[p.cat] || 0) + 1;
         });
-        state.cats = CAT_ORDER.filter(function (c) { return counts[c]; }).map(function (c) {
+        state.cats = catOrder().filter(function (c) { return counts[c]; }).map(function (c) {
           return { cat: c, count: counts[c] };
         });
         return state.bank;
@@ -756,6 +868,10 @@
      单题视图
      ========================================================= */
   function defaultStarter(p) {
+    if (isServerLang()) {
+      /* C 的起手骨架：读入 + 输出，直接能编译 */
+      return '#include <stdio.h>\n\nint main(void) {\n    /* ' + p.title + ' */\n\n    return 0;\n}\n';
+    }
     return '# ' + p.title + '\n# 从 input() 读数据，用 print() 输出结果\n\n';
   }
   function saveCode(id, code) {
@@ -1018,14 +1134,54 @@
   function chooseLang(key) {
     var lang = langByKey(key);
     if (!lang.ready) return;
+    var before = state.lang;
     state.lang = lang.key;
-    try { localStorage.setItem(PREFIX + 'lang', lang.key); } catch (e) { /* 忽略 */ }
+    setLangPrefix(lang.key);
+    try { localStorage.setItem('jhjx-oj-lastlang', lang.key); } catch (e) { /* 忽略 */ }
     if (el.langPick) el.langPick.hidden = true;
     if (el.shell) el.shell.hidden = false;
     if (el.langNow) el.langNow.textContent = lang.name;
     if (el.langTag) el.langTag.textContent = lang.name;
+
+    if (before !== lang.key) {
+      /* 换语言：题库、进度、错题本都得换成这门语言的 */
+      state.bank = null;
+      state.byId = {};
+      state.cats = [];
+      state.problem = null;
+      reloadProgress();
+      if (el.bankInfo) el.bankInfo.hidden = false;
+      if (el.filters) for (var i = 0; i < el.filters.length; i++) el.filters[i].hidden = false;
+      if (el.list) el.list.hidden = false;
+      if (el.problem) el.problem.hidden = true;
+      if (el.bankBar) el.bankBar.hidden = false;
+      if (el.search) el.search.value = '';
+      state.q = '';
+      state.cat = 'all';
+      state.level = '0';
+      if (el.cats) el.cats.innerHTML = '';
+      if (el.levels) el.levels.innerHTML = '';
+      if (el.list) el.list.innerHTML = '';
+      renderWrongCounts();
+      renderWrongList();
+    }
+    /* 这一门怎么跑，页面上的说明要说清 */
+    if (el.note) {
+      el.note.textContent = isServerLang()
+        ? 'C 要编译：代码会发到协会的判题服务器上编译运行，判完就删、不留存；结果只回给你。'
+        : '不用装任何环境：解释器就在这个网页里跑，代码只在你自己的浏览器里，不上传。';
+    }
+    /* 编辑器里的示例代码按语言换一套 */
+    var playSaved = null;
+    try { playSaved = localStorage.getItem(PREFIX + 'play'); } catch (e) { playSaved = null; }
+    if (el.code) {
+      el.code.value = playSaved || (isServerLang()
+        ? '#include <stdio.h>\n\nint main(void) {\n    int a;\n    scanf("%d", &a);\n    printf("%d\\n", a * 2);\n    return 0;\n}\n'
+        : '# 随便写点什么试试：\n# a = int(input())\n# print(a * 2)\n\n');
+      if (playEditor) playEditor.sync();
+    }
     goPane('run');
-    ensureRunner();   /* 既然选了语言，就先把解释器热起来 */
+    ensureRunner();   /* 选了语言就把环境热起来（C 只是改一下提示） */
   }
 
   /* 回语言选择页（进度都还在，只是换个语言） */
@@ -1055,6 +1211,7 @@
       langMsg: $('ojLangMsg'),
       langNow: $('ojLangNow'),
       langTag: $('ojLangTag'),
+      note: $('ojNote'),
       state: $('ojState'),
       run: $('ojRun'),
       runClear: $('ojRunClear'),
@@ -1178,21 +1335,11 @@
       renderBankInfo();
     });
 
-    /* 起手就把题库读进来（读不到也不挡写代码那块） */
-    loadBank().then(function () {
-      renderCats();
-      renderLevels();
-      renderBankInfo();
-      renderWrongCounts();
-      renderWrongList();
-    }, function (err) {
-      if (el.bankInfo) el.bankInfo.textContent = '题库没读出来（' + (err.message || err) + '）：检查网络后刷新一下。';
-    });
     renderWrongCounts();
     renderWrongList();
 
-    /* 先停在语言选择页：选好语言才进主界面（进度都存在本机，换语言不会丢） */
-    setState('运行环境：还没加载（点「运行」时加载）');
+    /* 先停在语言选择页：选好语言才进主界面（题库、进度、错题本都按语言分开） */
+    setState('运行环境：选好语言之后再说');
     renderLangPick();
     $('ojLangPick').hidden = false;
     $('ojShell').hidden = true;

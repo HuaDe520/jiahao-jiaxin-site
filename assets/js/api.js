@@ -465,6 +465,11 @@
       return call('POST', '/api/fangu/recommend', { seasonId: String(seasonId) });
     },
 
+    /* ---------------- 0还是1?：C 语言判题（在服务器上编译运行） ----------------
+       浏览器里没有能用的 C 编译器，所以 C 这一门要把代码发到判题服务上编译。
+       传 stdin 就是「跑一遍」，传 tests 就是「判题」（服务器编译一次、逐条跑）。 */
+    ojRunC: function (payload) { return call('POST', '/api/oj/c/run', payload || {}); },
+
     /* ---------------- 超豪飞行派对（联机飞行棋） ---------------- */
     flightBoard: function () { return call('GET', '/api/flight/board'); },
     flightCreate: function (maxPlayers) { return call('POST', '/api/flight/create', { maxPlayers: maxPlayers }); },

@@ -90,7 +90,7 @@
             <button type="button" class="oj-btn" id="ojRun">运行</button>
             <button type="button" class="oj-btn oj-btn--ghost" id="ojRunClear">清空</button>
           </div>
-          <p class="oj-note">不用装任何环境：解释器就在这个网页里跑，代码只在你自己的浏览器里，不上传。</p>
+          <p class="oj-note" id="ojNote">不用装任何环境：解释器就在这个网页里跑，代码只在你自己的浏览器里，不上传。</p>
 
           <div class="oj-workspace">
             <div class="oj-editor" id="ojEditor">
@@ -258,8 +258,9 @@
   <span>返回首页</span>
 </a>
 
+<script src="assets/js/api.js?v=de2d8dfd"></script>
 <script src="assets/js/oj-runner.js?v=4affc567"></script>
-<script src="assets/js/oj.js?v=74e9d1cb"></script>
+<script src="assets/js/oj.js?v=93ba2f2f"></script>
 <script>
   var y = document.getElementById('year');
   if (y) { y.textContent = String(new Date().getFullYear()); }
