@@ -216,8 +216,9 @@
 
   function ensureRunner() {
     if (isServerLang()) {
-      /* C 由服务器编译，前端不用准备什么，只提示一下 */
+      /* C 由服务器编译：不用加载什么，顺手把它叫醒 */
       setState('运行环境：C 代码会发到协会的判题服务器上编译运行');
+      wakeC();
       return Promise.resolve(true);
     }
     if (runnerReady) return Promise.resolve(true);
@@ -232,20 +233,29 @@
     });
   }
 
-  /* 发到判题服务器。网络偶尔抽一下（status 0 = 根本没连上），自动再试一次：
-     C 编译一次要跑好几秒，用户点了提交却看到「连不上」太亏 */
+  /* 发到判题服务器。这个函数闲下来会被平台回收，刚被叫醒的那一两秒里网关
+     会直接回一个「连不上」，所以要自动重试：一共四次，铺开大约 7 秒，
+     足够熬过冷启动。 */
   function postC(payload) {
+    var wait = [0, 900, 2200, 4000];
     var tries = 0;
     function attempt() {
       return window.JHJX_API.ojRunC(payload).then(function (res) {
-        if (res && res.status === 0 && tries < 1) {
+        if (res && res.status === 0 && tries < wait.length - 1) {
           tries++;
-          return new Promise(function (go) { setTimeout(go, 800); }).then(attempt);
+          return new Promise(function (go) { setTimeout(go, wait[tries]); }).then(attempt);
         }
         return res;
       });
     }
     return attempt();
+  }
+
+  /* 进 C 之前先把它叫醒（不等结果，纯预热） */
+  function wakeC() {
+    if (!window.JHJX_API || !window.JHJX_API.wake) return;
+    try { window.JHJX_API.wake(); } catch (e) { /* 忽略 */ }
+    setTimeout(function () { try { window.JHJX_API.wake(); } catch (e) { /* 忽略 */ } }, 1500);
   }
 
   /* 统一的「跑一次」：Python 走浏览器里的解释器，C 走服务器 */
@@ -589,6 +599,13 @@
           pre.style.margin = '6px 0 0';
           pre.textContent = judge.compileError || judge.error;
           el.probOutBody.appendChild(pre);
+          /* 只是没连上（判题服务器冷启动）的话，告诉用户再点一次就行 */
+          if (!judge.compileError && /连不上|没响应|网络/.test(String(judge.error))) {
+            var tip = document.createElement('p');
+            tip.className = 'oj-line';
+            tip.textContent = '判题服务器可能刚被叫醒（它闲下来会睡过去）。等两三秒再点一次「提交判题」就好。';
+            el.probOutBody.appendChild(tip);
+          }
           saveCode(p.id, code);
           return;
         }
@@ -1206,6 +1223,8 @@
     if (el.shell) el.shell.hidden = false;
     if (el.langNow) el.langNow.textContent = lang.name;
     if (el.langTag) el.langTag.textContent = lang.name;
+    /* C 走服务器：一进来就先把它叫醒，免得用户第一次提交撞上冷启动 */
+    if (runnerKindOf(lang.key) === 'server') wakeC();
 
     if (before !== lang.key) {
       /* 换语言：题库、进度、错题本都得换成这门语言的 */

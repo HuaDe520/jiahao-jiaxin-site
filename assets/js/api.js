@@ -470,6 +470,15 @@
        传 stdin 就是「跑一遍」，传 tests 就是「判题」（服务器编译一次、逐条跑）。 */
     ojRunC: function (payload) { return call('POST', '/api/oj/c/run', payload || {}); },
 
+    /* 判题函数闲下来会被平台回收，下一次请求要重新拉起（那一下很可能连不上）。
+       进 C 之前先空打一个 /api/health 把它叫醒，用户就不用等冷启动。 */
+    wake: function () {
+      if (!serviceReady()) return Promise.resolve(false);
+      return fetch(base() + '/api/health', { method: 'GET', mode: 'cors', cache: 'no-store' })
+        .then(function (r) { return !!r && r.ok; })
+        .catch(function () { return false; });
+    },
+
     /* ---------------- 超豪飞行派对（联机飞行棋） ---------------- */
     flightBoard: function () { return call('GET', '/api/flight/board'); },
     flightCreate: function (maxPlayers) { return call('POST', '/api/flight/create', { maxPlayers: maxPlayers }); },

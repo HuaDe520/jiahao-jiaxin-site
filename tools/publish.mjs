@@ -237,29 +237,50 @@ if (!refRes.ok) {
 console.log(`目标分支: ${branch}`);
 const parents = [refRes.json.object.sha];
 
-/* 3. 逐个上传文件为 blob */
-const tree = [];
-let done = 0;
-const CONCURRENCY = 4;
-const queue = [...files];
-async function worker() {
-  while (queue.length) {
-    const f = queue.shift();
-    const blob = await api('POST', `/repos/${owner}/${REPO}/git/blobs`, {
-      token,
-      body: { content: readFileSync(f.file).toString('base64'), encoding: 'base64' },
-    });
-    if (!blob.ok) { console.error(`\n上传失败 ${f.path}: ${blob.status} ${blob.json?.message}`); process.exit(1); }
-    tree.push({ path: f.path, mode: '100644', type: 'blob', sha: blob.json.sha });
-    done++;
-    process.stdout.write(`\r  已上传 ${done}/${files.length}  ${f.path.slice(0, 44).padEnd(46)}`);
-  }
+/* 3. 逐个上传文件为 blob
+      GitHub 偶尔会对并发的 blob 请求返回一个「不是 blob」的 sha，
+      紧接着建 tree 就 422（tree.sha … is not a valid blob）。
+      所以：先并发传（快），建 tree 失败就改成串行重传一遍（稳）。 */
+async function uploadAll(concurrency) {
+  const tree = [];
+  let done = 0;
+  const queue = [...files];
+  await Promise.all(Array.from({ length: concurrency }, async () => {
+    while (queue.length) {
+      const f = queue.shift();
+      let blob = await api('POST', `/repos/${owner}/${REPO}/git/blobs`, {
+        token,
+        body: { content: readFileSync(f.file).toString('base64'), encoding: 'base64' },
+      });
+      /* 同一个文件重试一次（网络/限流抖动） */
+      if (!blob.ok && blob.status >= 500) {
+        await sleep(600);
+        blob = await api('POST', `/repos/${owner}/${REPO}/git/blobs`, {
+          token,
+          body: { content: readFileSync(f.file).toString('base64'), encoding: 'base64' },
+        });
+      }
+      if (!blob.ok) { console.error(`\n上传失败 ${f.path}: ${blob.status} ${blob.json?.message}`); process.exit(1); }
+      if (!blob.json || typeof blob.json.sha !== 'string' || !/^[0-9a-f]{40}$/.test(blob.json.sha)) {
+        console.error(`\n上传 ${f.path} 没拿到合法的 blob sha：`, JSON.stringify(blob.json).slice(0, 200));
+        process.exit(1);
+      }
+      tree.push({ path: f.path, mode: '100644', type: 'blob', sha: blob.json.sha });
+      done++;
+      process.stdout.write(`\r  已上传 ${done}/${files.length}  ${f.path.slice(0, 44).padEnd(46)}`);
+    }
+  }));
+  process.stdout.write('\n');
+  return tree;
 }
-await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
-process.stdout.write('\n');
 
-/* 4. 建 tree / commit / 更新分支 */
-const treeRes = await api('POST', `/repos/${owner}/${REPO}/git/trees`, { token, body: { tree } });
+let tree = await uploadAll(4);
+let treeRes = await api('POST', `/repos/${owner}/${REPO}/git/trees`, { token, body: { tree } });
+if (!treeRes.ok && treeRes.status === 422) {
+  console.warn('建 tree 被拒（并发上传抖了一下），改成串行重传一遍…');
+  tree = await uploadAll(1);
+  treeRes = await api('POST', `/repos/${owner}/${REPO}/git/trees`, { token, body: { tree } });
+}
 if (!treeRes.ok) { console.error('创建 tree 失败：', treeRes.status, treeRes.json?.message); process.exit(1); }
 
 const commitRes = await api('POST', `/repos/${owner}/${REPO}/git/commits`, {
