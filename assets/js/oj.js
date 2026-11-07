@@ -232,10 +232,26 @@
     });
   }
 
+  /* 发到判题服务器。网络偶尔抽一下（status 0 = 根本没连上），自动再试一次：
+     C 编译一次要跑好几秒，用户点了提交却看到「连不上」太亏 */
+  function postC(payload) {
+    var tries = 0;
+    function attempt() {
+      return window.JHJX_API.ojRunC(payload).then(function (res) {
+        if (res && res.status === 0 && tries < 1) {
+          tries++;
+          return new Promise(function (go) { setTimeout(go, 800); }).then(attempt);
+        }
+        return res;
+      });
+    }
+    return attempt();
+  }
+
   /* 统一的「跑一次」：Python 走浏览器里的解释器，C 走服务器 */
   function runOnce(code, stdin, timeoutMs) {
     if (!isServerLang()) return R.run(code, stdin, timeoutMs);
-    return window.JHJX_API.ojRunC({
+    return postC({
       code: String(code == null ? '' : code),
       stdin: String(stdin == null ? '' : stdin)
     }).then(function (res) {
@@ -338,7 +354,7 @@
   function judgeOnServer(problem, code, onlyFirst) {
     var all = problem.tests || [];
     var tests = onlyFirst ? all.slice(0, 1) : all;
-    return window.JHJX_API.ojRunC({
+    return postC({
       code: String(code == null ? '' : code),
       tests: tests.map(function (t) { return t.in; })
     }).then(function (res) {
